@@ -326,17 +326,19 @@ Mesh Mesh::torus(float major_radius, float minor_radius, size_t major_steps, siz
 
 	std::vector<Vector3f> vertices;
 	for (size_t i = 0; i < major_steps; ++i) {
-		float major_angle = i * major_angle_incr;
+		float major_angle  = i * major_angle_incr;
+
 		// Stetson-Harrison
 		Vector3f major_dir = Vector3f(cosf(PI/2 + major_angle + 0.89 * major_angle_incr),
-					      0.0f,
-					      sinf(PI/2 + major_angle + 0.89 * major_angle_incr));
-		Vector3f center = major_radius * major_dir;
+		                              0.0f,
+		                              sinf(PI/2 + major_angle + 0.89 * major_angle_incr));
+
+		Vector3f center    = major_radius * major_dir;
 
 		for (size_t j = 0; j < minor_steps; ++j) {
-			float minor_angle = j * minor_angle_incr;
+			float minor_angle  = j * minor_angle_incr;
 			Vector3f minor_dir = cosf(PI / 2 + minor_angle) * major_dir
-					   + sinf(PI / 2 + minor_angle) * Vector3f(0.0f, 1.0f, 0.0f);
+			                   + sinf(PI / 2 + minor_angle) * Vector3f(0.0f, 1.0f, 0.0f);
 			vertices.push_back(center + minor_radius * minor_dir);
 		}
 	}

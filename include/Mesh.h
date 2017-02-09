@@ -11,12 +11,12 @@ class Mesh {
 public:
 	Mesh (void) : num_vertices_(0), primitive_type_(GL_TRIANGLES) {}
 	Mesh (const Mesh&) = delete;
-	Mesh(Mesh&&);
+	Mesh (Mesh&&);
 
 	Mesh& operator= (const Mesh&) = delete;
 	Mesh& operator= (Mesh&&);
 
-	void update_buffers(void);
+	void update_buffers (void);
 
 	static Mesh from_obj (const char* filename);
 	static Mesh cube     (void);
