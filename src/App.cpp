@@ -13,6 +13,7 @@ App::App(int argc, char* argv[])
 	wave_shader_           (GL::ShaderProgram(                          // For entirely fragment-shader-based rendering.
 		                        GL::ShaderObject::vertex_passthrough(), // This doesn't transform the vertices at all.
 		                        GL::ShaderObject::from_file(GL_FRAGMENT_SHADER, "shaders/wave_frag.glsl"))),
+	pinwheel_shader_       (GL::ShaderProgram::from_files("shaders/pinwheel_vert.glsl", "shaders/pinwheel_frag.glsl")),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
 	int width, height;
@@ -26,6 +27,10 @@ App::App(int argc, char* argv[])
 	// This is not strictly necessary if only rendering the wave.
 	// With the meshes, try to comment it out and see what happens.
 	glEnable(GL_DEPTH_TEST);
+
+	// Subdivide our plane a couple of times.
+	for (int i = 0; i < 5; ++i)
+		plane_.subdivide();
 }
 
 void App::loop(void)
@@ -47,17 +52,56 @@ void App::loop(void)
 		// render_wave(width, height);
 
 		// Render a torus?
-		render_mesh(torus_, width, height);
+		// render_mesh(torus_, width, height);
 
 		// Render a cube?
 		// render_mesh(cube_, width, height);
-
+		
+		// Render a pinwheel-subdivided plane?
+		render_pinwheel(width, height);
+	
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
 
 		// Check if it's time to exit.
 		glfwPollEvents();
 	}
+}
+
+void App::render_pinwheel(int width, int height, GLuint framebuffer)
+{
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	// Get uniform locations.
+	GLuint screen_size_uniform;
+	GLuint screen_center_uniform;
+	GLuint pixels_per_unit_uniform;
+
+	screen_size_uniform     = glGetUniformLocation(pinwheel_shader_, "uScreenSize");
+	screen_center_uniform   = glGetUniformLocation(pinwheel_shader_, "uScreenCenter");
+	pixels_per_unit_uniform = glGetUniformLocation(pinwheel_shader_, "uPixelsPerUnit");
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(pinwheel_shader_);
+
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, plane_.screen_center().data());
+	glUniform1f  (pixels_per_unit_uniform, plane_.pixels_per_unit());
+
+	const auto& mesh = plane_.mesh();
+	glBindVertexArray(mesh.vao_);
+	glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::render_wave(int width, int height, GLuint framebuffer)
