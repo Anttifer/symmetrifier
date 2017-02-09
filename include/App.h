@@ -25,6 +25,8 @@ private:
 	void render_mesh     (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 	void render_on_mesh  (const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 
+	void screenshot (int width, int height);
+
 	// Framework objects.
 	MainWindow           window_;
 

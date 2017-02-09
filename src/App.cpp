@@ -3,6 +3,10 @@
 #include "GLFunctions.h"
 #include "GLUtils.h"
 
+// a bit hackish, these are defined at the bottom
+static bool _print_key_pressed(bool = false);
+static void _key_callback(GLFWwindow*, int, int, int, int);
+
 //--------------------
 
 App::App(int argc, char* argv[])
@@ -16,6 +20,9 @@ App::App(int argc, char* argv[])
 	pinwheel_shader_       (GL::ShaderProgram::from_files("shaders/pinwheel_vert.glsl", "shaders/pinwheel_frag.glsl")),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
+	// Set the key callback function for this window.
+	glfwSetKeyCallback(window_, _key_callback);
+
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
@@ -63,8 +70,12 @@ void App::loop(void)
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
 
-		// Check if it's time to exit.
+		// Poll events.
 		glfwPollEvents();
+
+		// Screenshot?
+		if (_print_key_pressed())
+			screenshot(width, height);
 	}
 }
 
@@ -267,6 +278,34 @@ void App::render_on_mesh(const GL::Texture& texture, const Mesh& mesh, int width
 	glUseProgram(0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::screenshot(int width, int height)
+{
+	auto texture = GL::Texture::empty_2D(width, height);
+	auto depth   = GL::Texture::empty_2D_depth(width, height);
+	auto fbo     = GL::FBO::simple_C0D(texture, depth);
+
+	// Change me too!
+	render_pinwheel(width, height, fbo);
+
+	GL::tex_to_png(texture, "screenshot.png");
+}
+
+bool _print_key_pressed(bool set_pressed)
+{
+	static bool was_pressed = false;
+
+	bool return_value = was_pressed;
+	was_pressed = set_pressed;
+
+	return return_value;
+}
+
+void _key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		_print_key_pressed(true);
 }
 
 //--------------------
