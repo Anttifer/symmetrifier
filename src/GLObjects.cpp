@@ -15,11 +15,13 @@
 namespace GL
 {
 // Buffer
-Buffer::Buffer(void) {
+Buffer::Buffer(void)
+{
 	glGenBuffers(1, &buffer_);
 }
 
-Buffer::Buffer(const Buffer& other) {
+Buffer::Buffer(const Buffer& other)
+{
 	glGenBuffers(1, &buffer_);
 
 	glBindBuffer(GL_COPY_READ_BUFFER, other.buffer_);
@@ -42,12 +44,15 @@ Buffer::Buffer(Buffer&& other)
 	other.buffer_ = 0;
 }
 
-Buffer::~Buffer(void) {
+Buffer::~Buffer(void)
+{
 	glDeleteBuffers(1, &buffer_);
 }
 
-Buffer& Buffer::operator=(const Buffer& other) {
-	if (this != &other) {
+Buffer& Buffer::operator=(const Buffer& other)
+{
+	if (this != &other)
+	{
 		glBindBuffer(GL_COPY_READ_BUFFER, other.buffer_);
 		glBindBuffer(GL_COPY_WRITE_BUFFER, buffer_);
 
@@ -57,10 +62,12 @@ Buffer& Buffer::operator=(const Buffer& other) {
 		glGetBufferParameteriv(GL_COPY_READ_BUFFER, GL_BUFFER_USAGE, &read_usage);
 		glGetBufferParameteriv(GL_COPY_WRITE_BUFFER, GL_BUFFER_USAGE, &write_usage);
 
-		if (read_size == write_size && read_usage == write_usage) {
+		if (read_size == write_size && read_usage == write_usage)
+		{
 			glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, read_size);
 		}
-		else {
+		else
+		{
 			glBufferData(GL_COPY_WRITE_BUFFER, read_size, nullptr, read_usage);
 			glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, read_size);
 		}
@@ -72,8 +79,10 @@ Buffer& Buffer::operator=(const Buffer& other) {
 	return *this;
 }
 
-Buffer& Buffer::operator=(Buffer&& other) {
-	if (this != &other) {
+Buffer& Buffer::operator=(Buffer&& other)
+{
+	if (this != &other)
+	{
 		glDeleteBuffers(1, &buffer_);
 		buffer_ = other.buffer_;
 		other.buffer_ = 0;
@@ -83,7 +92,8 @@ Buffer& Buffer::operator=(Buffer&& other) {
 }
 
 // Texture
-Texture::Texture(void) {
+Texture::Texture(void)
+{
 	glGenTextures(1, &texture_);
 }
 
@@ -97,12 +107,15 @@ Texture::Texture(Texture&& other)
 	other.height_ = 0;
 }
 
-Texture::~Texture(void) {
+Texture::~Texture(void)
+{
 	glDeleteTextures(1, &texture_);
 }
 
-Texture& Texture::operator=(Texture&& other) {
-	if (this != &other) {
+Texture& Texture::operator=(Texture&& other)
+{
+	if (this != &other)
+	{
 		glDeleteTextures(1, &texture_);
 		texture_ = other.texture_;
 		other.texture_ = 0;
@@ -116,7 +129,8 @@ Texture& Texture::operator=(Texture&& other) {
 	return *this;
 }
 
-Texture Texture::from_png(const char* filename) { // TODO: Error handling & filtering.
+Texture Texture::from_png(const char* filename) // TODO: Error handling & filtering.
+{
 	assert(filename != nullptr);
 
 	std::vector<unsigned char> ud_image;
@@ -124,7 +138,8 @@ Texture Texture::from_png(const char* filename) { // TODO: Error handling & filt
 	lodepng::decode(ud_image, width, height, filename);
 
 	std::vector<unsigned char> image(ud_image.size());
-	for (size_t i = 0; i < height; ++i) {
+	for (size_t i = 0; i < height; ++i)
+	{
 		for (size_t j = 0; j < 4 * width; ++j)
 			image[4 * width * i + j] = ud_image[4 * width * (height - (1 + i)) + j];
 	}
@@ -146,7 +161,8 @@ Texture Texture::from_png(const char* filename) { // TODO: Error handling & filt
 	return texture;
 }
 
-Texture Texture::empty_2D(int width, int height) {
+Texture Texture::empty_2D(int width, int height)
+{
 	Texture texture;
 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
@@ -196,7 +212,8 @@ Texture Texture::empty_2D_multisample_depth(int width, int height, int num_sampl
 	return depth;
 }
 
-Texture Texture::empty_2D_depth(int width, int height) {
+Texture Texture::empty_2D_depth(int width, int height)
+{
 	Texture depth;
 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
@@ -214,13 +231,15 @@ Texture Texture::empty_2D_depth(int width, int height) {
 	return depth;
 }
 
-Texture Texture::empty_cube(int resolution) {
+Texture Texture::empty_cube(int resolution)
+{
 	Texture texture;
 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &old_tex);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
 
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 6; ++i)
+	{
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA,
 		             resolution, resolution, 0,
 		             GL_RGBA, GL_FLOAT, 0);
@@ -238,13 +257,15 @@ Texture Texture::empty_cube(int resolution) {
 	return texture;
 }
 
-Texture Texture::empty_cube_depth(int resolution) {
+Texture Texture::empty_cube_depth(int resolution)
+{
 	Texture depth;
 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &old_tex);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, depth);
 
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 6; ++i)
+	{
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24,
 		             resolution, resolution, 0,
 		             GL_DEPTH_COMPONENT, GL_FLOAT, 0);
@@ -262,7 +283,8 @@ Texture Texture::empty_cube_depth(int resolution) {
 	return depth;
 }
 
-Texture Texture::buffer_texture(const Buffer& buffer, GLenum format) {
+Texture Texture::buffer_texture(const Buffer& buffer, GLenum format)
+{
 	Texture texture;
 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &old_tex);
@@ -277,7 +299,8 @@ Texture Texture::buffer_texture(const Buffer& buffer, GLenum format) {
 }
 
 // VAO
-VAO::VAO(void) {
+VAO::VAO(void)
+{
 	glGenVertexArrays(1, &vao_);
 }
 
@@ -287,12 +310,15 @@ VAO::VAO(VAO&& other)
 	other.vao_ = 0;
 }
 
-VAO::~VAO(void) {
+VAO::~VAO(void)
+{
 	glDeleteVertexArrays(1, &vao_);
 }
 
-VAO& VAO::operator=(VAO&& other) {
-	if (this != &other) {
+VAO& VAO::operator=(VAO&& other)
+{
+	if (this != &other)
+	{
 		glDeleteVertexArrays(1, &vao_);
 		vao_ = other.vao_;
 		other.vao_ = 0;
@@ -302,7 +328,8 @@ VAO& VAO::operator=(VAO&& other) {
 }
 
 // FBO
-FBO::FBO(void) {
+FBO::FBO(void)
+{
 	glGenFramebuffers(1, &fbo_);
 }
 
@@ -312,12 +339,15 @@ FBO::FBO(FBO&& other)
 	other.fbo_ = 0;
 }
 
-FBO::~FBO(void) {
+FBO::~FBO(void)
+{
 	glDeleteFramebuffers(1, &fbo_);
 }
 
-FBO& FBO::operator=(FBO&& other) {
-	if (this != &other) {
+FBO& FBO::operator=(FBO&& other)
+{
+	if (this != &other)
+	{
 		glDeleteFramebuffers(1, &fbo_);
 		fbo_ = other.fbo_;
 		other.fbo_ = 0;
@@ -326,7 +356,8 @@ FBO& FBO::operator=(FBO&& other) {
 	return *this;
 }
 
-FBO FBO::simple_C0(const Texture& color) {
+FBO FBO::simple_C0(const Texture& color)
+{
 	FBO framebuffer;
 
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -340,7 +371,8 @@ FBO FBO::simple_C0(const Texture& color) {
 	glDrawBuffers(1, &draw_buffer);
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
 		glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 		std::cerr << "Framebuffer incomplete." << std::endl;
 		throw std::runtime_error("Framebuffer incomplete.");
@@ -351,7 +383,8 @@ FBO FBO::simple_C0(const Texture& color) {
 	return framebuffer;
 }
 
-FBO FBO::simple_C0D(const Texture& color, const Texture& depth) {
+FBO FBO::simple_C0D(const Texture& color, const Texture& depth)
+{
 	FBO framebuffer;
 
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -367,7 +400,8 @@ FBO FBO::simple_C0D(const Texture& color, const Texture& depth) {
 	glDrawBuffers(1, &draw_buffer);
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
 		glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 		std::cerr << "Framebuffer incomplete." << std::endl;
 		throw std::runtime_error("Framebuffer incomplete.");
@@ -393,7 +427,8 @@ FBO FBO::multisample_C0(const Texture& color)
 	// glDrawBuffers(1, &draw_buffer);
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
 		glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 		std::cerr << "Framebuffer incomplete." << std::endl;
 		throw std::runtime_error("Framebuffer incomplete.");
@@ -421,7 +456,8 @@ FBO FBO::multisample_C0D(const Texture& color, const Texture& depth)
 	glDrawBuffers(1, &draw_buffer);
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
 		glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 		std::cerr << "Framebuffer incomplete." << std::endl;
 		throw std::runtime_error("Framebuffer incomplete.");
@@ -433,11 +469,13 @@ FBO FBO::multisample_C0D(const Texture& color, const Texture& depth)
 }
 
 // ShaderObject
-ShaderObject::ShaderObject(GLenum shader_type) {
+ShaderObject::ShaderObject(GLenum shader_type)
+{
 	shader_object_ = glCreateShader(shader_type);
 }
 
-ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source) {
+ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source)
+{
 	shader_object_ = glCreateShader(shader_type);
 	glShaderSource(shader_object_, 1, &shader_source, NULL);
 
@@ -446,14 +484,16 @@ ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source) {
 	// Check errors.
 	GLint compile_status;
 	glGetShaderiv(shader_object_, GL_COMPILE_STATUS, &compile_status);
-	if (compile_status == GL_FALSE) {
+	if (compile_status == GL_FALSE)
+	{
 		GLint info_log_length;
 		glGetShaderiv(shader_object_, GL_INFO_LOG_LENGTH, &info_log_length);
 		std::vector<GLchar> info_log_vector(info_log_length + 1);
 		glGetShaderInfoLog(shader_object_, info_log_length, NULL, &info_log_vector[0]);
 
 		std::string type_string;
-		switch (shader_type) {
+		switch (shader_type)
+		{
 		case GL_COMPUTE_SHADER:
 			type_string = "Compute shader "; break;
 		case GL_VERTEX_SHADER:
@@ -477,18 +517,21 @@ ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source) {
 	}
 }
 
-ShaderObject::ShaderObject(ShaderObject&& other) :
-	shader_object_(other.shader_object_)
+ShaderObject::ShaderObject(ShaderObject&& other)
+:	shader_object_(other.shader_object_)
 {
 	other.shader_object_ = 0;
 }
 
-ShaderObject::~ShaderObject(void) {
+ShaderObject::~ShaderObject(void)
+{
 	glDeleteShader(shader_object_);
 }
 
-ShaderObject& ShaderObject::operator=(ShaderObject&& other) {
-	if (this != &other) {
+ShaderObject& ShaderObject::operator=(ShaderObject&& other)
+{
+	if (this != &other)
+	{
 		glDeleteShader(shader_object_);
 		shader_object_ = other.shader_object_;
 		other.shader_object_ = 0;
@@ -497,7 +540,8 @@ ShaderObject& ShaderObject::operator=(ShaderObject&& other) {
 	return *this;
 }
 
-ShaderObject ShaderObject::from_file(GLenum shader_type, const char* source_file) {
+ShaderObject ShaderObject::from_file(GLenum shader_type, const char* source_file)
+{
 	assert(source_file != nullptr);
 
 	std::ifstream source_stream(source_file);
@@ -507,7 +551,8 @@ ShaderObject ShaderObject::from_file(GLenum shader_type, const char* source_file
 	return ShaderObject(shader_type, source_buffer.str().c_str());
 }
 
-ShaderObject ShaderObject::vertex_passthrough(void) {
+ShaderObject ShaderObject::vertex_passthrough(void)
+{
 	return ShaderObject(GL_VERTEX_SHADER,
 		"#version 330 core\n"
 		GL_SHADER_SOURCE(
@@ -518,17 +563,20 @@ ShaderObject ShaderObject::vertex_passthrough(void) {
 }
 
 // ShaderProgram
-ShaderProgram::ShaderProgram(void) {
+ShaderProgram::ShaderProgram(void)
+{
 	shader_program_ = glCreateProgram();
 }
 
-ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObject& fragment_shader) {
+ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObject& fragment_shader)
+{
 	shader_program_ = glCreateProgram();
 
 	glAttachShader(shader_program_, vertex_shader);
 	glAttachShader(shader_program_, fragment_shader);
 
-	if (!link()) {
+	if (!link())
+	{
 		std::cerr << "Shader program linking failed. Info log:" << std::endl << get_info_log();
 		throw std::runtime_error("Shader program linking failed.");
 	}
@@ -536,7 +584,7 @@ ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObje
 
 ShaderProgram::ShaderProgram(const char* vertex_source, const char* fragment_source)
 :	ShaderProgram(ShaderObject(GL_VERTEX_SHADER, vertex_source),
-	                           ShaderObject(GL_FRAGMENT_SHADER, fragment_source))
+	              ShaderObject(GL_FRAGMENT_SHADER, fragment_source))
 {}
 
 ShaderProgram::ShaderProgram(ShaderProgram&& other)
@@ -545,12 +593,15 @@ ShaderProgram::ShaderProgram(ShaderProgram&& other)
 	other.shader_program_ = 0;
 }
 
-ShaderProgram::~ShaderProgram(void) {
+ShaderProgram::~ShaderProgram(void)
+{
 	glDeleteProgram(shader_program_);
 }
 
-ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other) {
-	if (this != &other) {
+ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other)
+{
+	if (this != &other)
+	{
 		glDeleteProgram(shader_program_);
 		shader_program_ = other.shader_program_;
 		other.shader_program_ = 0;
@@ -559,7 +610,8 @@ ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other) {
 	return *this;
 }
 
-GLint ShaderProgram::link(void) {
+GLint ShaderProgram::link(void)
+{
 	glLinkProgram(shader_program_);
 
 	GLint link_status;
@@ -568,7 +620,8 @@ GLint ShaderProgram::link(void) {
 	return link_status;
 }
 
-std::string ShaderProgram::get_info_log(void) {
+std::string ShaderProgram::get_info_log(void)
+{
 	GLint info_log_length;
 
 	glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &info_log_length);
@@ -578,14 +631,16 @@ std::string ShaderProgram::get_info_log(void) {
 	return &info_log_vector[0];
 }
 
-ShaderProgram ShaderProgram::from_files(const char* vertex_file, const char* fragment_file) {
+ShaderProgram ShaderProgram::from_files(const char* vertex_file, const char* fragment_file)
+{
 	ShaderObject vertex_shader   = ShaderObject::from_file(GL_VERTEX_SHADER, vertex_file);
 	ShaderObject fragment_shader = ShaderObject::from_file(GL_FRAGMENT_SHADER, fragment_file);
 
 	return ShaderProgram(vertex_shader, fragment_shader);
 }
 
-ShaderProgram ShaderProgram::simple(void) {
+ShaderProgram ShaderProgram::simple(void)
+{
 	return ShaderProgram::from_files("shaders/simple_vert.glsl", "shaders/simple_frag.glsl");
 }
 } // namespace GL
