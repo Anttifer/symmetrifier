@@ -91,10 +91,12 @@ void App::render_pinwheel(int width, int height, GLuint framebuffer)
 	GLuint screen_size_uniform;
 	GLuint screen_center_uniform;
 	GLuint pixels_per_unit_uniform;
+	GLuint time_uniform;
 
 	screen_size_uniform     = glGetUniformLocation(pinwheel_shader_, "uScreenSize");
 	screen_center_uniform   = glGetUniformLocation(pinwheel_shader_, "uScreenCenter");
 	pixels_per_unit_uniform = glGetUniformLocation(pinwheel_shader_, "uPixelsPerUnit");
+	time_uniform            = glGetUniformLocation(pinwheel_shader_, "uTime");
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(pinwheel_shader_);
@@ -102,6 +104,7 @@ void App::render_pinwheel(int width, int height, GLuint framebuffer)
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, plane_.screen_center().data());
 	glUniform1f  (pixels_per_unit_uniform, plane_.pixels_per_unit());
+	glUniform1f  (time_uniform, time_);
 
 	const auto& mesh = plane_.mesh();
 	glBindVertexArray(mesh.vao_);
