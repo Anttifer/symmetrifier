@@ -18,6 +18,7 @@ App::App(int argc, char* argv[])
 		                        GL::ShaderObject::vertex_passthrough(), // This doesn't transform the vertices at all.
 		                        GL::ShaderObject::from_file(GL_FRAGMENT_SHADER, "shaders/wave_frag.glsl"))),
 	pinwheel_shader_       (GL::ShaderProgram::from_files("shaders/pinwheel_vert.glsl", "shaders/pinwheel_frag.glsl")),
+	explode_shader_        (GL::ShaderProgram::from_files("shaders/simple_vert.glsl", "shaders/explode_geom.glsl", "shaders/simple_frag.glsl")),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
 	// Set the key callback function for this window.
@@ -58,14 +59,17 @@ void App::loop(void)
 		// Render a wave?
 		// render_wave(width, height);
 
+		// Render a cube?
+		// render_mesh(cube_, width, height);
+
 		// Render a torus?
 		// render_mesh(torus_, width, height);
 
-		// Render a cube?
-		// render_mesh(cube_, width, height);
-		
+		// Render an exploded torus?
+		render_exploded_mesh(torus_, width, height);
+
 		// Render a pinwheel-subdivided plane?
-		render_pinwheel(width, height);
+		// render_pinwheel(width, height);
 	
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
@@ -77,6 +81,13 @@ void App::loop(void)
 		if (_print_key_pressed())
 			screenshot(width, height);
 	}
+}
+
+void App::render_exploded_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
+{
+	std::swap(mesh_shader_, explode_shader_);
+	render_mesh(mesh, width, height, framebuffer);
+	std::swap(mesh_shader_, explode_shader_);
 }
 
 void App::render_pinwheel(int width, int height, GLuint framebuffer)
@@ -209,15 +220,18 @@ void App::render_mesh(const Mesh& mesh, int width, int height, GLuint framebuffe
 
 	// Get uniform locations from OpenGL.
 	GLuint model_to_clip_uniform, normal_to_world_uniform;
+	GLuint time_uniform;;
 	
-	model_to_clip_uniform = glGetUniformLocation(mesh_shader_, "uModelToClip");
+	model_to_clip_uniform   = glGetUniformLocation(mesh_shader_, "uModelToClip");
 	normal_to_world_uniform = glGetUniformLocation(mesh_shader_, "uNormalToWorld");
+	time_uniform            = glGetUniformLocation(mesh_shader_, "uTime");
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(mesh_shader_);
 
-	glUniformMatrix4fv(model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
-	glUniformMatrix3fv(normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
+	glUniformMatrix4fv (model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
+	glUniformMatrix3fv (normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
+	glUniform1f        (time_uniform, time_);
 
 	glBindVertexArray(mesh.vao_);
 	glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);

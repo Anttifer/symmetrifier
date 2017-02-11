@@ -104,6 +104,8 @@ class ShaderProgram {
 public:
 	ShaderProgram  (void);
 	ShaderProgram  (const ShaderObject& vertex_shader, const ShaderObject& fragment_shader);
+	ShaderProgram  (const ShaderObject& vertex_shader, const ShaderObject& geometry_shader,
+	                const ShaderObject& fragment_shader);
 	ShaderProgram  (const char* vertex_source, const char* fragment_source);
 	ShaderProgram  (const ShaderProgram&) = delete;
 	ShaderProgram  (ShaderProgram&&);
@@ -117,6 +119,8 @@ public:
 	std::string get_info_log (void);
 
 	static ShaderProgram from_files (const char* vertex_file, const char* fragment_file);
+	static ShaderProgram from_files (const char* vertex_file, const char* geometry_file,
+	                                 const char* fragment_file);
 	static ShaderProgram simple     (void);
 private:
 	GLuint shader_program_;

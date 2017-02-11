@@ -19,11 +19,12 @@ public:
 	void loop (void);
 
 private:
-	void render_wave     (int width, int height, GLuint framebuffer = 0);
-	void render_pinwheel (int width, int height, GLuint framebuffer = 0);
-	void render_texture  (const GL::Texture& texture, int width, int height, GLuint framebuffer = 0);
-	void render_mesh     (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
-	void render_on_mesh  (const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
+	void render_wave          (int width, int height, GLuint framebuffer = 0);
+	void render_pinwheel      (int width, int height, GLuint framebuffer = 0);
+	void render_texture       (const GL::Texture& texture, int width, int height, GLuint framebuffer = 0);
+	void render_mesh          (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
+	void render_exploded_mesh (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
+	void render_on_mesh       (const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 
 	void screenshot (int width, int height);
 
@@ -38,6 +39,7 @@ private:
 	GL::ShaderProgram    mesh_shader_;
 	GL::ShaderProgram    wave_shader_;
 	GL::ShaderProgram    pinwheel_shader_;
+	GL::ShaderProgram    explode_shader_;
 
 	GL::Texture          image_;
 	GL::FBO              framebuffer_;

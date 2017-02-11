@@ -587,6 +587,21 @@ ShaderProgram::ShaderProgram(const char* vertex_source, const char* fragment_sou
 	              ShaderObject(GL_FRAGMENT_SHADER, fragment_source))
 {}
 
+ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObject& geometry_shader, const ShaderObject& fragment_shader)
+{
+	shader_program_ = glCreateProgram();
+
+	glAttachShader(shader_program_, vertex_shader);
+	glAttachShader(shader_program_, geometry_shader);
+	glAttachShader(shader_program_, fragment_shader);
+
+	if (!link())
+	{
+		std::cerr << "Shader program linking failed. Info log:" << std::endl << get_info_log();
+		throw std::runtime_error("Shader program linking failed.");
+	}
+}
+
 ShaderProgram::ShaderProgram(ShaderProgram&& other)
 :	shader_program_(other.shader_program_)
 {
@@ -637,6 +652,15 @@ ShaderProgram ShaderProgram::from_files(const char* vertex_file, const char* fra
 	ShaderObject fragment_shader = ShaderObject::from_file(GL_FRAGMENT_SHADER, fragment_file);
 
 	return ShaderProgram(vertex_shader, fragment_shader);
+}
+
+ShaderProgram ShaderProgram::from_files(const char* vertex_file, const char* geometry_file, const char* fragment_file)
+{
+	ShaderObject vertex_shader   = ShaderObject::from_file(GL_VERTEX_SHADER, vertex_file);
+	ShaderObject geometry_shader = ShaderObject::from_file(GL_GEOMETRY_SHADER, geometry_file);
+	ShaderObject fragment_shader = ShaderObject::from_file(GL_FRAGMENT_SHADER, fragment_file);
+
+	return ShaderProgram(vertex_shader, geometry_shader, fragment_shader);
 }
 
 ShaderProgram ShaderProgram::simple(void)

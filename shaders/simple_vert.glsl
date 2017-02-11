@@ -22,9 +22,11 @@ uniform mat3 uNormalToWorld = mat3(1.0);
 
 // Declare the outputs.
 // These will go to the fragment shader, interpolated automagically.
-out vec3 vColor;
-out vec3 vNormal;
-out vec2 vTexCoord;
+out Data {
+	vec3 vColor;
+	vec3 vNormal;
+	vec2 vTexCoord;
+};
 
 void main() {
 	const vec3 distinctColors[6] = vec3[6](vec3(0, 0, 1), vec3(0, 1, 0), vec3(0, 1, 1),

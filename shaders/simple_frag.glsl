@@ -6,9 +6,11 @@
 //--------------------
 
 // Declare the inputs.
-in vec3 vColor;
-in vec3 vNormal;
-in vec2 vTexCoord;
+in Data {
+	vec3 vColor;
+	vec3 vNormal;
+	vec2 vTexCoord;
+};
 
 // Declare the uniforms.
 uniform bool uTextureFlag = false;
