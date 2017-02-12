@@ -33,3 +33,107 @@ void GL::tex_to_png(const GL::Texture& texture, const char* filename) {
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 }
+
+size_t GL::internal_format_size(GLenum format)
+{
+	size_t size = 0;
+	switch (format)
+	{
+		case GL_R8:
+		case GL_R8UI:
+
+		case GL_RG8:
+		case GL_RG8UI:
+
+		case GL_RGBA8:
+		case GL_RGBA8UI:
+			size = sizeof(GLubyte);
+			break;
+		case GL_R8I:
+		case GL_RG8I:
+		case GL_RGBA8I:
+			size = sizeof(GLbyte);
+			break;
+		case GL_R16:
+		case GL_R16UI:
+
+		case GL_RG16:
+		case GL_RG16UI:
+
+		case GL_RGBA16:
+		case GL_RGBA16UI:
+			size = sizeof(GLushort);
+			break;
+		case GL_R16I:
+		case GL_RG16I:
+		case GL_RGBA16I:
+			size = sizeof(GLshort);
+			break;
+		case GL_R32UI:
+		case GL_RG32UI:
+		case GL_RGB32UI:
+		case GL_RGBA32UI:
+			size = sizeof(GLuint);
+			break;
+		case GL_R32I:
+		case GL_RG32I:
+		case GL_RGB32I:
+		case GL_RGBA32I:
+			size = sizeof(GLint);
+			break;
+		case GL_R16F:
+		case GL_RG16F:
+		case GL_RGBA16F:
+			size = sizeof(GLhalf);
+			break;
+		case GL_R32F:
+		case GL_RG32F:
+		case GL_RGB32F:
+		case GL_RGBA32F:
+			size = sizeof(GLfloat);
+			break;
+	}
+
+	switch (format)
+	{
+		case GL_RG8:
+		case GL_RG8I:
+		case GL_RG8UI:
+
+		case GL_RG16:
+		case GL_RG16I:
+		case GL_RG16UI:
+
+		case GL_RG32I:
+		case GL_RG32UI:
+
+		case GL_RG16F:
+		case GL_RG32F:
+			size *= 2;
+			break;
+
+		case GL_RGB32I:
+		case GL_RGB32UI:
+		case GL_RGB32F:
+			size *= 3;
+			break;
+
+		case GL_RGBA8:
+		case GL_RGBA8I:
+		case GL_RGBA8UI:
+
+		case GL_RGBA16:
+		case GL_RGBA16I:
+		case GL_RGBA16UI:
+
+		case GL_RGBA32I:
+		case GL_RGBA32UI:
+
+		case GL_RGBA16F:
+		case GL_RGBA32F:
+			size *= 4;
+			break;
+	}
+
+	return size;
+}

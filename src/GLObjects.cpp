@@ -1,5 +1,6 @@
 #include "GLObjects.h"
 
+#include "GLFunctions.h"
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -292,7 +293,14 @@ Texture Texture::buffer_texture(const Buffer& buffer, GLenum format)
 	glTexBuffer(GL_TEXTURE_BUFFER, format, buffer);
 	glBindTexture(GL_TEXTURE_BUFFER, old_tex);
 
-	texture.width_ = INT_MAX; // TODO: Fix this.
+	GLint old_arr; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &old_arr);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+
+	GLint size;
+	glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+	glBindBuffer(GL_ARRAY_BUFFER, old_arr);
+
+	texture.width_  = size / GL::internal_format_size(format);
 	texture.height_ = 1;
 
 	return texture;

@@ -16,6 +16,8 @@ inline void clear(GLbitfield mask, GLuint framebuffer = 0)
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
+size_t internal_format_size(GLenum format);
+
 void tex_to_png(const Texture& texture, const char* filename);
 } // namespace GL
 

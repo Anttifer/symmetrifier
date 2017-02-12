@@ -42,7 +42,7 @@ public:
 	static Texture empty_2D_multisample_depth (int width, int height, int samples = 4);
 	static Texture empty_cube                 (int resolution);
 	static Texture empty_cube_depth           (int resolution);
-	static Texture buffer_texture             (const Buffer& buffer, GLenum format); // TODO: Width.
+	static Texture buffer_texture             (const Buffer& buffer, GLenum format);
 private:
 	GLuint texture_;
 public:
