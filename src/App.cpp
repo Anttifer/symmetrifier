@@ -12,7 +12,7 @@ static void _key_callback(GLFWwindow*, int, int, int, int);
 App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
 	cube_                  (Mesh::cube()),
-	torus_                 (Mesh::torus(2.0f, 0.7f, 12, 12)),
+	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
 	mesh_shader_           (GL::ShaderProgram::simple()),               // For rasterized rendering.
 	wave_shader_           (GL::ShaderProgram(                          // For entirely fragment-shader-based rendering.
 		                        GL::ShaderObject::vertex_passthrough(), // This doesn't transform the vertices at all.
