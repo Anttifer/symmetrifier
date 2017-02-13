@@ -13,12 +13,6 @@ App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
 	cube_                  (Mesh::cube()),
 	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
-	mesh_shader_           (GL::ShaderProgram::simple()),               // For rasterized rendering.
-	wave_shader_           (GL::ShaderProgram(                          // For entirely fragment-shader-based rendering.
-		                        GL::ShaderObject::vertex_passthrough(), // This doesn't transform the vertices at all.
-		                        GL::ShaderObject::from_file(GL_FRAGMENT_SHADER, "shaders/wave_frag.glsl"))),
-	pinwheel_shader_       (GL::ShaderProgram::from_files("shaders/pinwheel_vert.glsl", "shaders/pinwheel_frag.glsl")),
-	explode_shader_        (GL::ShaderProgram::from_files("shaders/simple_vert.glsl", "shaders/explode_geom.glsl", "shaders/simple_frag.glsl")),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
 	// Set the key callback function for this window.
@@ -27,13 +21,12 @@ App::App(int argc, char* argv[])
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
-	// Not used at the moment.
-	// This allows rendering into a texture instead of on screen.
+	// A framebuffer allows rendering into a texture instead of on screen.
 	image_ = GL::Texture::empty_2D(width, height);
-	framebuffer_ = GL::FBO::simple_C0(image_);
+	depth_ = GL::Texture::empty_2D_depth(width, height);
+	framebuffer_ = GL::FBO::simple_C0D(image_, depth_);
 
-	// This is not strictly necessary if only rendering the wave.
-	// With the meshes, try to comment it out and see what happens.
+	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
 
 	// Subdivide our plane a couple of times.
@@ -48,29 +41,29 @@ void App::loop(void)
 		// Get current time for use in the shaders.
 		time_ = glfwGetTime();
 
-		// Get screen size in pixels.
+		// Get screen size in pixels, adjust image_ as necessary.
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
 
-		// Clear the screen. Dark red is the new black.
+		if (width != image_.width_ || height != image_.height_)
+		{
+			image_       = GL::Texture::empty_2D(width, height);
+			depth_       = GL::Texture::empty_2D_depth(width, height);
+			framebuffer_ = GL::FBO::simple_C0D(image_, depth_);
+		}
+
+		// Clear the screen and the framebuffer. Dark red is the new black.
 		glClearColor(0.15, 0.1, 0.1, 1);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor(0.0, 0.0, 0.0, 1);
+		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, framebuffer_);
 
-		// Render a wave?
-		// render_wave(width, height);
+		// Render the pinwheel into a texture.
+		render_extruded_mesh(cube_, width, height, framebuffer_);
 
-		// Render a cube?
-		// render_mesh(cube_, width, height);
+		// Then render the texture on a cube.
+		render_on_mesh(image_, cube_, width, height);
 
-		// Render a torus?
-		// render_mesh(torus_, width, height);
-
-		// Render an exploded torus?
-		render_exploded_mesh(torus_, width, height);
-
-		// Render a pinwheel-subdivided plane?
-		// render_pinwheel(width, height);
-	
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
 
@@ -83,34 +76,83 @@ void App::loop(void)
 	}
 }
 
-void App::render_exploded_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
+void App::render_extruded_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
 {
-	std::swap(mesh_shader_, explode_shader_);
-	render_mesh(mesh, width, height, framebuffer);
-	std::swap(mesh_shader_, explode_shader_);
-}
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/simple_vert.glsl",
+		"shaders/explode_geom.glsl",
+		"shaders/simple_frag.glsl");
 
-void App::render_pinwheel(int width, int height, GLuint framebuffer)
-{
+	// Find uniform locations once.
+	static GLuint model_to_clip_uniform;
+	static GLuint normal_to_world_uniform;
+	static GLuint time_uniform;
+	static bool init = [&](){
+		model_to_clip_uniform   = glGetUniformLocation(shader, "uModelToClip");
+		normal_to_world_uniform = glGetUniformLocation(shader, "uNormalToWorld");
+		time_uniform            = glGetUniformLocation(shader, "uTime");
+		return true;
+	}();
+
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glViewport(0, 0, width, height);
 
-	// Get uniform locations.
-	GLuint screen_size_uniform;
-	GLuint screen_center_uniform;
-	GLuint pixels_per_unit_uniform;
-	GLuint time_uniform;
+	// Camera.
+	Eigen::Vector3f eye = Eigen::Vector3f(4 * std::sin(time_), 2, 4*std::cos(time_));
+	Eigen::Matrix4f view = GLUtils::look_at(eye);
+	Eigen::Matrix4f projection = GLUtils::perspective(width, height, PI / 2);
 
-	screen_size_uniform     = glGetUniformLocation(pinwheel_shader_, "uScreenSize");
-	screen_center_uniform   = glGetUniformLocation(pinwheel_shader_, "uScreenCenter");
-	pixels_per_unit_uniform = glGetUniformLocation(pinwheel_shader_, "uPixelsPerUnit");
-	time_uniform            = glGetUniformLocation(pinwheel_shader_, "uTime");
+	// We'll assume that the mesh is already in world space.
+	Eigen::Matrix4f model_to_clip = projection * view;
+	Eigen::Matrix3f normal_to_world = Eigen::Matrix3f::Identity();
 
 	// Set the shader program and uniforms, and draw.
-	glUseProgram(pinwheel_shader_);
+	glUseProgram(shader);
+
+	glUniformMatrix4fv (model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
+	glUniformMatrix3fv (normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
+	glUniform1f        (time_uniform, time_);
+
+	glBindVertexArray(mesh.vao_);
+	glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
+	glBindVertexArray(0);
+
+	// Clean up.
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_pinwheel(int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/pinwheel_vert.glsl",
+		"shaders/pinwheel_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint time_uniform;
+	static bool init = [&](){
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		time_uniform            = glGetUniformLocation(shader, "uTime");
+		return true;
+	}();
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
 
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, plane_.screen_center().data());
@@ -131,30 +173,52 @@ void App::render_pinwheel(int width, int height, GLuint framebuffer)
 
 void App::render_wave(int width, int height, GLuint framebuffer)
 {
+	static auto shader = GL::ShaderProgram(
+		GL::ShaderObject::vertex_passthrough(),
+		GL::ShaderObject::from_file(GL_FRAGMENT_SHADER, "shaders/wave_frag.glsl"));
+
+	// Find uniform locations once.
+	static GLuint screen_size_uniform;
+	static GLuint time_uniform;
+	static GLuint texture_flag_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		time_uniform            = glGetUniformLocation(shader, "uTime");
+		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
+		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glViewport(0, 0, width, height);
 
-	// Get uniform locations.
-	GLuint screen_size_uniform;
-	GLuint time_uniform;
-
-	screen_size_uniform = glGetUniformLocation(wave_shader_, "uScreenSize");
-	time_uniform        = glGetUniformLocation(wave_shader_, "uTime");
-
 	// Set the shader program and uniforms, and draw.
-	glUseProgram(wave_shader_);
+	glUseProgram(shader);
 
 	glUniform2i(screen_size_uniform, width, height);
 	glUniform1f(time_uniform, time_);
+	glUniform1i(texture_sampler_uniform, 1);
+	glUniform1i(texture_flag_uniform, GL_FALSE);
+
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, image_);
 
 	glBindVertexArray(canvas_.vao_);
 	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
 
 	// Clean up.
 	glBindVertexArray(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+
+	glUniform1i(texture_flag_uniform, GL_FALSE);
 
 	glUseProgram(0);
 
@@ -163,24 +227,29 @@ void App::render_wave(int width, int height, GLuint framebuffer)
 
 void App::render_texture(const GL::Texture& texture, int width, int height, GLuint framebuffer)
 {
+	static auto shader = GL::ShaderProgram::simple();
+
+	// Find uniform locations once.
+	static GLuint texture_flag_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
+		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+	
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glViewport(0, 0, width, height);
 
-	// Get uniform locations.
-	GLuint texture_flag_uniform, texture_sampler_uniform;
-	
-	texture_flag_uniform = glGetUniformLocation(mesh_shader_, "uTextureFlag");
-	texture_sampler_uniform = glGetUniformLocation(mesh_shader_, "uTextureSampler");
-
 	// Set the shader program, uniforms and textures, and draw.
-	glUseProgram(mesh_shader_);
+	glUseProgram(shader);
 
 	glUniform1i(texture_sampler_uniform, 1);
-
 	glUniform1i(texture_flag_uniform, GL_TRUE);
+
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
@@ -194,6 +263,7 @@ void App::render_texture(const GL::Texture& texture, int width, int height, GLui
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 	glActiveTexture(old_active);
+
 	glUniform1i(texture_flag_uniform, GL_FALSE);
 
 	glUseProgram(0);
@@ -203,6 +273,19 @@ void App::render_texture(const GL::Texture& texture, int width, int height, GLui
 
 void App::render_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
 {
+	static auto shader = GL::ShaderProgram::simple();
+
+	// Find uniform locations once.
+	static GLuint model_to_clip_uniform;
+	static GLuint normal_to_world_uniform;
+	static GLuint time_uniform;
+	static bool init = [&](){
+		model_to_clip_uniform   = glGetUniformLocation(shader, "uModelToClip");
+		normal_to_world_uniform = glGetUniformLocation(shader, "uNormalToWorld");
+		time_uniform            = glGetUniformLocation(shader, "uTime");
+		return true;
+	}();
+
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -210,24 +293,16 @@ void App::render_mesh(const Mesh& mesh, int width, int height, GLuint framebuffe
 	glViewport(0, 0, width, height);
 
 	// Camera.
-	Eigen::Vector3f eye = Eigen::Vector3f(4 * std::sin(time_), 2, 4*std::cos(time_));
-	Eigen::Matrix4f view = GLUtils::look_at(eye);
+	Eigen::Vector3f eye        = Eigen::Vector3f(4 * std::sin(time_), 2, 4*std::cos(time_));
+	Eigen::Matrix4f view       = GLUtils::look_at(eye);
 	Eigen::Matrix4f projection = GLUtils::perspective(width, height, PI / 2);
 
 	// We'll assume that the mesh is already in world space.
-	Eigen::Matrix4f model_to_clip = projection * view;
+	Eigen::Matrix4f model_to_clip   = projection * view;
 	Eigen::Matrix3f normal_to_world = Eigen::Matrix3f::Identity();
 
-	// Get uniform locations from OpenGL.
-	GLuint model_to_clip_uniform, normal_to_world_uniform;
-	GLuint time_uniform;;
-	
-	model_to_clip_uniform   = glGetUniformLocation(mesh_shader_, "uModelToClip");
-	normal_to_world_uniform = glGetUniformLocation(mesh_shader_, "uNormalToWorld");
-	time_uniform            = glGetUniformLocation(mesh_shader_, "uTime");
-
 	// Set the shader program and uniforms, and draw.
-	glUseProgram(mesh_shader_);
+	glUseProgram(shader);
 
 	glUniformMatrix4fv (model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
 	glUniformMatrix3fv (normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
@@ -245,6 +320,21 @@ void App::render_mesh(const Mesh& mesh, int width, int height, GLuint framebuffe
 
 void App::render_on_mesh(const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer)
 {
+	static auto shader = GL::ShaderProgram::simple();
+
+	// Find uniform locations once.
+	static GLuint model_to_clip_uniform;
+	static GLuint normal_to_world_uniform;
+	static GLuint texture_flag_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		model_to_clip_uniform	= glGetUniformLocation(shader, "uModelToClip");
+		normal_to_world_uniform	= glGetUniformLocation(shader, "uNormalToWorld");
+		texture_flag_uniform	= glGetUniformLocation(shader, "uTextureFlag");
+		texture_sampler_uniform	= glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -252,31 +342,22 @@ void App::render_on_mesh(const GL::Texture& texture, const Mesh& mesh, int width
 	glViewport(0, 0, width, height);
 
 	// Camera.
-	Eigen::Vector3f eye					= Eigen::Vector3f(4 * std::sin(time_), 2, 4 * std::cos(time_));
-	Eigen::Matrix4f view				= GLUtils::look_at(eye);
-	Eigen::Matrix4f projection			= GLUtils::perspective(width, height, PI / 2);
+	Eigen::Vector3f eye        = Eigen::Vector3f(4 * std::sin(time_), 2, 4 * std::cos(time_));
+	Eigen::Matrix4f view       = GLUtils::look_at(eye);
+	Eigen::Matrix4f projection = GLUtils::perspective(width, height, PI / 2);
 
 	// We'll assume that the mesh is already in world space.
-	Eigen::Matrix4f model_to_clip		= projection * view;
-	Eigen::Matrix3f normal_to_world		= Eigen::Matrix3f::Identity();
-
-	// Get the uniform locations from OpenGL.
-	GLuint model_to_clip_uniform, normal_to_world_uniform;
-	GLuint texture_flag_uniform, texture_sampler_uniform;
-
-	model_to_clip_uniform				= glGetUniformLocation(mesh_shader_, "uModelToClip");
-	normal_to_world_uniform				= glGetUniformLocation(mesh_shader_, "uNormalToWorld");
-	texture_flag_uniform				= glGetUniformLocation(mesh_shader_, "uTextureFlag");
-	texture_sampler_uniform				= glGetUniformLocation(mesh_shader_, "uTextureSampler");
+	Eigen::Matrix4f model_to_clip   = projection * view;
+	Eigen::Matrix3f normal_to_world = Eigen::Matrix3f::Identity();
 
 	// Set the shader program, uniforms and textures, and draw.
-	glUseProgram(mesh_shader_);
+	glUseProgram(shader);
 
-	glUniformMatrix4fv(model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
-	glUniformMatrix3fv(normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
-	glUniform1i(texture_sampler_uniform, 1);
+	glUniformMatrix4fv (model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
+	glUniformMatrix3fv (normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
+	glUniform1i        (texture_sampler_uniform, 1);
+	glUniform1i        (texture_flag_uniform, GL_TRUE);
 
-	glUniform1i(texture_flag_uniform, GL_TRUE);
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
