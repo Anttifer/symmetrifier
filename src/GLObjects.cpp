@@ -565,7 +565,19 @@ ShaderObject ShaderObject::vertex_passthrough(void)
 		"#version 330 core\n"
 		GL_SHADER_SOURCE(
 			layout(location = 0) in vec4 aPosition;
-			void main() {gl_Position = aPosition;}
+			layout(location = 1) in vec3 aNormal;
+			layout(location = 2) in vec2 aTexCoord;
+
+			out Data {
+				vec3 vNormal;
+				vec2 vTexCoord;
+			};
+
+			void main() {
+				gl_Position = aPosition;
+				vNormal = aNormal;
+				vTexCoord = aTexCoord;
+			}
 		)
 	);
 }

@@ -16,11 +16,22 @@
 uniform ivec2 uScreenSize;
 uniform float uTime;
 
+uniform bool uTextureFlag = false;
+uniform sampler2D uTextureSampler;
+
+// Declare the inputs.
+in Data {
+	vec3 vNormal;
+	vec2 vTexCoord;
+};
+
 // Declare the output.
-layout(location = 0) out vec4 cColor;
+layout(location = 0) out vec4 fColor;
 
 void main() {
 	float pi = 3.14159265359;
+	vec4 bgColor = uTextureFlag ?
+		texture2D(uTextureSampler, vTexCoord) : vec4(0.15, 0.1, 0.1, 1);
 
 	// Calculate the aspect ratio.
 	float AR = uScreenSize.x / float(uScreenSize.y);
@@ -45,13 +56,13 @@ void main() {
 
 	// Check if this pixel hit either one of the axes...
 	if (any(equal(ivec2(gl_FragCoord.xy), axes)))
-		cColor = vec4(0, 1, 0, 1);
+		fColor = vec4(0, 1, 0, 1);
 
 	// or if it hit the wave...
 	else if (int(gl_FragCoord.y) == wave)
-		cColor = vec4(1, 0.6, 0.2, 1);
+		fColor = vec4(1, 0.6, 0.2, 1);
 
 	// or if it didn't hit anything.
 	else
-		cColor = vec4(0.15, 0.1, 0.1, 1);
+		fColor = bgColor;
 }
