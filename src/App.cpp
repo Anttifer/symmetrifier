@@ -11,26 +11,21 @@ static void _key_callback(GLFWwindow*, int, int, int, int);
 
 App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
+	input_manager_         (window_),
 	cube_                  (Mesh::cube()),
 	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
+	pixels_per_unit_       (8192.0),                           // Initial zoom level.
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
 	// Set the key callback function for this window.
+	// TODO: Implement this properly in the InputManager.
 	glfwSetKeyCallback(window_, _key_callback);
-
-	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
-
-	// A framebuffer allows rendering into a texture instead of on screen.
-	image_ = GL::Texture::empty_2D(width, height);
-	depth_ = GL::Texture::empty_2D_depth(width, height);
-	framebuffer_ = GL::FBO::simple_C0D(image_, depth_);
 
 	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
 
 	// Subdivide our plane a couple of times.
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 8; ++i)
 		plane_.subdivide();
 }
 
@@ -38,42 +33,65 @@ void App::loop(void)
 {
 	while (!glfwWindowShouldClose(window_))
 	{
+		// Clear the screen. Dark grey is the new black.
+		glClearColor(0.1, 0.1, 0.1, 1);
+		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		// Get current time for use in the shaders.
 		time_ = glfwGetTime();
 
-		// Get screen size in pixels, adjust image_ as necessary.
+		// Get screen size in pixels.
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
 
-		if (width != image_.width_ || height != image_.height_)
-		{
-			image_       = GL::Texture::empty_2D(width, height);
-			depth_       = GL::Texture::empty_2D_depth(width, height);
-			framebuffer_ = GL::FBO::simple_C0D(image_, depth_);
-		}
+		// Poll events and deal with user input.
+		glfwPollEvents();
+		update_objects();
 
-		// Clear the screen and the framebuffer. Dark red is the new black.
-		glClearColor(0.15, 0.1, 0.1, 1);
-		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0, 0.0, 0.0, 1);
-		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, framebuffer_);
+		if (_print_key_pressed())
+			screenshot(width, height);
 
-		// Render the pinwheel into a texture.
-		render_extruded_mesh(cube_, width, height, framebuffer_);
-
-		// Then render the texture on a cube.
-		render_on_mesh(image_, cube_, width, height);
+		// Render the pinwheel.
+		render_pinwheel(width, height);
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
-
-		// Poll events.
-		glfwPollEvents();
-
-		// Screenshot?
-		if (_print_key_pressed())
-			screenshot(width, height);
 	}
+}
+
+// TODO: Reimplement using callbacks and std::bind.
+void App::update_objects(void)
+{
+	static struct {
+		Eigen::Vector2f press_position = {0.0, 0.0};
+		Eigen::Vector2f plane_position = {0.0, 0.0};
+		bool left_depressed  = false;
+		bool right_depressed = false;
+	} state;
+
+	if (input_manager_.left_button_pressed())
+	{
+		if (!state.left_depressed)
+		{
+			state.left_depressed = true;
+			state.press_position = input_manager_.mouse_position();
+			state.plane_position = plane_.position();
+		}
+
+		const auto& drag_position = input_manager_.mouse_position() - state.press_position;;
+		plane_.set_position(state.plane_position + scale_to_world(drag_position));
+	}
+	else
+		state.left_depressed = false;
+}
+
+Eigen::Vector2f App::scale_to_world(const Eigen::Vector2f& v)
+{
+	int width, height;
+	glfwGetFramebufferSize(window_, &width, &height);
+
+	return { v.x() * width / pixels_per_unit_,
+	         v.y() * height / pixels_per_unit_ };
 }
 
 void App::render_extruded_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
@@ -151,12 +169,15 @@ void App::render_pinwheel(int width, int height, GLuint framebuffer)
 
 	glViewport(0, 0, width, height);
 
+	// Get the data required by the shader.
+	const Eigen::Vector2f& screen_center = -plane_.position();
+
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
 	glUniform2i  (screen_size_uniform, width, height);
-	glUniform2fv (screen_center_uniform, 1, plane_.screen_center().data());
-	glUniform1f  (pixels_per_unit_uniform, plane_.pixels_per_unit());
+	glUniform2fv (screen_center_uniform, 1, screen_center.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1f  (time_uniform, time_);
 
 	const auto& mesh = plane_.mesh();
@@ -201,24 +222,12 @@ void App::render_wave(int width, int height, GLuint framebuffer)
 
 	glUniform2i(screen_size_uniform, width, height);
 	glUniform1f(time_uniform, time_);
-	glUniform1i(texture_sampler_uniform, 1);
-	glUniform1i(texture_flag_uniform, GL_FALSE);
-
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, image_);
 
 	glBindVertexArray(canvas_.vao_);
 	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
 
 	// Clean up.
 	glBindVertexArray(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-
-	glUniform1i(texture_flag_uniform, GL_FALSE);
 
 	glUseProgram(0);
 

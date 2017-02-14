@@ -2,6 +2,7 @@
 #define APP_H
 
 #include "Window.h"
+#include "InputManager.h"
 #include "ShaderCanvas.h"
 #include "Mesh.h"
 #include "PinwheelPlane.h"
@@ -19,6 +20,9 @@ public:
 	void loop (void);
 
 private:
+	void update_objects            (void);
+	Eigen::Vector2f scale_to_world (const Eigen::Vector2f&);
+
 	void render_wave           (int width, int height, GLuint framebuffer = 0);
 	void render_pinwheel       (int width, int height, GLuint framebuffer = 0);
 	void render_texture        (const GL::Texture& texture, int width, int height, GLuint framebuffer = 0);
@@ -29,17 +33,15 @@ private:
 	void screenshot (int width, int height);
 
 	// Framework objects.
-	MainWindow           window_;
+	MainWindow    window_;
+	InputManager  input_manager_;
 
-	ShaderCanvas         canvas_;
-	Mesh                 cube_;
-	Mesh                 torus_;
-	PinwheelPlane        plane_;
+	ShaderCanvas  canvas_;
+	Mesh          cube_;
+	Mesh          torus_;
+	PinwheelPlane plane_;
 
-	GL::Texture          image_;
-	GL::Texture          depth_;
-	GL::FBO              framebuffer_;
-
-	double               time_;
+	double        pixels_per_unit_;
+	double        time_;
 };
 #endif // APP_H

@@ -2,13 +2,12 @@
 #include <cmath>
 
 PinwheelPlane::PinwheelPlane(void)
-:	screen_center_(-0.5, -0.0),
-	pixels_per_unit_(8192.0),
-	size_parameter_(1.0)
+:	position_(5.0, 0.0),
+	size_parameter_(10.0)
 {
-	mesh_.positions_.emplace_back(-1, 0.5, 0.0);
-	mesh_.positions_.emplace_back(-1, -0.5, 0.0);
-	mesh_.positions_.emplace_back(1, -0.5, 0.0);
+	mesh_.positions_.emplace_back(-size_parameter_, size_parameter_ / 2, 0.0);
+	mesh_.positions_.emplace_back(-size_parameter_, -size_parameter_ / 2, 0.0);
+	mesh_.positions_.emplace_back(size_parameter_, -size_parameter_ / 2, 0.0);
 
 	mesh_.update_buffers();
 }

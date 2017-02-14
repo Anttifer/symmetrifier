@@ -4,6 +4,8 @@
 #include "Mesh.h"
 #include <Eigen/Geometry>
 
+class InputManager;
+
 //--------------------
 
 class PinwheelPlane {
@@ -11,17 +13,18 @@ public:
 	PinwheelPlane (void);
 
 	void subdivide       (void);
-	void trim            (void);
+	void trim            (void); // TODO: Implement this.
 
 	size_t                 num_triangles   (void) const { return mesh_.positions_.size() / 3; }
-	double                 pixels_per_unit (void) const { return pixels_per_unit_; }
 	const Mesh&            mesh            (void) const { return mesh_; }
-	const Eigen::Vector2f& screen_center   (void) const { return screen_center_; }
+	const Eigen::Vector2f& position        (void) const { return position_; }
+
+	void set_position (const Eigen::Vector2f& p) { position_ = p; }
+
 private:
 	Mesh mesh_;
 
-	Eigen::Vector2f screen_center_;
-	double          pixels_per_unit_;
+	Eigen::Vector2f position_;
 	double          size_parameter_; // length of short leg
 };
 
