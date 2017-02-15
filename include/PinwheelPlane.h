@@ -4,8 +4,6 @@
 #include "Mesh.h"
 #include <Eigen/Geometry>
 
-class InputManager;
-
 //--------------------
 
 class PinwheelPlane {

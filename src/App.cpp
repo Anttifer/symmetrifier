@@ -2,10 +2,7 @@
 
 #include "GLFunctions.h"
 #include "GLUtils.h"
-
-// a bit hackish, these are defined at the bottom
-static bool _print_key_pressed(bool = false);
-static void _key_callback(GLFWwindow*, int, int, int, int);
+#include <cstdio>
 
 //--------------------
 
@@ -17,9 +14,8 @@ App::App(int argc, char* argv[])
 	pixels_per_unit_       (8192.0),                           // Initial zoom level.
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
-	// Set the key callback function for this window.
-	// TODO: Implement this properly in the InputManager.
-	glfwSetKeyCallback(window_, _key_callback);
+	// Screenshot callback.
+	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 
 	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
@@ -40,18 +36,13 @@ void App::loop(void)
 		// Get current time for use in the shaders.
 		time_ = glfwGetTime();
 
-		// Get screen size in pixels.
-		int width, height;
-		glfwGetFramebufferSize(window_, &width, &height);
-
 		// Poll events and deal with user input.
-		glfwPollEvents();
+		glfwWaitEvents();
 		update_objects();
 
-		if (_print_key_pressed())
-			screenshot(width, height);
-
 		// Render the pinwheel.
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
 		render_pinwheel(width, height);
 
 		// Show the result on screen.
@@ -387,32 +378,24 @@ void App::render_on_mesh(const GL::Texture& texture, const Mesh& mesh, int width
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::screenshot(int width, int height)
+void App::print_screen(int scancode, int action, int mods)
 {
-	auto texture = GL::Texture::empty_2D(width, height);
-	auto depth   = GL::Texture::empty_2D_depth(width, height);
-	auto fbo     = GL::FBO::simple_C0D(texture, depth);
+	if (action == GLFW_PRESS)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
 
-	// Change me too!
-	render_pinwheel(width, height, fbo);
+		// TODO: Threading.
+		auto texture = GL::Texture::empty_2D(width, height);
+		auto depth   = GL::Texture::empty_2D_depth(width, height);
+		auto fbo     = GL::FBO::simple_C0D(texture, depth);
 
-	GL::tex_to_png(texture, "screenshot.png");
-}
+		render_pinwheel(width, height, fbo);
 
-bool _print_key_pressed(bool set_pressed)
-{
-	static bool was_pressed = false;
-
-	bool return_value = was_pressed;
-	was_pressed = set_pressed;
-
-	return return_value;
-}
-
-void _key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	if (key == GLFW_KEY_P && action == GLFW_PRESS)
-		_print_key_pressed(true);
+		// TODO: Query screenshot name from user.
+		GL::tex_to_png(texture, "screenshot.png");
+		printf("Screenshot saved. (screenshot.png)\n");
+	}
 }
 
 //--------------------

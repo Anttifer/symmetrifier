@@ -32,6 +32,6 @@ void main() {
 	if (any(lessThan(vInfluence, vec3(0.01))))
 		fColor = vec4(0, 0, 0, 1);
 	else
-		fColor = vec4(vInfluence.y * bColor, 1.0);
-		// fColor = vec4(vInfluence.x * vec3(1.0, 0.6, 0.1), 1.0);
+		// fColor = vec4(vInfluence.y * bColor, 1.0);
+		fColor = vec4(vInfluence.y * vec3(1.0, 0.6, 0.1), 1.0);
 }

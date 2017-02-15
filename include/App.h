@@ -30,7 +30,8 @@ private:
 	void render_extruded_mesh  (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 	void render_on_mesh        (const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 
-	void screenshot (int width, int height);
+	// Key callbacks.
+	void print_screen  (int, int, int);
 
 	// Framework objects.
 	MainWindow    window_;
