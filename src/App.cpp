@@ -4,6 +4,9 @@
 #include "GLUtils.h"
 #include <cstdio>
 
+// DEBUG
+#include <iostream>
+
 //--------------------
 
 App::App(int argc, char* argv[])
@@ -16,6 +19,8 @@ App::App(int argc, char* argv[])
 {
 	// Screenshot callback.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
+	// window_.add_mouse_pos_callback(&App::test_mouse_callback, this);
+	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_RIGHT, &App::test_mousebutton_callback, this);
 
 	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
@@ -382,6 +387,8 @@ void App::print_screen(int scancode, int action, int mods)
 {
 	if (action == GLFW_PRESS)
 	{
+		printf("Taking screenshot...\n");
+
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
 
@@ -394,8 +401,20 @@ void App::print_screen(int scancode, int action, int mods)
 
 		// TODO: Query screenshot name from user.
 		GL::tex_to_png(texture, "screenshot.png");
+
 		printf("Screenshot saved. (screenshot.png)\n");
 	}
+}
+
+void App::test_mouse_callback(double xpos, double ypos)
+{
+	std::cout << "( " << xpos << ", " << ypos << " )" << std::endl;
+}
+
+void App::test_mousebutton_callback(int action, int mods)
+{
+	if (action == GLFW_PRESS)
+		std::cout << "User pressed a mouse button!" << std::endl;
 }
 
 //--------------------

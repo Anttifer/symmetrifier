@@ -32,6 +32,8 @@ private:
 
 	// Key callbacks.
 	void print_screen  (int, int, int);
+	void test_mouse_callback  (double, double);
+	void test_mousebutton_callback  (int, int);
 
 	// Framework objects.
 	MainWindow    window_;
