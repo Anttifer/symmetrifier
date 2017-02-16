@@ -37,6 +37,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	glfwSetKeyCallback(window_p_, &master_key_callback);
 	glfwSetMouseButtonCallback(window_p_, &master_mouse_button_callback);
 	glfwSetCursorPosCallback(window_p_, &master_mouse_pos_callback);
+	glfwSetScrollCallback(window_p_, &master_scroll_callback);
 }
 
 MainWindow::~MainWindow(void) {
@@ -49,19 +50,23 @@ void MainWindow::add_key_callback(int key, const KeyCallback& callback)
 	key_callback_map_[key].push_back(callback);
 }
 
-void MainWindow::add_mouse_pos_callback(const MousePosCallback& callback)
-{
-	mouse_pos_callbacks_.push_back(callback);
-}
-
 void MainWindow::add_mouse_button_callback(int button, const MouseButtonCallback& callback)
 {
 	mouse_button_callback_map_[button].push_back(callback);
 }
 
+void MainWindow::add_mouse_pos_callback(const MousePosCallback& callback)
+{
+	mouse_pos_callbacks_.push_back(callback);
+}
+
+void MainWindow::add_scroll_callback(const ScrollCallback& callback)
+{
+	scroll_callbacks_.push_back(callback);
+}
+
 void MainWindow::master_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	// This allows us to e.g. have multiple windows work correctly in the future.
 	const auto& callback_map = window_by_pointer__.at(window)->key_callback_map_;
 
 	if (callback_map.find(key) != std::end(callback_map))
@@ -69,14 +74,6 @@ void MainWindow::master_key_callback(GLFWwindow* window, int key, int scancode, 
 		for (auto& callback : callback_map.at(key))
 			callback(scancode, action, mods);
 	}
-}
-
-void MainWindow::master_mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
-{
-	const auto& callbacks = window_by_pointer__.at(window)->mouse_pos_callbacks_;
-
-	for (auto& callback : callbacks)
-		callback(xpos, ypos);
 }
 
 void MainWindow::master_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -88,6 +85,22 @@ void MainWindow::master_mouse_button_callback(GLFWwindow* window, int button, in
 		for (auto& callback : callback_map.at(button))
 			callback(action, mods);
 	}
+}
+
+void MainWindow::master_mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	const auto& callbacks = window_by_pointer__.at(window)->mouse_pos_callbacks_;
+
+	for (auto& callback : callbacks)
+		callback(xpos, ypos);
+}
+
+void MainWindow::master_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	const auto& callbacks = window_by_pointer__.at(window)->scroll_callbacks_;
+
+	for (auto& callback : callbacks)
+		callback(xoffset, yoffset);
 }
 
 void MainWindow::master_error_callback(int error, const char* description)

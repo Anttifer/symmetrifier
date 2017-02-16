@@ -15,12 +15,18 @@ App::App(int argc, char* argv[])
 	cube_                  (Mesh::cube()),
 	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
 	pixels_per_unit_       (8192.0),                           // Initial zoom level.
+	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
 	// Screenshot callback.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
-	// window_.add_mouse_pos_callback(&App::test_mouse_callback, this);
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_RIGHT, &App::test_mousebutton_callback, this);
+
+	// Input test.
+	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::test_left_click_cb, this);
+	window_.add_mouse_pos_callback(&App::test_update_objects_cb, this);
+	window_.add_scroll_callback(&App::test_scroll_cb, this);
+
+	glfwSwapInterval(0);
 
 	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
@@ -41,10 +47,6 @@ void App::loop(void)
 		// Get current time for use in the shaders.
 		time_ = glfwGetTime();
 
-		// Poll events and deal with user input.
-		glfwWaitEvents();
-		update_objects();
-
 		// Render the pinwheel.
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
@@ -52,6 +54,9 @@ void App::loop(void)
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
+
+		// Poll events.
+		glfwWaitEvents();
 	}
 }
 
@@ -406,15 +411,39 @@ void App::print_screen(int scancode, int action, int mods)
 	}
 }
 
-void App::test_mouse_callback(double xpos, double ypos)
+void App::test_mouse_cb(double xpos, double ypos)
 {
 	std::cout << "( " << xpos << ", " << ypos << " )" << std::endl;
 }
 
-void App::test_mousebutton_callback(int action, int mods)
+void App::test_update_objects_cb(double x, double y)
+{
+	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+		const auto& drag_position = position - press_position_;
+		plane_.set_position(plane_static_position_ + scale_to_world(drag_position));
+	}
+}
+
+// TODO: Rewrite input manager.
+void App::test_left_click_cb(int action, int mods)
 {
 	if (action == GLFW_PRESS)
-		std::cout << "User pressed a mouse button!" << std::endl;
+	{
+		press_position_ = input_manager_.mouse_position();
+		plane_static_position_ = plane_.position();
+	}
+}
+
+void App::test_scroll_cb(double xoffset, double yoffset)
+{
+	if (yoffset > 0)
+		pixels_per_unit_ *=  zoom_factor_;
+	else if (yoffset < 0)
+		pixels_per_unit_ /=  zoom_factor_;
 }
 
 //--------------------

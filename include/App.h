@@ -32,8 +32,12 @@ private:
 
 	// Key callbacks.
 	void print_screen  (int, int, int);
-	void test_mouse_callback  (double, double);
-	void test_mousebutton_callback  (int, int);
+
+	// Test callbacks.
+	void test_mouse_cb              (double, double);
+	void test_update_objects_cb     (double, double);
+	void test_left_click_cb         (int, int);
+	void test_scroll_cb             (double, double);
 
 	// Framework objects.
 	MainWindow    window_;
@@ -44,7 +48,12 @@ private:
 	Mesh          torus_;
 	PinwheelPlane plane_;
 
-	double        pixels_per_unit_;
-	double        time_;
+	// Test objects.
+	Eigen::Vector2f press_position_;
+	Eigen::Vector2f plane_static_position_;
+
+	double pixels_per_unit_;
+	double zoom_factor_;
+	double time_;
 };
 #endif // APP_H
