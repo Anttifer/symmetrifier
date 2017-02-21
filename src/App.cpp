@@ -401,6 +401,7 @@ void App::print_screen(int scancode, int action, int mods)
 		auto texture = GL::Texture::empty_2D(width, height);
 		auto depth   = GL::Texture::empty_2D_depth(width, height);
 		auto fbo     = GL::FBO::simple_C0D(texture, depth);
+		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
 		render_pinwheel(width, height, fbo);
 
