@@ -13,6 +13,9 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	if (!glfwInit())
 		throw std::runtime_error("Failed to initialize GLFW.");
 
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+
 	window_p_ = glfwCreateWindow(width, height, title, NULL, NULL);
 	if (!window_p_)
 	{
