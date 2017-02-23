@@ -14,7 +14,7 @@ App::App(int argc, char* argv[])
 	input_manager_         (window_),
 	cube_                  (Mesh::cube()),
 	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
-	pixels_per_unit_       (8192.0),                           // Initial zoom level.
+	pixels_per_unit_       (50.0),                           // Initial zoom level.
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
@@ -28,12 +28,28 @@ App::App(int argc, char* argv[])
 
 	glfwSwapInterval(0);
 
-	// Enable depth testing.
+	// Enable depth testing and alpha blending.
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Subdivide our plane a couple of times.
 	for (int i = 0; i < 8; ++i)
 		plane_.subdivide();
+
+	int width, height;
+	glfwGetFramebufferSize(window_, &width, &height);
+
+	debug_tex_   = GL::Texture::empty_2D(width, height);
+	auto depth   = GL::Texture::empty_2D_depth(width, height);
+	auto fbo     = GL::FBO::simple_C0D(debug_tex_, depth);
+	glClearColor(0.1, 0.1, 0.1, 0.0);
+	GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
+
+	render_pinwheel(width, height, fbo);
+
+	tiling_.set_symmetry_group("2*22");
+	tiling_.symmetrify(debug_tex_);
 }
 
 void App::loop(void)
@@ -50,7 +66,8 @@ void App::loop(void)
 		// Render the pinwheel.
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
-		render_pinwheel(width, height);
+		render_tiling(width, height);
+		// render_texture(tiling_.symmetrified_, width, height);
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
@@ -140,6 +157,46 @@ void App::render_extruded_mesh(const Mesh& mesh, int width, int height, GLuint f
 	glBindVertexArray(0);
 
 	// Clean up.
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+// TODO: Implement this properly.
+void App::render_tiling(int width, int height, GLuint framebuffer)
+{
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	// TODO: Don't use plane_.position here.
+	// Get the data required by the shader.
+	const Eigen::Vector2f& screen_center = -plane_.position();
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(tiling_.render_shader_);
+
+	glUniform2i  (tiling_.screen_size_uniform_, width, height);
+	glUniform2fv (tiling_.screen_center_uniform_, 1, screen_center.data());
+	glUniform1f  (tiling_.pixels_per_unit_uniform_, pixels_per_unit_);
+	glUniform1i  (tiling_.render_sampler_uniform_, 1);
+
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, tiling_.symmetrified_);
+
+	glBindVertexArray(tiling_.mesh_.vao_);
+	glDrawArrays(tiling_.mesh_.primitive_type_, 0, tiling_.mesh_.num_vertices_);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+
 	glUseProgram(0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);

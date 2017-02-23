@@ -25,6 +25,7 @@ private:
 	Eigen::Vector2f scale_to_world (const Eigen::Vector2f&);
 
 	void render_wave           (int width, int height, GLuint framebuffer = 0);
+	void render_tiling         (int width, int height, GLuint framebuffer = 0);
 	void render_pinwheel       (int width, int height, GLuint framebuffer = 0);
 	void render_texture        (const GL::Texture& texture, int width, int height, GLuint framebuffer = 0);
 	void render_mesh           (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
@@ -49,6 +50,8 @@ private:
 	Mesh          torus_;
 	PinwheelPlane plane_;
 	Tiling        tiling_;
+
+	GL::Texture debug_tex_;
 
 	// TODO: Move these into InputManager?
 	Eigen::Vector2f press_position_;

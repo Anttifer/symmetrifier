@@ -5,26 +5,30 @@
 #include <cstdio>
 
 Tiling::Tiling(void)
-:	position_             (0.0, 0.0),
-	t1_                   (1.0, 0.0),
-	t2_                   (0.0, 1.0),
-	symmetrify_shader_    (GL::ShaderProgram::from_files(
-		                      "shaders/symmetrify_vert.glsl",
-		                      "shaders/symmetrify_frag.glsl")),
-	aspect_ratio_uniform_ (glGetUniformLocation(symmetrify_shader_, "uAR")),
-	position_uniform_     (glGetUniformLocation(symmetrify_shader_, "uPos")),
-	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
-	t2_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT2")),
-	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler"))
-	// render_shader_        (GL::ShaderProgram::from_files(
-	// 	                      "shaders/tiling_vert.glsl",
-	// 	                      "shaders/tiling_geom.glsl",
-	// 	                      "shaders/tiling_frag.glsl"))
+:	position_                    (0.0, 0.0),
+	t1_                          (1.0, 0.0),
+	t2_                          (0.0, 1.0),
+	symmetrify_shader_           (GL::ShaderProgram::from_files(
+		                             "shaders/symmetrify_vert.glsl",
+		                             "shaders/symmetrify_frag.glsl")),
+	aspect_ratio_uniform_        (glGetUniformLocation(symmetrify_shader_, "uAR")),
+	symmetrify_position_uniform_ (glGetUniformLocation(symmetrify_shader_, "uPos")),
+	symmetrify_t1_uniform_       (glGetUniformLocation(symmetrify_shader_, "uT1")),
+	symmetrify_t2_uniform_       (glGetUniformLocation(symmetrify_shader_, "uT2")),
+	symmetrify_sampler_uniform_  (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
+	render_shader_               (GL::ShaderProgram::from_files(
+		                             "shaders/tiling_vert.glsl",
+		                             "shaders/tiling_geom.glsl",
+		                             "shaders/tiling_frag.glsl")),
+	render_position_uniform_     (glGetUniformLocation(render_shader_, "uPos")),
+	render_t1_uniform_           (glGetUniformLocation(render_shader_, "uT1")),
+	render_t2_uniform_           (glGetUniformLocation(render_shader_, "uT2")),
+	screen_size_uniform_         (glGetUniformLocation(render_shader_, "uScreenSize")),
+	screen_center_uniform_       (glGetUniformLocation(render_shader_, "uScreenCenter")),
+	pixels_per_unit_uniform_     (glGetUniformLocation(render_shader_, "uPixelsPerUnit")),
+	render_sampler_uniform_      (glGetUniformLocation(render_shader_, "uTextureSampler"))
 {
 	set_symmetry_group("o");
-
-	auto sampler_uniform = glGetUniformLocation(symmetrify_shader_, "uTextureSampler");
-	glUniform1i(sampler_uniform, 1);
 }
 
 // TODO: Add the remaining groups.
@@ -84,9 +88,8 @@ void Tiling::symmetrify(const GL::Texture& texture)
 
 	// Set up the symmetrified texture.
 	symmetrified_ = GL::Texture::empty_2D(dimension, dimension);
-	auto depth    = GL::Texture::empty_2D_depth(dimension, dimension); // DEBUG
-	fbo_          = GL::FBO::simple_C0D(symmetrified_, depth);         // DEBUG
-	GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo_);
+	fbo_          = GL::FBO::simple_C0(symmetrified_);
+	GL::clear(GL_COLOR_BUFFER_BIT, fbo_);
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -98,10 +101,10 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glUseProgram(symmetrify_shader_);
 
 	glUniform1f  (aspect_ratio_uniform_, AR);
-	glUniform3fv (position_uniform_, 1, position_.data());
-	glUniform3fv (t1_uniform_, 1, t1_.data());
-	glUniform3fv (t2_uniform_, 1, t2_.data());
-	glUniform1i  (sampler_uniform_, 1);
+	glUniform3fv (symmetrify_position_uniform_, 1, position_.data());
+	glUniform3fv (symmetrify_t1_uniform_, 1, t1_.data());
+	glUniform3fv (symmetrify_t2_uniform_, 1, t2_.data());
+	glUniform1i  (symmetrify_sampler_uniform_, 1);
 
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
