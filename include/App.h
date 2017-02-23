@@ -6,6 +6,7 @@
 #include "ShaderCanvas.h"
 #include "Mesh.h"
 #include "PinwheelPlane.h"
+#include "Tiling.h"
 #include "GLObjects.h"
 
 //--------------------
@@ -47,8 +48,9 @@ private:
 	Mesh          cube_;
 	Mesh          torus_;
 	PinwheelPlane plane_;
+	Tiling        tiling_;
 
-	// Test objects.
+	// TODO: Move these into InputManager?
 	Eigen::Vector2f press_position_;
 	Eigen::Vector2f plane_static_position_;
 
