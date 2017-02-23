@@ -14,7 +14,8 @@ App::App(int argc, char* argv[])
 	input_manager_         (window_),
 	cube_                  (Mesh::cube()),
 	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
-	pixels_per_unit_       (50.0),                           // Initial zoom level.
+	screen_center_         (0, 0),
+	pixels_per_unit_       (1440.0),                           // Initial zoom level.
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
@@ -66,8 +67,7 @@ void App::loop(void)
 		// Render the pinwheel.
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
-		render_tiling(width, height);
-		// render_texture(tiling_.symmetrified_, width, height);
+		render_image(debug_tex_, width, height);
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
@@ -77,7 +77,64 @@ void App::loop(void)
 	}
 }
 
-// TODO: Reimplement using callbacks and std::bind.
+void App::render_image(const GL::Texture& image, int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/image_vert.glsl",
+		"shaders/image_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint aspect_ratio_uniform;
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		aspect_ratio_uniform    = glGetUniformLocation(shader, "uAR");
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	auto AR = image.width_ / (float)image.height_;
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	glUniform1f  (aspect_ratio_uniform, AR);
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (texture_sampler_uniform, 1);
+
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, image);
+
+	glBindVertexArray(canvas_.vao_);
+	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+// TODO: Remove this if deemed unnecessary.
 void App::update_objects(void)
 {
 	static struct {
@@ -108,8 +165,8 @@ Eigen::Vector2f App::scale_to_world(const Eigen::Vector2f& v)
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
-	return { v.x() * width / pixels_per_unit_,
-	         v.y() * height / pixels_per_unit_ };
+	return { v.x() * (0.5 * width) / pixels_per_unit_,
+	         v.y() * (0.5 * height) / pixels_per_unit_ };
 }
 
 void App::render_extruded_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
@@ -469,11 +526,6 @@ void App::print_screen(int scancode, int action, int mods)
 	}
 }
 
-void App::test_mouse_cb(double xpos, double ypos)
-{
-	std::cout << "( " << xpos << ", " << ypos << " )" << std::endl;
-}
-
 void App::test_update_objects_cb(double x, double y)
 {
 	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
@@ -483,6 +535,8 @@ void App::test_update_objects_cb(double x, double y)
 		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 		const auto& drag_position = position - press_position_;
 		plane_.set_position(plane_static_position_ + scale_to_world(drag_position));
+		screen_center_ = screen_center_static_position_ - scale_to_world(drag_position);
+
 	}
 }
 
@@ -493,6 +547,7 @@ void App::test_left_click_cb(int action, int mods)
 	{
 		press_position_ = input_manager_.mouse_position();
 		plane_static_position_ = plane_.position();
+		screen_center_static_position_ = screen_center_;
 	}
 }
 

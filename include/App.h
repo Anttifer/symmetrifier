@@ -24,6 +24,10 @@ private:
 	void update_objects            (void);
 	Eigen::Vector2f scale_to_world (const Eigen::Vector2f&);
 
+	// Renders the chosen image in world coordinates (0,0) - (1, y).
+	// Possibly repeated?
+	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
+
 	void render_wave           (int width, int height, GLuint framebuffer = 0);
 	void render_tiling         (int width, int height, GLuint framebuffer = 0);
 	void render_pinwheel       (int width, int height, GLuint framebuffer = 0);
@@ -36,7 +40,6 @@ private:
 	void print_screen  (int, int, int);
 
 	// Test callbacks.
-	void test_mouse_cb              (double, double);
 	void test_update_objects_cb     (double, double);
 	void test_left_click_cb         (int, int);
 	void test_scroll_cb             (double, double);
@@ -53,9 +56,11 @@ private:
 
 	GL::Texture debug_tex_;
 
+	Eigen::Vector2f screen_center_;
 	// TODO: Move these into InputManager?
 	Eigen::Vector2f press_position_;
 	Eigen::Vector2f plane_static_position_;
+	Eigen::Vector2f screen_center_static_position_;
 
 	double pixels_per_unit_;
 	double zoom_factor_;

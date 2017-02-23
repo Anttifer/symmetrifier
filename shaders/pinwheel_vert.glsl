@@ -12,7 +12,7 @@ uniform float uTime;
 out vec3 vInfluence;
 
 void main() {
-	vec2 position = (aPosition.xy - uScreenCenter) * vec2(uPixelsPerUnit) / uScreenSize; 
+	vec2 position = (aPosition.xy - uScreenCenter) * vec2(uPixelsPerUnit) / (0.5 * uScreenSize);
 	gl_Position   = vec4(position, 0, 1);
 	
 	switch (gl_VertexID % 3) {
