@@ -24,6 +24,9 @@ public:
 	// the current symmetry group.
 	void symmetrify (const GL::Texture&);
 
+	// DEBUG
+	friend class App;
+
 private:
 	// Mesh construction functions for different symmetry groups.
 	void construct_p1(void);
@@ -43,6 +46,7 @@ private:
 	GLuint position_uniform_;
 	GLuint t1_uniform_;
 	GLuint t2_uniform_;
+	GLuint sampler_uniform_;
 
 	// This texture will contain the symmetrified fundamental domain.
 	GL::Texture symmetrified_;
