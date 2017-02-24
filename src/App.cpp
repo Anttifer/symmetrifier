@@ -20,18 +20,17 @@ App::App(int argc, char* argv[])
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
-	// Screenshot callback.
+	// Key callbacks.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
-
-	// Input test.
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::test_left_click_cb, this);
-	window_.add_mouse_pos_callback(&App::test_update_objects_cb, this);
-	window_.add_scroll_callback(&App::test_scroll_cb, this);
-
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int,int action,int){
 		if (action == GLFW_PRESS)
 			this->symmetrifying_ ^= true;
 	});
+
+	// Mouse callbacks.
+	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::test_left_click_cb, this);
+	window_.add_mouse_pos_callback(&App::test_update_objects_cb, this);
+	window_.add_scroll_callback(&App::test_scroll_cb, this);
 
 	glfwSwapInterval(0);
 
@@ -78,9 +77,9 @@ void App::loop(void)
 
 		if (symmetrifying_)
 		{
-			tiling_.symmetrify(debug_tex_);
+			if (!tiling_.consistent())
+				tiling_.symmetrify(debug_tex_);
 			render_symmetry_frame(true, width, height);
-			// render_image(tiling_.symmetrified_, width, height);
 		}
 		else
 		{
@@ -190,9 +189,9 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
-	glUniform2fv (position_uniform, 1, tiling_.position_.data());
-	glUniform2fv (t1_uniform, 1, tiling_.t1_.data());
-	glUniform2fv (t2_uniform, 1, tiling_.t2_.data());
+	glUniform2fv (position_uniform, 1, tiling_.position().data());
+	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
@@ -202,10 +201,12 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, tiling_.domain_texture_);
+	glBindTexture(GL_TEXTURE_2D, tiling_.domain_texture());
 
-	glBindVertexArray(tiling_.mesh_.vao_);
-	glDrawArraysInstanced(tiling_.mesh_.primitive_type_, 0, tiling_.mesh_.num_vertices_, 400);
+	const auto& mesh = tiling_.mesh();
+
+	glBindVertexArray(mesh.vao_);
+	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, 400);
 
 	// Clean up.
 	glBindVertexArray(0);
@@ -506,7 +507,7 @@ void App::test_update_objects_cb(double x, double y)
 
 
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			tiling_.position_ = tiling_static_position_ + scale_to_world(drag_position);
+			tiling_.set_position(tiling_static_position_ + scale_to_world(drag_position));
 		else
 		{
 			plane_.set_position(plane_static_position_ + scale_to_world(drag_position));
@@ -525,7 +526,7 @@ void App::test_left_click_cb(int action, int mods)
 
 		plane_static_position_ = plane_.position();
 		screen_center_static_position_ = screen_center_;
-		tiling_static_position_ = tiling_.position_;
+		tiling_static_position_ = tiling_.position();
 	}
 }
 
@@ -534,15 +535,9 @@ void App::test_scroll_cb(double xoffset, double yoffset)
 	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 	{
 		if (yoffset < 0)
-		{
-			tiling_.t1_ *= zoom_factor_;
-			tiling_.t2_ *= zoom_factor_;
-		}
+			tiling_.set_scale(zoom_factor_);
 		else if (yoffset > 0)
-		{
-			tiling_.t1_ /= zoom_factor_;
-			tiling_.t2_ /= zoom_factor_;
-		}
+			tiling_.set_scale(1 / zoom_factor_);
 	}
 	else
 	{

@@ -11,21 +11,22 @@ public:
 
 	const char*            symmetry_group     (void) const { return symmetry_group_; }
 	const Mesh&            mesh               (void) const { return mesh_; }
+	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
 	const Eigen::Vector2f& position           (void) const { return position_; }
-	const Eigen::Vector2f& translation_1      (void) const { return t1_; }
-	const Eigen::Vector2f& translation_2      (void) const { return t1_; }
+	const Eigen::Vector2f& t1                 (void) const { return t1_; }
+	const Eigen::Vector2f& t2                 (void) const { return t2_; }
+	bool                   consistent         (void) const { return consistent_; }
 
 	// TODO: Symmetry group parameters such as lattice angle etc.
 	void set_symmetry_group (const char*);
-	void set_position       (const Eigen::Vector2f&);
+	void set_position       (const Eigen::Vector2f& position) { consistent_ = false; position_ = position; }
 	void set_rotation       (double);
+	void set_scale          (double factor)                   { consistent_ = false; t1_ *= factor; t2_ *= factor; }
+	void set_inconsistent   (void)                            { consistent_ = false; }
 
 	// This function constructs the symmetrified texture according to
 	// the current symmetry group.
 	void symmetrify (const GL::Texture&);
-
-	// DEBUG
-	friend class App;
 
 private:
 	// Mesh construction functions for different symmetry groups.
@@ -55,6 +56,8 @@ private:
 	// because of mirrored triangles, but we can write a geometry shader to correct
 	// this when rendering. When symmetrifying, the mirroring will be essential.
 	Mesh mesh_;
+
+	bool consistent_;
 };
 
 #endif // TILING_H

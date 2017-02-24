@@ -15,7 +15,8 @@ Tiling::Tiling(void)
 	position_uniform_     (glGetUniformLocation(symmetrify_shader_, "uPos")),
 	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
 	t2_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT2")),
-	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler"))
+	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
+	consistent_           (false)
 {
 	set_symmetry_group("o");
 }
@@ -23,6 +24,8 @@ Tiling::Tiling(void)
 // TODO: Add the remaining groups.
 void Tiling::set_symmetry_group(const char* group)
 {
+	consistent_ = false;
+
 	if (!strncmp(group, "o", 8))
 	{
 		symmetry_group_ = "o";
@@ -112,4 +115,6 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 	glActiveTexture(old_active);
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+
+	consistent_ = true;
 }
