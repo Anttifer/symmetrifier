@@ -21,7 +21,6 @@ public:
 	void loop (void);
 
 private:
-	void update_objects            (void);
 	Eigen::Vector2f scale_to_world (const Eigen::Vector2f&);
 
 	// Renders the chosen image in world coordinates (0,0) - (1, y).
@@ -30,11 +29,9 @@ private:
 	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
 
 	void render_wave           (int width, int height, GLuint framebuffer = 0);
-	void render_tiling         (int width, int height, GLuint framebuffer = 0);
 	void render_pinwheel       (int width, int height, GLuint framebuffer = 0);
 	void render_texture        (const GL::Texture& texture, int width, int height, GLuint framebuffer = 0);
 	void render_mesh           (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
-	void render_extruded_mesh  (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 	void render_on_mesh        (const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
 
 	// Key callbacks.

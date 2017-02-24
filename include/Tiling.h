@@ -43,25 +43,13 @@ private:
 	// symmetry group.
 	GL::ShaderProgram symmetrify_shader_;
 	GLuint aspect_ratio_uniform_;
-	GLuint symmetrify_position_uniform_;
-	GLuint symmetrify_t1_uniform_;
-	GLuint symmetrify_t2_uniform_;
-	GLuint symmetrify_sampler_uniform_;
-
-	// This shader is used for rendering the mesh. It uses the symmetrified
-	// fundamental domain texture.
-	GL::ShaderProgram render_shader_;
-	GLuint render_position_uniform_;
-	GLuint render_t1_uniform_;
-	GLuint render_t2_uniform_;
-	GLuint screen_size_uniform_;
-	GLuint screen_center_uniform_;
-	GLuint pixels_per_unit_uniform_;
-	GLuint render_sampler_uniform_;
+	GLuint position_uniform_;
+	GLuint t1_uniform_;
+	GLuint t2_uniform_;
+	GLuint sampler_uniform_;
 
 	// This texture will contain the symmetrified fundamental domain.
-	GL::Texture symmetrified_;
-	GL::FBO     fbo_;
+	GL::Texture domain_texture_;
 
 	// We only need one mesh. It will be unrenderable in its base state
 	// because of mirrored triangles, but we can write a geometry shader to correct
