@@ -14,8 +14,9 @@ App::App(int argc, char* argv[])
 	input_manager_         (window_),
 	cube_                  (Mesh::cube()),
 	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
+	symmetrifying_         (false),
 	screen_center_         (0, 0),
-	pixels_per_unit_       (1440.0),                           // Initial zoom level.
+	pixels_per_unit_       (60.0),                           // Initial zoom level.
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
@@ -27,15 +28,22 @@ App::App(int argc, char* argv[])
 	window_.add_mouse_pos_callback(&App::test_update_objects_cb, this);
 	window_.add_scroll_callback(&App::test_scroll_cb, this);
 
+	window_.add_key_callback(GLFW_KEY_SPACE, [this](int,int action,int){
+		if (action == GLFW_PRESS)
+			this->symmetrifying_ = !this->symmetrifying_;
+	});
+
 	glfwSwapInterval(0);
 
 	// Enable depth testing and alpha blending.
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_ALWAYS);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Subdivide our plane a couple of times.
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < 2; ++i)
 		plane_.subdivide();
 
 	int width, height;
@@ -48,6 +56,7 @@ App::App(int argc, char* argv[])
 	GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
 	render_pinwheel(width, height, fbo);
+	pixels_per_unit_ = 1440.0;
 
 	tiling_.set_symmetry_group("2*22");
 	tiling_.symmetrify(debug_tex_);
@@ -64,10 +73,20 @@ void App::loop(void)
 		// Get current time for use in the shaders.
 		time_ = glfwGetTime();
 
-		// Render the pinwheel.
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
-		render_image(debug_tex_, width, height);
+
+		if (symmetrifying_)
+		{
+			tiling_.symmetrify(debug_tex_);
+			render_symmetry_frame(true, width, height);
+			// render_image(tiling_.symmetrified_, width, height);
+		}
+		else
+		{
+			render_image(debug_tex_, width, height);
+			render_symmetry_frame(false, width, height);
+		}
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
@@ -122,6 +141,71 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 
 	glBindVertexArray(canvas_.vao_);
 	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/tiling_vert.glsl",
+		"shaders/tiling_geom.glsl",
+		"shaders/tiling_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint position_uniform;
+	static GLuint t1_uniform;
+	static GLuint t2_uniform;
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint texture_sampler_uniform;
+	static GLuint texture_flag_uniform;
+	static bool init = [&](){
+		position_uniform        = glGetUniformLocation(shader, "uPos");
+		t1_uniform              = glGetUniformLocation(shader, "uT1");
+		t2_uniform              = glGetUniformLocation(shader, "uT2");
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
+		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
+		return true;
+	}();
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	glUniform2fv (position_uniform, 1, tiling_.position_.data());
+	glUniform2fv (t1_uniform, 1, tiling_.t1_.data());
+	glUniform2fv (t2_uniform, 1, tiling_.t2_.data());
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (texture_sampler_uniform, 1);
+	glUniform1i  (texture_flag_uniform, symmetrifying_);
+
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, tiling_.symmetrified_);
+
+	glBindVertexArray(tiling_.mesh_.vao_);
+	glDrawArraysInstanced(tiling_.mesh_.primitive_type_, 0, tiling_.mesh_.num_vertices_, 400);
 
 	// Clean up.
 	glBindVertexArray(0);
@@ -534,8 +618,15 @@ void App::test_update_objects_cb(double x, double y)
 		glfwGetFramebufferSize(window_, &width, &height);
 		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 		const auto& drag_position = position - press_position_;
-		plane_.set_position(plane_static_position_ + scale_to_world(drag_position));
-		screen_center_ = screen_center_static_position_ - scale_to_world(drag_position);
+
+
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			tiling_.position_ = tiling_static_position_ + scale_to_world(drag_position);
+		else
+		{
+			plane_.set_position(plane_static_position_ + scale_to_world(drag_position));
+			screen_center_ = screen_center_static_position_ - scale_to_world(drag_position);
+		}
 
 	}
 }
@@ -546,17 +637,35 @@ void App::test_left_click_cb(int action, int mods)
 	if (action == GLFW_PRESS)
 	{
 		press_position_ = input_manager_.mouse_position();
+
 		plane_static_position_ = plane_.position();
 		screen_center_static_position_ = screen_center_;
+		tiling_static_position_ = tiling_.position_;
 	}
 }
 
 void App::test_scroll_cb(double xoffset, double yoffset)
 {
-	if (yoffset > 0)
-		pixels_per_unit_ *=  zoom_factor_;
-	else if (yoffset < 0)
-		pixels_per_unit_ /=  zoom_factor_;
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	{
+		if (yoffset < 0)
+		{
+			tiling_.t1_ *= zoom_factor_;
+			tiling_.t2_ *= zoom_factor_;
+		}
+		else if (yoffset > 0)
+		{
+			tiling_.t1_ /= zoom_factor_;
+			tiling_.t2_ /= zoom_factor_;
+		}
+	}
+	else
+	{
+		if (yoffset > 0)
+			pixels_per_unit_ *=  zoom_factor_;
+		else if (yoffset < 0)
+			pixels_per_unit_ /=  zoom_factor_;
+	}
 }
 
 //--------------------

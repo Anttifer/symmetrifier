@@ -27,7 +27,7 @@ out Data {
 
 vec2 NDCPosition(in vec4 pos) {
 	vec2 worldPos = uPos + uT1 * pos.x + uT2 * pos.y;
-	return (worldPos - uScreenCenter) * vec2(uPixelsPerUnit) / uScreenSize;
+	return (worldPos - uScreenCenter) * vec2(uPixelsPerUnit) / (0.5 * uScreenSize);
 }
 
 void main() {

@@ -27,6 +27,7 @@ private:
 	// Renders the chosen image in world coordinates (0,0) - (1, y).
 	// Possibly repeated?
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
+	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
 
 	void render_wave           (int width, int height, GLuint framebuffer = 0);
 	void render_tiling         (int width, int height, GLuint framebuffer = 0);
@@ -55,11 +56,13 @@ private:
 	Tiling        tiling_;
 
 	GL::Texture debug_tex_;
+	bool symmetrifying_;
 
 	Eigen::Vector2f screen_center_;
 	// TODO: Move these into InputManager?
 	Eigen::Vector2f press_position_;
 	Eigen::Vector2f plane_static_position_;
+	Eigen::Vector2f tiling_static_position_;
 	Eigen::Vector2f screen_center_static_position_;
 
 	double pixels_per_unit_;

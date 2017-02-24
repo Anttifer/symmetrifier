@@ -101,15 +101,18 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glUseProgram(symmetrify_shader_);
 
 	glUniform1f  (aspect_ratio_uniform_, AR);
-	glUniform3fv (symmetrify_position_uniform_, 1, position_.data());
-	glUniform3fv (symmetrify_t1_uniform_, 1, t1_.data());
-	glUniform3fv (symmetrify_t2_uniform_, 1, t2_.data());
+	glUniform2fv (symmetrify_position_uniform_, 1, position_.data());
+	glUniform2fv (symmetrify_t1_uniform_, 1, t1_.data());
+	glUniform2fv (symmetrify_t2_uniform_, 1, t2_.data());
 	glUniform1i  (symmetrify_sampler_uniform_, 1);
 
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 	glBindVertexArray(mesh_.vao_);
 	glDrawArrays(mesh_.primitive_type_, 0, mesh_.num_vertices_);
