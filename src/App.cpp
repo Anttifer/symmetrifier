@@ -51,14 +51,13 @@ App::App(int argc, char* argv[])
 	debug_tex_   = GL::Texture::empty_2D(width, height);
 	auto depth   = GL::Texture::empty_2D_depth(width, height);
 	auto fbo     = GL::FBO::simple_C0D(debug_tex_, depth);
-	glClearColor(0.1, 0.1, 0.1, 0.0);
+	glClearColor(0, 0, 0, 0);
 	GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
 	render_pinwheel(width, height, fbo);
 	pixels_per_unit_ = 1440.0;
 
 	tiling_.set_symmetry_group("2*22");
-	tiling_.symmetrify(debug_tex_);
 }
 
 void App::loop(void)
@@ -66,7 +65,7 @@ void App::loop(void)
 	while (!glfwWindowShouldClose(window_))
 	{
 		// Clear the screen. Dark grey is the new black.
-		glClearColor(0.1, 0.1, 0.1, 1);
+		glClearColor(0.1, 0.1, 0.1, 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Get current time for use in the shaders.
@@ -77,6 +76,7 @@ void App::loop(void)
 
 		if (symmetrifying_)
 		{
+			// Prevent needless symmetrifying, which might be expensive.
 			if (!tiling_.consistent())
 				tiling_.symmetrify(debug_tex_);
 			render_symmetry_frame(true, width, height);
@@ -119,6 +119,10 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, image);
 
 	glViewport(0, 0, width, height);
 
@@ -133,22 +137,16 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
 
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, image);
-
 	glBindVertexArray(canvas_.vao_);
 	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
 
 	// Clean up.
 	glBindVertexArray(0);
 
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-
 	glUseProgram(0);
 
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
@@ -160,6 +158,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 		"shaders/tiling_frag.glsl");
 
 	// Find uniform locations once.
+	static GLuint instance_num_uniform;
 	static GLuint position_uniform;
 	static GLuint t1_uniform;
 	static GLuint t2_uniform;
@@ -169,6 +168,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	static GLuint texture_sampler_uniform;
 	static GLuint texture_flag_uniform;
 	static bool init = [&](){
+		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform        = glGetUniformLocation(shader, "uPos");
 		t1_uniform              = glGetUniformLocation(shader, "uT1");
 		t2_uniform              = glGetUniformLocation(shader, "uT2");
@@ -183,12 +183,20 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, tiling_.domain_texture());
 
 	glViewport(0, 0, width, height);
+
+	const auto plane_side_length = 10;
+	const auto num_instances = symmetrifying ? plane_side_length * plane_side_length : 1;
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
+	glUniform1i  (instance_num_uniform, num_instances);
 	glUniform2fv (position_uniform, 1, tiling_.position().data());
 	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
 	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
@@ -198,27 +206,22 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glUniform1i  (texture_sampler_uniform, 1);
 	glUniform1i  (texture_flag_uniform, symmetrifying_);
 
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, tiling_.domain_texture());
-
 	const auto& mesh = tiling_.mesh();
 
 	glBindVertexArray(mesh.vao_);
-	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, 400);
+	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
 
 	// Clean up.
 	glBindVertexArray(0);
 
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-
 	glUseProgram(0);
 
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
+// TODO: Figure out where this should go.
 Eigen::Vector2f App::scale_to_world(const Eigen::Vector2f& v)
 {
 	int width, height;
@@ -334,6 +337,10 @@ void App::render_texture(const GL::Texture& texture, int width, int height, GLui
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	glViewport(0, 0, width, height);
 
@@ -343,24 +350,18 @@ void App::render_texture(const GL::Texture& texture, int width, int height, GLui
 	glUniform1i(texture_sampler_uniform, 1);
 	glUniform1i(texture_flag_uniform, GL_TRUE);
 
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
 	glBindVertexArray(canvas_.vao_);
 	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
 
 	// Clean up.
 	glBindVertexArray(0);
 
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-
 	glUniform1i(texture_flag_uniform, GL_FALSE);
 
 	glUseProgram(0);
 
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 

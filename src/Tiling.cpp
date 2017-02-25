@@ -10,7 +10,9 @@ Tiling::Tiling(void)
 	t2_                   (0.0, 1.0),
 	symmetrify_shader_    (GL::ShaderProgram::from_files(
 		                      "shaders/symmetrify_vert.glsl",
+		                      "shaders/symmetrify_geom.glsl",
 		                      "shaders/symmetrify_frag.glsl")),
+	instance_num_uniform_ (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
 	aspect_ratio_uniform_ (glGetUniformLocation(symmetrify_shader_, "uAR")),
 	position_uniform_     (glGetUniformLocation(symmetrify_shader_, "uPos")),
 	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
@@ -73,7 +75,7 @@ void Tiling::construct_cmm(void)
 	mesh_.update_buffers();
 }
 
-void Tiling::symmetrify(const GL::Texture& texture)
+void Tiling::symmetrify(const GL::Texture& texture, int num_domains)
 {
 	auto AR        = texture.width_ / (float)texture.height_;
 	auto dimension = std::max(texture.width_, texture.height_);
@@ -81,6 +83,7 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	// Set up the symmetrified texture.
 	domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
 	auto fbo        = GL::FBO::simple_C0(domain_texture_);
+	glClearColor(0, 0, 0, 0);
 	GL::clear(GL_COLOR_BUFFER_BIT, fbo);
 
 	// Save previous state.
@@ -89,24 +92,26 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+
+	// Set texture wrapping parameters.
 	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
 	glViewport(0, 0, dimension, dimension);
 
 	// Set the shader program, uniforms and texture parameters, and draw.
 	glUseProgram(symmetrify_shader_);
 
+	glUniform1i  (instance_num_uniform_, num_domains);
 	glUniform1f  (aspect_ratio_uniform_, AR);
 	glUniform2fv (position_uniform_, 1, position_.data());
 	glUniform2fv (t1_uniform_, 1, t1_.data());
 	glUniform2fv (t2_uniform_, 1, t2_.data());
 	glUniform1i  (sampler_uniform_, 1);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
 	glBindVertexArray(mesh_.vao_);
-	glDrawArrays(mesh_.primitive_type_, 0, mesh_.num_vertices_);
+	glDrawArraysInstanced(mesh_.primitive_type_, 0, mesh_.num_vertices_, num_domains);
 
 	// Clean up.
 	glBindVertexArray(0);

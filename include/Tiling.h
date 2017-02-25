@@ -26,7 +26,7 @@ public:
 
 	// This function constructs the symmetrified texture according to
 	// the current symmetry group.
-	void symmetrify (const GL::Texture&);
+	void symmetrify (const GL::Texture&, int num_domains = 1);
 
 private:
 	// Mesh construction functions for different symmetry groups.
@@ -43,6 +43,7 @@ private:
 	// such a way that the resulting fundamental domain conforms to the chosen
 	// symmetry group.
 	GL::ShaderProgram symmetrify_shader_;
+	GLuint instance_num_uniform_;
 	GLuint aspect_ratio_uniform_;
 	GLuint position_uniform_;
 	GLuint t1_uniform_;
@@ -57,6 +58,7 @@ private:
 	// this when rendering. When symmetrifying, the mirroring will be essential.
 	Mesh mesh_;
 
+	// Is the domain texture consistent with current settings?
 	bool consistent_;
 };
 

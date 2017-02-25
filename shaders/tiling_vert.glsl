@@ -5,7 +5,7 @@
 // Declare the inputs.
 layout(location = 0) in vec3 aPosition;
 
-uniform int uNumInstances;
+uniform int uNumInstances = 1;
 
 // Declare the outputs.
 out Data {
@@ -26,10 +26,12 @@ void main() {
 			vColor = vec3(0.0, 0.0, 1.0);
 	}
 
-	int y = gl_InstanceID / 20;
-	int x = gl_InstanceID % 20;
+	int s = int(sqrt(uNumInstances));
 
-	vec3 adjustment = vec3(x - 10, y - 10, 0);
+	int y = gl_InstanceID / s;
+	int x = gl_InstanceID % s;
+
+	vec3 adjustment = vec3(x - s / 2, y - s / 2, 0);
 
 	gl_Position = vec4(adjustment + aPosition, 1);
 }
