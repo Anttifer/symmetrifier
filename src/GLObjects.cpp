@@ -371,7 +371,7 @@ FBO FBO::simple_C0(const Texture& color)
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color, 0);
 
@@ -399,7 +399,7 @@ FBO FBO::simple_C0D(const Texture& color, const Texture& depth)
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color, 0);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth, 0);
@@ -427,7 +427,7 @@ FBO FBO::multisample_C0(const Texture& color)
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, color, 0);
 
@@ -455,7 +455,7 @@ FBO FBO::multisample_C0D(const Texture& color, const Texture& depth)
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, color, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depth, 0);
