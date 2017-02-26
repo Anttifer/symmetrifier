@@ -18,6 +18,11 @@ App::App(int argc, char* argv[])
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
+	// Mouse callbacks.
+	window_.add_mouse_pos_callback(&App::position_callback, this);
+	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::left_click_callback, this);
+	window_.add_scroll_callback(&App::scroll_callback, this);
+
 	// Key callbacks.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int,int action,int){
@@ -25,17 +30,11 @@ App::App(int argc, char* argv[])
 			this->symmetrifying_ ^= true;
 	});
 
-	// Mouse callbacks.
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::test_left_click_cb, this);
-	window_.add_mouse_pos_callback(&App::test_update_objects_cb, this);
-	window_.add_scroll_callback(&App::test_scroll_cb, this);
-
 	glfwSwapInterval(0);
 
-	// Enable depth testing and alpha blending.
+	// "Enable" depth testing and alpha blending.
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_ALWAYS);
-
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -215,14 +214,55 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-// TODO: Figure out where this should go.
-Eigen::Vector2f App::screen_to_world(const Eigen::Vector2f& v)
+void App::position_callback(double x, double y)
 {
-	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
+	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+		const auto& drag_position = position - press_position_;
 
-	return { v.x() * (0.5 * width) / pixels_per_unit_,
-	         v.y() * (0.5 * height) / pixels_per_unit_ };
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
+		else
+			screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
+	}
+}
+
+void App::left_click_callback(int action, int mods)
+{
+	if (action == GLFW_PRESS)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+
+		double x, y;
+		glfwGetCursorPos(window_, &x, &y);
+
+		press_position_ = {x / width * 2 - 1, 1 - y / height * 2};
+
+		screen_center_static_position_ = screen_center_;
+		tiling_static_position_        = tiling_.position();
+	}
+}
+
+void App::scroll_callback(double x_offset, double y_offset)
+{
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	{
+		if (y_offset < 0)
+			tiling_.set_scale(zoom_factor_);
+		else if (y_offset > 0)
+			tiling_.set_scale(1 / zoom_factor_);
+	}
+	else
+	{
+		if (y_offset > 0)
+			pixels_per_unit_ *=  zoom_factor_;
+		else if (y_offset < 0)
+			pixels_per_unit_ /=  zoom_factor_;
+	}
 }
 
 void App::print_screen(int scancode, int action, int mods)
@@ -240,7 +280,8 @@ void App::print_screen(int scancode, int action, int mods)
 		auto fbo     = GL::FBO::simple_C0D(texture, depth);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
-		tiling_.symmetrify(debug_tex_);
+		if (!tiling_.consistent())
+			tiling_.symmetrify(debug_tex_);
 		render_symmetry_frame(true, width, height, fbo);
 
 		// TODO: Query screenshot name from user.
@@ -250,56 +291,14 @@ void App::print_screen(int scancode, int action, int mods)
 	}
 }
 
-void App::test_update_objects_cb(double x, double y)
+// TODO: Figure out where this should go.
+Eigen::Vector2f App::screen_to_world(const Eigen::Vector2f& v)
 {
-	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		int width, height;
-		glfwGetFramebufferSize(window_, &width, &height);
-		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
-		const auto& drag_position = position - press_position_;
+	int width, height;
+	glfwGetFramebufferSize(window_, &width, &height);
 
-
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
-		else
-			screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
-	}
-}
-
-void App::test_left_click_cb(int action, int mods)
-{
-	if (action == GLFW_PRESS)
-	{
-		int width, height;
-		glfwGetFramebufferSize(window_, &width, &height);
-
-		double xpos, ypos;
-		glfwGetCursorPos(window_, &xpos, &ypos);
-
-		press_position_ = {xpos / width * 2 - 1, 1 - ypos / height * 2};
-
-		screen_center_static_position_ = screen_center_;
-		tiling_static_position_        = tiling_.position();
-	}
-}
-
-void App::test_scroll_cb(double xoffset, double yoffset)
-{
-	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-	{
-		if (yoffset < 0)
-			tiling_.set_scale(zoom_factor_);
-		else if (yoffset > 0)
-			tiling_.set_scale(1 / zoom_factor_);
-	}
-	else
-	{
-		if (yoffset > 0)
-			pixels_per_unit_ *=  zoom_factor_;
-		else if (yoffset < 0)
-			pixels_per_unit_ /=  zoom_factor_;
-	}
+	return { v.x() * (0.5 * width) / pixels_per_unit_,
+	         v.y() * (0.5 * height) / pixels_per_unit_ };
 }
 
 //--------------------

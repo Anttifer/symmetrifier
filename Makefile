@@ -8,8 +8,8 @@ DEPDIR   := dep
 # These can be modified too.
 CXX      := g++
 CPPFLAGS := -DGLEW_STATIC
-CXXFLAGS := -Wall -Wextra -Wshadow -pedantic
-# CXXFLAGS := -g -O0 -Wall -Wextra -Wshadow -pedantic
+# CXXFLAGS := -Wall -Wextra -Wshadow -pedantic
+CXXFLAGS := -g -O0 -Wall -Wextra -Wshadow -pedantic
 LDLIBS   := -lGLEW -lGL -lglfw
 INCL     := -Iinclude
 

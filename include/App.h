@@ -26,13 +26,13 @@ private:
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
 	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
 
+	// Mouse callbacks.
+	void position_callback   (double, double);
+	void left_click_callback (int, int);
+	void scroll_callback     (double, double);
+
 	// Key callbacks.
 	void print_screen  (int, int, int);
-
-	// Test callbacks.
-	void test_update_objects_cb     (double, double);
-	void test_left_click_cb         (int, int);
-	void test_scroll_cb             (double, double);
 
 	// Framework objects.
 	MainWindow    window_;
