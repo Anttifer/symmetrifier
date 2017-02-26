@@ -78,7 +78,7 @@ void Tiling::construct_cmm(void)
 void Tiling::symmetrify(const GL::Texture& texture, int num_domains)
 {
 	auto AR        = texture.width_ / (float)texture.height_;
-	auto dimension = std::max(texture.width_, texture.height_);
+	auto dimension = std::max({texture.width_, texture.height_, 512u});
 
 	// Set up the symmetrified texture.
 	domain_texture_ = GL::Texture::empty_2D(dimension, dimension);

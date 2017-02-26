@@ -34,13 +34,15 @@ private:
 	// Key callbacks.
 	void print_screen  (int, int, int);
 
+	void load_texture  (const char*);
+
 	// Framework objects.
 	MainWindow    window_;
 
 	ShaderCanvas  canvas_;
 	Tiling        tiling_;
 
-	GL::Texture debug_tex_;
+	GL::Texture base_image_;
 	bool symmetrifying_;
 
 	Eigen::Vector2f screen_center_;

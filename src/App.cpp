@@ -41,13 +41,13 @@ App::App(int argc, char* argv[])
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
-	debug_tex_   = GL::Texture::empty_2D(width, height);
-	auto depth   = GL::Texture::empty_2D_depth(width, height);
-	auto fbo     = GL::FBO::simple_C0D(debug_tex_, depth);
-	glClearColor(0, 0, 0, 0);
-	GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
-
-	Examples::render_pinwheel(screen_center_, pixels_per_unit_, width, height, fbo);
+	load_texture("kissa.png");
+	// base_image_  = GL::Texture::empty_2D(width, height);
+	// auto depth   = GL::Texture::empty_2D_depth(width, height);
+	// auto fbo     = GL::FBO::simple_C0D(base_image_, depth);
+	// glClearColor(0, 0, 0, 0);
+	// GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
+	// Examples::render_pinwheel(screen_center_, pixels_per_unit_, width, height, fbo);
 
 	pixels_per_unit_ = 900.0;
 	screen_center_   = {0.5, 0.5};
@@ -71,12 +71,12 @@ void App::loop(void)
 		{
 			// Prevent needless symmetrifying, which might be expensive.
 			if (!tiling_.consistent())
-				tiling_.symmetrify(debug_tex_);
+				tiling_.symmetrify(base_image_);
 			render_symmetry_frame(true, width, height);
 		}
 		else
 		{
-			render_image(debug_tex_, width, height);
+			render_image(base_image_, width, height);
 			render_symmetry_frame(false, width, height);
 		}
 
@@ -281,7 +281,7 @@ void App::print_screen(int scancode, int action, int mods)
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
 		if (!tiling_.consistent())
-			tiling_.symmetrify(debug_tex_);
+			tiling_.symmetrify(base_image_);
 		render_symmetry_frame(true, width, height, fbo);
 
 		// TODO: Query screenshot name from user.
@@ -289,6 +289,12 @@ void App::print_screen(int scancode, int action, int mods)
 
 		printf("Screenshot saved. (screenshot.png)\n");
 	}
+}
+
+void App::load_texture(const char* filename)
+{
+	base_image_ = GL::Texture::from_png(filename);
+	tiling_.set_inconsistent();
 }
 
 // TODO: Figure out where this should go.
