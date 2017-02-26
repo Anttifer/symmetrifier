@@ -2,6 +2,7 @@
 
 #include "GLFunctions.h"
 #include "GLUtils.h"
+#include "Examples.h"
 #include <cstdio>
 
 // DEBUG
@@ -11,12 +12,9 @@
 
 App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
-	input_manager_         (window_),
-	cube_                  (Mesh::cube()),
-	torus_                 (Mesh::torus(2.0f, 0.7f, 32, 32)),
 	symmetrifying_         (false),
-	screen_center_         (0, 0),
-	pixels_per_unit_       (60.0),                           // Initial zoom level.
+	screen_center_         (0.0, 0.0),
+	pixels_per_unit_       (720.0),                           // Initial zoom level.
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
@@ -41,10 +39,6 @@ App::App(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// Subdivide our plane a couple of times.
-	for (int i = 0; i < 2; ++i)
-		plane_.subdivide();
-
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
@@ -54,9 +48,10 @@ App::App(int argc, char* argv[])
 	glClearColor(0, 0, 0, 0);
 	GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
-	render_pinwheel(width, height, fbo);
-	pixels_per_unit_ = 1440.0;
+	Examples::render_pinwheel(screen_center_, pixels_per_unit_, width, height, fbo);
 
+	pixels_per_unit_ = 900.0;
+	screen_center_   = {0.5, 0.5};
 	tiling_.set_symmetry_group("2*22");
 }
 
@@ -64,15 +59,14 @@ void App::loop(void)
 {
 	while (!glfwWindowShouldClose(window_))
 	{
-		// Clear the screen. Dark grey is the new black.
-		glClearColor(0.1, 0.1, 0.1, 0);
-		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Get current time for use in the shaders.
 		time_ = glfwGetTime();
 
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
+
+		// Clear the screen. Dark grey is the new black.
+		glClearColor(0.1, 0.1, 0.1, 0);
+		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		if (symmetrifying_)
 		{
@@ -222,254 +216,13 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 }
 
 // TODO: Figure out where this should go.
-Eigen::Vector2f App::scale_to_world(const Eigen::Vector2f& v)
+Eigen::Vector2f App::screen_to_world(const Eigen::Vector2f& v)
 {
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
 	return { v.x() * (0.5 * width) / pixels_per_unit_,
 	         v.y() * (0.5 * height) / pixels_per_unit_ };
-}
-
-void App::render_pinwheel(int width, int height, GLuint framebuffer)
-{
-	static auto shader = GL::ShaderProgram::from_files(
-		"shaders/pinwheel_vert.glsl",
-		"shaders/pinwheel_frag.glsl");
-
-	// Find uniform locations once.
-	static GLuint screen_size_uniform;
-	static GLuint screen_center_uniform;
-	static GLuint pixels_per_unit_uniform;
-	static GLuint time_uniform;
-	static bool init = [&](){
-		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
-		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
-		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
-		time_uniform            = glGetUniformLocation(shader, "uTime");
-		return true;
-	}();
-
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-	glViewport(0, 0, width, height);
-
-	// Get the data required by the shader.
-	const Eigen::Vector2f& screen_center = -plane_.position();
-
-	// Set the shader program and uniforms, and draw.
-	glUseProgram(shader);
-
-	glUniform2i  (screen_size_uniform, width, height);
-	glUniform2fv (screen_center_uniform, 1, screen_center.data());
-	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
-	glUniform1f  (time_uniform, time_);
-
-	const auto& mesh = plane_.mesh();
-	glBindVertexArray(mesh.vao_);
-	glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
-}
-
-void App::render_wave(int width, int height, GLuint framebuffer)
-{
-	static auto shader = GL::ShaderProgram(
-		GL::ShaderObject::vertex_passthrough(),
-		GL::ShaderObject::from_file(GL_FRAGMENT_SHADER, "shaders/wave_frag.glsl"));
-
-	// Find uniform locations once.
-	static GLuint screen_size_uniform;
-	static GLuint time_uniform;
-	static GLuint texture_flag_uniform;
-	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
-		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
-		time_uniform            = glGetUniformLocation(shader, "uTime");
-		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
-		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
-		return true;
-	}();
-
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-	glViewport(0, 0, width, height);
-
-	// Set the shader program and uniforms, and draw.
-	glUseProgram(shader);
-
-	glUniform2i(screen_size_uniform, width, height);
-	glUniform1f(time_uniform, time_);
-
-	glBindVertexArray(canvas_.vao_);
-	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
-}
-
-void App::render_texture(const GL::Texture& texture, int width, int height, GLuint framebuffer)
-{
-	static auto shader = GL::ShaderProgram::simple();
-
-	// Find uniform locations once.
-	static GLuint texture_flag_uniform;
-	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
-		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
-		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
-		return true;
-	}();
-	
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	glViewport(0, 0, width, height);
-
-	// Set the shader program, uniforms and textures, and draw.
-	glUseProgram(shader);
-
-	glUniform1i(texture_sampler_uniform, 1);
-	glUniform1i(texture_flag_uniform, GL_TRUE);
-
-	glBindVertexArray(canvas_.vao_);
-	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUniform1i(texture_flag_uniform, GL_FALSE);
-
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
-}
-
-void App::render_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
-{
-	static auto shader = GL::ShaderProgram::simple();
-
-	// Find uniform locations once.
-	static GLuint model_to_clip_uniform;
-	static GLuint normal_to_world_uniform;
-	static GLuint time_uniform;
-	static bool init = [&](){
-		model_to_clip_uniform   = glGetUniformLocation(shader, "uModelToClip");
-		normal_to_world_uniform = glGetUniformLocation(shader, "uNormalToWorld");
-		time_uniform            = glGetUniformLocation(shader, "uTime");
-		return true;
-	}();
-
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-	glViewport(0, 0, width, height);
-
-	// Camera.
-	Eigen::Vector3f eye        = Eigen::Vector3f(4 * std::sin(time_), 2, 4*std::cos(time_));
-	Eigen::Matrix4f view       = GLUtils::look_at(eye);
-	Eigen::Matrix4f projection = GLUtils::perspective(width, height, PI / 2);
-
-	// We'll assume that the mesh is already in world space.
-	Eigen::Matrix4f model_to_clip   = projection * view;
-	Eigen::Matrix3f normal_to_world = Eigen::Matrix3f::Identity();
-
-	// Set the shader program and uniforms, and draw.
-	glUseProgram(shader);
-
-	glUniformMatrix4fv (model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
-	glUniformMatrix3fv (normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
-	glUniform1f        (time_uniform, time_);
-
-	glBindVertexArray(mesh.vao_);
-	glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
-	glBindVertexArray(0);
-
-	// Clean up.
-	glUseProgram(0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
-}
-
-void App::render_on_mesh(const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer)
-{
-	static auto shader = GL::ShaderProgram::simple();
-
-	// Find uniform locations once.
-	static GLuint model_to_clip_uniform;
-	static GLuint normal_to_world_uniform;
-	static GLuint texture_flag_uniform;
-	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
-		model_to_clip_uniform	= glGetUniformLocation(shader, "uModelToClip");
-		normal_to_world_uniform	= glGetUniformLocation(shader, "uNormalToWorld");
-		texture_flag_uniform	= glGetUniformLocation(shader, "uTextureFlag");
-		texture_sampler_uniform	= glGetUniformLocation(shader, "uTextureSampler");
-		return true;
-	}();
-
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-	glViewport(0, 0, width, height);
-
-	// Camera.
-	Eigen::Vector3f eye        = Eigen::Vector3f(4 * std::sin(time_), 2, 4 * std::cos(time_));
-	Eigen::Matrix4f view       = GLUtils::look_at(eye);
-	Eigen::Matrix4f projection = GLUtils::perspective(width, height, PI / 2);
-
-	// We'll assume that the mesh is already in world space.
-	Eigen::Matrix4f model_to_clip   = projection * view;
-	Eigen::Matrix3f normal_to_world = Eigen::Matrix3f::Identity();
-
-	// Set the shader program, uniforms and textures, and draw.
-	glUseProgram(shader);
-
-	glUniformMatrix4fv (model_to_clip_uniform, 1, GL_FALSE, model_to_clip.data());
-	glUniformMatrix3fv (normal_to_world_uniform, 1, GL_FALSE, normal_to_world.data());
-	glUniform1i        (texture_sampler_uniform, 1);
-	glUniform1i        (texture_flag_uniform, GL_TRUE);
-
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	glBindVertexArray(mesh.vao_);
-	glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glUniform1i(texture_flag_uniform, GL_FALSE);
-
-	glUseProgram(0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::print_screen(int scancode, int action, int mods)
@@ -508,26 +261,26 @@ void App::test_update_objects_cb(double x, double y)
 
 
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			tiling_.set_position(tiling_static_position_ + scale_to_world(drag_position));
+			tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
 		else
-		{
-			plane_.set_position(plane_static_position_ + scale_to_world(drag_position));
-			screen_center_ = screen_center_static_position_ - scale_to_world(drag_position);
-		}
-
+			screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
 	}
 }
 
-// TODO: Rewrite input manager.
 void App::test_left_click_cb(int action, int mods)
 {
 	if (action == GLFW_PRESS)
 	{
-		press_position_ = input_manager_.mouse_position();
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
 
-		plane_static_position_ = plane_.position();
+		double xpos, ypos;
+		glfwGetCursorPos(window_, &xpos, &ypos);
+
+		press_position_ = {xpos / width * 2 - 1, 1 - ypos / height * 2};
+
 		screen_center_static_position_ = screen_center_;
-		tiling_static_position_ = tiling_.position();
+		tiling_static_position_        = tiling_.position();
 	}
 }
 
