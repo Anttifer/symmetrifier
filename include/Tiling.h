@@ -32,6 +32,7 @@ private:
 	// Mesh construction functions for different symmetry groups.
 	void construct_p1(void);
 	void construct_p2(void);
+	void construct_p3(void);
 	void construct_cmm(void);
 
 	// The vertices of the mesh are defined relative to the translation vectors.

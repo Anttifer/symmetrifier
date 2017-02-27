@@ -38,6 +38,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "2222";
 		construct_p2();
 	}
+	else if (!strncmp(group, "333", 8))
+	{
+		symmetry_group_ = "333";
+		construct_p3();
+	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
@@ -51,9 +56,13 @@ void Tiling::set_symmetry_group(const char* group)
 	}
 }
 
-// TODO: Lattice transformations.
+// TODO: Add separate frame rendering mesh.
+// TODO: Custom lattice transformations.
 void Tiling::construct_p1(void)
 {
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
 	mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
 		{0, 0, 0}, {1, 1, 0}, {0, 1, 0}
@@ -63,6 +72,9 @@ void Tiling::construct_p1(void)
 
 void Tiling::construct_p2(void)
 {
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
 	mesh_.positions_ = {
 		// Lower right-hand triangle, divided in half.
 		{0, 0, 0}, {1, 0, 0}, {0.5, 0.5, 0},
@@ -74,8 +86,33 @@ void Tiling::construct_p2(void)
 	mesh_.update_buffers();
 }
 
+void Tiling::construct_p3(void)
+{
+	// Hexagonal lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+
+	mesh_.positions_ = {
+		// Left side.
+		{0, 0, 0}, {1 / 3., 1 / 3., 0}, {0, 1, 0},
+		// Right side (this is how we have to alternate).
+		{1, 1, 0}, {2 / 3., 2 / 3., 0}, {1, 0, 0},
+		// Bottom.
+		{1, 0, 0}, {1 / 3., 1 / 3., 0}, {0, 0, 0},
+		// Top.
+		{0, 1, 0}, {2 / 3., 2 / 3., 0}, {1, 1, 0},
+		// Center.
+		{0, 1, 0}, {1 / 3., 1 / 3., 0}, {1, 0, 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0}, {0, 1, 0}
+	};
+	mesh_.update_buffers();
+}
+
 void Tiling::construct_cmm(void)
 {
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
 	mesh_.positions_ = {
 		// Bottom triangle, divided in half.
 		{0, 0, 0}, {0.5, 0, 0},   {0.5, 0.5, 0},
