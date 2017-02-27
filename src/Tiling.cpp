@@ -48,6 +48,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "*333";
 		construct_p3m1();
 	}
+	else if (!strncmp(group, "3*3", 8))
+	{
+		symmetry_group_ = "3*3";
+		construct_p31m();
+	}
 	else if (!strncmp(group, "442", 8))
 	{
 		symmetry_group_ = "442";
@@ -145,6 +150,35 @@ void Tiling::construct_p3m1(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {1, 0, 0},
 		// Top center, mirrored.
 		{0, 1, 0}, {0.5, 0.5, 0}, {1 / 3., 1 / 3., 0},
+		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_p31m(void)
+{
+	// Hexagonal lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+
+	mesh_.positions_ = {
+		// Bottom.
+		{0, 0, 0}, {0.5, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1 / 3., 1 / 3., 0}, {0.5, 0, 0}, {1, 0, 0},
+		// Left.
+		{0, 1, 0}, {0, 0.5, 0}, {1 / 3., 1 / 3., 0},
+		{1 / 3., 1 / 3., 0}, {0, 0.5, 0}, {0, 0, 0},
+		// Top, mirrored.
+		{0, 1, 0}, {0.5, 1, 0}, {2 / 3., 2 / 3., 0},
+		{2 / 3., 2 / 3., 0}, {0.5, 1, 0}, {1, 1, 0},
+		// Right, mirrored.
+		{1, 1, 0}, {1, 0.5, 0}, {2 / 3., 2 / 3., 0},
+		{2 / 3., 2 / 3., 0}, {1, 0.5, 0}, {1, 0, 0},
+		// Center left.
+		{1, 0, 0}, {0.5, 0.5, 0}, {1 / 3., 1 / 3., 0},
+		{1 / 3., 1 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0},
+		// Kepu, mirrored.
+		{1, 0, 0}, {0.5, 0.5, 0}, {2 / 3., 2 / 3., 0},
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
