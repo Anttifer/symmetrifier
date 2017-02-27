@@ -291,10 +291,17 @@ void App::print_screen(int scancode, int action, int mods)
 		auto depth   = GL::Texture::empty_2D_depth(width, height);
 		auto fbo     = GL::FBO::simple_C0D(texture, depth);
 
+		// We don't want transparency in the resulting PNG.
+		// Thus we set the clear color alpha to 1 and change our blending function
+		// to prefer destination alpha (this is the clear color alpha, i.e. 1).
 		glClearColor(0.1, 0.1, 0.1, 1);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
 
 		render_scene(width, height, fbo);
+
+		// Reset the blending function.
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// TODO: Query screenshot name from user.
 		GL::tex_to_png(texture, "screenshot.png");
