@@ -48,6 +48,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "442";
 		construct_p4();
 	}
+	else if (!strncmp(group, "632", 8))
+	{
+		symmetry_group_ = "632";
+		construct_p6();
+	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
@@ -98,13 +103,11 @@ void Tiling::construct_p3(void)
 	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
 
 	mesh_.positions_ = {
-		// Left side.
+		// Left and right side.
 		{0, 0, 0}, {1 / 3., 1 / 3., 0}, {0, 1, 0},
-		// Right side (this is how we have to alternate).
 		{1, 1, 0}, {2 / 3., 2 / 3., 0}, {1, 0, 0},
-		// Bottom.
+		// Bottom and top.
 		{1, 0, 0}, {1 / 3., 1 / 3., 0}, {0, 0, 0},
-		// Top.
 		{0, 1, 0}, {2 / 3., 2 / 3., 0}, {1, 1, 0},
 		// Center.
 		{0, 1, 0}, {1 / 3., 1 / 3., 0}, {1, 0, 0},
@@ -131,6 +134,35 @@ void Tiling::construct_p4(void)
 		// Bottom right.
 		{1, 0, 0},     {1, 0.5, 0}, {0.5, 0.5, 0},
 		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_p6(void)
+{
+	// Hexagonal lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+
+	mesh_.positions_ = {
+		// Bottom.
+		{0, 0, 0},           {0.5, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1 / 3., 1 / 3., 0}, {0.5, 0, 0}, {1, 0, 0},
+		// Left.
+		{0, 1, 0},           {0, 0.5, 0}, {1 / 3., 1 / 3., 0},
+		{1 / 3., 1 / 3., 0}, {0, 0.5, 0}, {0, 0, 0},
+		// Top.
+		{1, 1, 0},           {0.5, 1, 0}, {2 / 3., 2 / 3., 0},
+		{2 / 3., 2 / 3., 0}, {0.5, 1, 0}, {0, 1, 0},
+		// Right.
+		{1, 0, 0},           {1, 0.5, 0}, {2 / 3., 2 / 3., 0},
+		{2 / 3., 2 / 3., 0}, {1, 0.5, 0}, {1, 1, 0},
+		// Center left.
+		{1, 0, 0},           {0.5, 0.5, 0}, {1 / 3., 1 / 3., 0},
+		{1 / 3., 1 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0},
+		// Kepu.
+		{0, 1, 0},           {0.5, 0.5, 0}, {2 / 3., 2 / 3., 0},
+		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
 }
