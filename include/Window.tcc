@@ -25,3 +25,10 @@ void MainWindow::add_scroll_callback(const MemberScrollCallback<T>& callback, T*
 	using namespace std::placeholders;
 	add_scroll_callback(std::bind(callback, this_pointer, _1, _2));
 }
+
+template <typename T>
+void MainWindow::add_path_drop_callback(const MemberPathDropCallback<T>& callback, T* this_pointer)
+{
+	using namespace std::placeholders;
+	add_path_drop_callback(std::bind(callback, this_pointer, _1, _2));
+}

@@ -41,6 +41,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	glfwSetMouseButtonCallback(window_p_, &master_mouse_button_callback);
 	glfwSetCursorPosCallback(window_p_, &master_mouse_pos_callback);
 	glfwSetScrollCallback(window_p_, &master_scroll_callback);
+	glfwSetDropCallback(window_p_, &master_path_drop_callback);
 }
 
 MainWindow::~MainWindow(void) {
@@ -66,6 +67,11 @@ void MainWindow::add_mouse_pos_callback(const MousePosCallback& callback)
 void MainWindow::add_scroll_callback(const ScrollCallback& callback)
 {
 	scroll_callbacks_.push_back(callback);
+}
+
+void MainWindow::add_path_drop_callback(const PathDropCallback& callback)
+{
+	path_drop_callbacks_.push_back(callback);
 }
 
 void MainWindow::master_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -104,6 +110,14 @@ void MainWindow::master_scroll_callback(GLFWwindow* window, double xoffset, doub
 
 	for (auto& callback : callbacks)
 		callback(xoffset, yoffset);
+}
+
+void MainWindow::master_path_drop_callback(GLFWwindow* window, int count, const char** paths)
+{
+	const auto& callbacks = window_by_pointer__.at(window)->path_drop_callbacks_;
+
+	for (auto& callback : callbacks)
+		callback(count, paths);
 }
 
 void MainWindow::master_error_callback(int error, const char* description)

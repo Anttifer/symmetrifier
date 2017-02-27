@@ -20,7 +20,7 @@ public:
 	void loop (void);
 
 private:
-	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
+	void render_scene          (int width, int height, GLuint framebuffer = 0);
 
 	// Renders the chosen image in world coordinates (0,0) - (1, y).
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
@@ -34,16 +34,18 @@ private:
 	// Key callbacks.
 	void print_screen  (int, int, int);
 
-	void load_texture  (const char*);
+	// Utilities.
+	void            load_texture    (const char*);
+	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
 
 	// Framework objects.
 	MainWindow    window_;
-
 	ShaderCanvas  canvas_;
-	Tiling        tiling_;
 
+
+	Tiling      tiling_;
 	GL::Texture base_image_;
-	bool symmetrifying_;
+	bool        symmetrifying_;
 
 	Eigen::Vector2f screen_center_;
 	Eigen::Vector2f press_position_;

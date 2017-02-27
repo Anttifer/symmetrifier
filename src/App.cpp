@@ -13,8 +13,8 @@
 App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
 	symmetrifying_         (false),
-	screen_center_         (0.0, 0.0),
-	pixels_per_unit_       (720.0),                           // Initial zoom level.
+	screen_center_         (0.5, 0.5),
+	pixels_per_unit_       (900.0),                           // Initial zoom level.
 	zoom_factor_           (1.2),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) )
 {
@@ -30,6 +30,13 @@ App::App(int argc, char* argv[])
 			this->symmetrifying_ ^= true;
 	});
 
+	// Drop callback.
+	window_.add_path_drop_callback([this](int count, const char** paths){
+		if (count > 0)
+			this->load_texture(paths[0]);
+	});
+
+	// Disable vsync.
 	glfwSwapInterval(0);
 
 	// "Enable" depth testing and alpha blending.
@@ -38,19 +45,8 @@ App::App(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
+	load_texture("res/kissa");
 
-	load_texture("kissa.png");
-	// base_image_  = GL::Texture::empty_2D(width, height);
-	// auto depth   = GL::Texture::empty_2D_depth(width, height);
-	// auto fbo     = GL::FBO::simple_C0D(base_image_, depth);
-	// glClearColor(0, 0, 0, 0);
-	// GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
-	// Examples::render_pinwheel(screen_center_, pixels_per_unit_, width, height, fbo);
-
-	pixels_per_unit_ = 900.0;
-	screen_center_   = {0.5, 0.5};
 	tiling_.set_symmetry_group("2*22");
 }
 
@@ -85,6 +81,22 @@ void App::loop(void)
 
 		// Poll events.
 		glfwWaitEvents();
+	}
+}
+
+void App::render_scene(int width, int height, GLuint framebuffer)
+{
+	if (symmetrifying_)
+	{
+		// Don't symmetrify if already consistent.
+		if (!tiling_.consistent())
+			tiling_.symmetrify(base_image_);
+		render_symmetry_frame(true, width, height, framebuffer);
+	}
+	else
+	{
+		render_image(base_image_, width, height, framebuffer);
+		render_symmetry_frame(false, width, height, framebuffer);
 	}
 }
 
@@ -278,11 +290,11 @@ void App::print_screen(int scancode, int action, int mods)
 		auto texture = GL::Texture::empty_2D(width, height);
 		auto depth   = GL::Texture::empty_2D_depth(width, height);
 		auto fbo     = GL::FBO::simple_C0D(texture, depth);
+
+		glClearColor(0.1, 0.1, 0.1, 1);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 
-		if (!tiling_.consistent())
-			tiling_.symmetrify(base_image_);
-		render_symmetry_frame(true, width, height, fbo);
+		render_scene(width, height, fbo);
 
 		// TODO: Query screenshot name from user.
 		GL::tex_to_png(texture, "screenshot.png");

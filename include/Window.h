@@ -24,6 +24,10 @@ template <typename T>
 using MemberScrollCallback = void (T::*)(double, double);
 using ScrollCallback       = std::function<void(double, double)>;
 
+template <typename T>
+using MemberPathDropCallback = void (T::*)(int, const char**);
+using PathDropCallback       = std::function<void(int, const char**)>;
+
 
 class MainWindow {
 public:
@@ -52,6 +56,10 @@ public:
 	void add_scroll_callback(const MemberScrollCallback<T>& callback, T* this_pointer);
 	void add_scroll_callback(const ScrollCallback& callback);
 
+	template <typename T>
+	void add_path_drop_callback(const MemberPathDropCallback<T>& callback, T* this_pointer);
+	void add_path_drop_callback(const PathDropCallback& callback);
+
 private:
 	GLFWwindow*                   window_p_;
 
@@ -63,11 +71,13 @@ private:
 	MouseButtonCallbackMap        mouse_button_callback_map_;
 	std::vector<MousePosCallback> mouse_pos_callbacks_;
 	std::vector<ScrollCallback>   scroll_callbacks_;
+	std::vector<PathDropCallback> path_drop_callbacks_;
 
 	static void master_key_callback          (GLFWwindow*, int, int, int, int);
 	static void master_mouse_button_callback (GLFWwindow*, int, int, int);
 	static void master_mouse_pos_callback    (GLFWwindow*, double, double);
 	static void master_scroll_callback       (GLFWwindow*, double, double);
+	static void master_path_drop_callback    (GLFWwindow*, int, const char**);
 	static void master_error_callback        (int error, const char* description);
 
 	// This is used by the master callback functions.
