@@ -70,7 +70,7 @@ void Tiling::construct_p1(void)
 
 	mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
-		{0, 0, 0}, {1, 1, 0}, {0, 1, 0}
+		{1, 1, 0}, {0, 1, 0}, {0, 0, 0}
 	};
 	mesh_.update_buffers();
 }
@@ -82,11 +82,11 @@ void Tiling::construct_p2(void)
 
 	mesh_.positions_ = {
 		// Lower right-hand triangle, divided in half.
-		{0, 0, 0}, {1, 0, 0}, {0.5, 0.5, 0},
-		{1, 0, 0}, {1, 1, 0}, {0.5, 0.5, 0},
+		{1, 0, 0}, {0.5, 0.5, 0}, {0, 0, 0},
+		{1, 1, 0}, {0.5, 0.5, 0}, {1, 0, 0},
 		// Upper left-hand triangle.
-		{1, 1, 0}, {0, 1, 0}, {0.5, 0.5, 0},
-		{0, 1, 0}, {0, 0, 0}, {0.5, 0.5, 0}
+		{0, 1, 0}, {0.5, 0.5, 0}, {1, 1, 0},
+		{0, 0, 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
 }
@@ -143,16 +143,16 @@ void Tiling::construct_cmm(void)
 	mesh_.positions_ = {
 		// Bottom triangle, divided in half.
 		{0, 0, 0}, {0.5, 0, 0},   {0.5, 0.5, 0},
-		{1, 0, 0}, {0.5, 0.5, 0}, {0.5, 0, 0},
+		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0},
 		// Left triangle. This is mirrored, so clockwise.
 		{0, 0, 0}, {0, 0.5, 0},   {0.5, 0.5, 0},
-		{0, 1, 0}, {0.5, 0.5, 0}, {0, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 1, 0},
 		// Top triangle. Not mirrored - counter-clockwise.
 		{1, 1, 0}, {0.5, 1, 0},   {0.5, 0.5, 0},
-		{0, 1, 0}, {0.5, 0.5, 0}, {0.5, 1, 0},
+		{0.5, 0.5, 0}, {0.5, 1, 0}, {0, 1, 0},
 		// Right triangle. Mirrored. Clockwise again.
 		{1, 1, 0}, {1, 0.5, 0},   {0.5, 0.5, 0},
-		{1, 0, 0}, {0.5, 0.5, 0}, {1, 0.5, 0}
+		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
 }
