@@ -43,6 +43,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "333";
 		construct_p3();
 	}
+	else if (!strncmp(group, "442", 8))
+	{
+		symmetry_group_ = "442";
+		construct_p4();
+	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
@@ -104,6 +109,28 @@ void Tiling::construct_p3(void)
 		// Center.
 		{0, 1, 0}, {1 / 3., 1 / 3., 0}, {1, 0, 0},
 		{1, 0, 0}, {2 / 3., 2 / 3., 0}, {0, 1, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_p4(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Bottom left.
+		{0, 0, 0},     {0.5, 0, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 0, 0},
+		// Top left.
+		{0, 1, 0},     {0, 0.5, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.5, 1, 0}, {0, 1, 0},
+		// Top right.
+		{1, 1, 0},     {0.5, 1, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 1, 0},
+		// Bottom right.
+		{1, 0, 0},     {1, 0.5, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
 }
