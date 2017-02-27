@@ -33,6 +33,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "o";
 		construct_p1();
 	}
+	else if (!strncmp(group, "2222", 8))
+	{
+		symmetry_group_ = "2222";
+		construct_p2();
+	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
@@ -52,6 +57,19 @@ void Tiling::construct_p1(void)
 	mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
 		{0, 0, 0}, {1, 1, 0}, {0, 1, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_p2(void)
+{
+	mesh_.positions_ = {
+		// Lower right-hand triangle, divided in half.
+		{0, 0, 0}, {1, 0, 0}, {0.5, 0.5, 0},
+		{1, 0, 0}, {1, 1, 0}, {0.5, 0.5, 0},
+		// Upper left-hand triangle.
+		{1, 1, 0}, {0, 1, 0}, {0.5, 0.5, 0},
+		{0, 1, 0}, {0, 0, 0}, {0.5, 0.5, 0}
 	};
 	mesh_.update_buffers();
 }
