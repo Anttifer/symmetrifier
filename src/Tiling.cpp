@@ -121,6 +121,15 @@ void Tiling::set_symmetry_group(const char* group)
 	}
 }
 
+void Tiling::set_scale(double factor)
+{
+	consistent_ = false;
+
+	position_ += (1 - factor) / 2 * (t1_ + t2_);
+	t1_ *= factor;
+	t2_ *= factor;
+}
+
 // TODO: Add separate frame rendering mesh.
 // TODO: Custom lattice transformations.
 void Tiling::construct_p1(void)

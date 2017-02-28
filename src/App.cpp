@@ -5,9 +5,6 @@
 #include "Examples.h"
 #include <cstdio>
 
-// DEBUG
-#include <iostream>
-
 //--------------------
 
 App::App(int argc, char* argv[])

@@ -21,7 +21,7 @@ public:
 	void set_symmetry_group (const char*);
 	void set_position       (const Eigen::Vector2f& position) { consistent_ = false; position_ = position; }
 	void set_rotation       (double);
-	void set_scale          (double factor)                   { consistent_ = false; t1_ *= factor; t2_ *= factor; }
+	void set_scale          (double factor);
 	void set_inconsistent   (void)                            { consistent_ = false; }
 
 	// This function constructs the symmetrified texture according to
