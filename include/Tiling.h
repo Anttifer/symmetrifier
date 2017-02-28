@@ -29,13 +29,14 @@ public:
 	void symmetrify (const GL::Texture&, int num_domains = 1);
 
 private:
-	// Mesh construction functions for different symmetry groups.
+	// Mesh construction functions for the different symmetry groups.
 	void construct_p1   (void);
 	void construct_p2   (void);
 	void construct_p3   (void);
 	void construct_p3m1 (void);
 	void construct_p31m (void);
 	void construct_p4   (void);
+	void construct_p4m  (void);
 	void construct_p6   (void);
 	void construct_cmm  (void);
 
