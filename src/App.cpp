@@ -63,18 +63,7 @@ void App::loop(void)
 		glClearColor(0.1, 0.1, 0.1, 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		if (symmetrifying_)
-		{
-			// Prevent needless symmetrifying, which might be expensive.
-			if (!tiling_.consistent())
-				tiling_.symmetrify(base_image_);
-			render_symmetry_frame(true, width, height);
-		}
-		else
-		{
-			render_image(base_image_, width, height);
-			render_symmetry_frame(false, width, height);
-		}
+		render_scene(width, height);
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);

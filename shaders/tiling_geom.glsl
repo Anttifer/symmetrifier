@@ -45,9 +45,9 @@ mat3x2 coordLookupScaled(in float scale) {
 	}
 	else {
 		ccentroid = vec2(1.0 / 3.0, 2.0 / 3.0);
-		matrix[0] = scale * (vec2(0, 0) - ccentroid) + ccentroid;
-		matrix[1] = scale * (vec2(1, 1) - ccentroid) + ccentroid;
-		matrix[2] = scale * (vec2(0, 1) - ccentroid) + ccentroid;
+		matrix[0] = scale * (vec2(1, 1) - ccentroid) + ccentroid;
+		matrix[1] = scale * (vec2(0, 1) - ccentroid) + ccentroid;
+		matrix[2] = scale * (vec2(0, 0) - ccentroid) + ccentroid;
 	}
 
 	return matrix;

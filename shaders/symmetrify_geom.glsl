@@ -40,13 +40,13 @@ vec2 getTexCoord(in vec2 pos) {
 }
 
 void main() {
-	vOut.vColor    = vIn[0].vColor;
-	vOut.vNormal   = vIn[0].vNormal;
-	vOut.vTexCoord = getTexCoord(gl_in[0].gl_Position.xy);
-	gl_Position    = vec4(-1, -1, 0, 1);
-	EmitVertex();
-
 	if (gl_PrimitiveIDIn % 2 == 0) {
+		vOut.vColor    = vIn[0].vColor;
+		vOut.vNormal   = vIn[0].vNormal;
+		vOut.vTexCoord = getTexCoord(gl_in[0].gl_Position.xy);
+		gl_Position    = vec4(-1, -1, 0, 1);
+		EmitVertex();
+
 		vOut.vColor    = vIn[1].vColor;
 		vOut.vNormal   = vIn[1].vNormal;
 		vOut.vTexCoord = getTexCoord(gl_in[1].gl_Position.xy);
@@ -60,16 +60,22 @@ void main() {
 		EmitVertex();
 	}
 	else {
+		vOut.vColor    = vIn[0].vColor;
+		vOut.vNormal   = vIn[0].vNormal;
+		vOut.vTexCoord = getTexCoord(gl_in[0].gl_Position.xy);
+		gl_Position    = vec4(1, 1, 0, 1);
+		EmitVertex();
+
 		vOut.vColor    = vIn[1].vColor;
 		vOut.vNormal   = vIn[1].vNormal;
 		vOut.vTexCoord = getTexCoord(gl_in[1].gl_Position.xy);
-		gl_Position    = vec4(1, 1, 0, 1);
+		gl_Position    = vec4(-1, 1, 0, 1);
 		EmitVertex();
 
 		vOut.vColor    = vIn[2].vColor;
 		vOut.vNormal   = vIn[2].vNormal;
 		vOut.vTexCoord = getTexCoord(gl_in[2].gl_Position.xy);
-		gl_Position    = vec4(-1, 1, 0, 1);
+		gl_Position    = vec4(-1, -1, 0, 1);
 		EmitVertex();
 	}
 
