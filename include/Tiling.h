@@ -32,6 +32,8 @@ private:
 	// Mesh construction functions for the different symmetry groups.
 	void construct_p1   (void);
 	void construct_p2   (void);
+	void construct_pmm  (void);
+	void construct_cmm  (void);
 	void construct_p3   (void);
 	void construct_p3m1 (void);
 	void construct_p31m (void);
@@ -39,7 +41,6 @@ private:
 	void construct_p4m  (void);
 	void construct_p4g  (void);
 	void construct_p6   (void);
-	void construct_cmm  (void);
 
 	// The vertices of the mesh are defined relative to the translation vectors.
 	Eigen::Vector2f position_;

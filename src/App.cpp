@@ -47,7 +47,7 @@ App::App(int argc, char* argv[])
 
 	load_texture("res/kissa");
 
-	tiling_.set_symmetry_group("4*2");
+	tiling_.set_symmetry_group("*2222");
 }
 
 void App::loop(void)

@@ -38,6 +38,16 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "2222";
 		construct_p2();
 	}
+	else if (!strncmp(group, "*2222", 8))
+	{
+		symmetry_group_ = "*2222";
+		construct_pmm();
+	}
+	else if (!strncmp(group, "2*22", 8))
+	{
+		symmetry_group_ = "2*22";
+		construct_cmm();
+	}
 	else if (!strncmp(group, "333", 8))
 	{
 		symmetry_group_ = "333";
@@ -73,11 +83,6 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "632";
 		construct_p6();
 	}
-	else if (!strncmp(group, "2*22", 8))
-	{
-		symmetry_group_ = "2*22";
-		construct_cmm();
-	}
 	else
 	{
 		printf("Unsupported group. Falling back to pure translational symmetry.\n");
@@ -112,6 +117,50 @@ void Tiling::construct_p2(void)
 		// Upper left-hand triangle.
 		{0, 1, 0}, {0.5, 0.5, 0}, {1, 1, 0},
 		{0, 0, 0}, {0.5, 0.5, 0}, {0, 1, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_pmm(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Bottom left.
+		{0, 0, 0}, {0.5, 0, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 0, 0},
+		// Top left, mirrored.
+		{0, 1, 0}, {0.5, 1, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 1, 0},
+		// Top right.
+		{1, 1, 0}, {0.5, 1, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 1, 0},
+		// Bottom right, mirrored.
+		{1, 0, 0}, {0.5, 0, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_cmm(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Bottom triangle, divided in half.
+		{0, 0, 0},     {0.5, 0, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0},
+		// Left triangle. This is mirrored, so clockwise.
+		{0, 0, 0},     {0, 0.5, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 1, 0},
+		// Top triangle. Not mirrored - counter-clockwise.
+		{1, 1, 0},     {0.5, 1, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.5, 1, 0}, {0, 1, 0},
+		// Right triangle. Mirrored. Clockwise again.
+		{1, 1, 0},     {1, 0.5, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
 }
@@ -309,28 +358,6 @@ void Tiling::construct_p6(void)
 		// Kepu.
 		{0, 1, 0},           {0.5, 0.5, 0}, {2 / 3., 2 / 3., 0},
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {1, 0, 0}
-	};
-	mesh_.update_buffers();
-}
-
-void Tiling::construct_cmm(void)
-{
-	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
-
-	mesh_.positions_ = {
-		// Bottom triangle, divided in half.
-		{0, 0, 0},     {0.5, 0, 0}, {0.5, 0.5, 0},
-		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0},
-		// Left triangle. This is mirrored, so clockwise.
-		{0, 0, 0},     {0, 0.5, 0}, {0.5, 0.5, 0},
-		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 1, 0},
-		// Top triangle. Not mirrored - counter-clockwise.
-		{1, 1, 0},     {0.5, 1, 0}, {0.5, 0.5, 0},
-		{0.5, 0.5, 0}, {0.5, 1, 0}, {0, 1, 0},
-		// Right triangle. Mirrored. Clockwise again.
-		{1, 1, 0},     {1, 0.5, 0}, {0.5, 0.5, 0},
-		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
 }
