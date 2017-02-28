@@ -43,6 +43,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "*2222";
 		construct_pmm();
 	}
+	else if (!strncmp(group, "22*", 8))
+	{
+		symmetry_group_ = "22*";
+		construct_pmg();
+	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
@@ -128,17 +133,39 @@ void Tiling::construct_pmm(void)
 
 	mesh_.positions_ = {
 		// Bottom left.
-		{0, 0, 0}, {0.5, 0, 0}, {0.5, 0.5, 0},
+		{0, 0, 0},     {0.5, 0, 0}, {0.5, 0.5, 0},
 		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 0, 0},
 		// Top left, mirrored.
-		{0, 1, 0}, {0.5, 1, 0}, {0.5, 0.5, 0},
+		{0, 1, 0},     {0.5, 1, 0}, {0.5, 0.5, 0},
 		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 1, 0},
 		// Top right.
-		{1, 1, 0}, {0.5, 1, 0}, {0.5, 0.5, 0},
+		{1, 1, 0},     {0.5, 1, 0}, {0.5, 0.5, 0},
 		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 1, 0},
 		// Bottom right, mirrored.
-		{1, 0, 0}, {0.5, 0, 0}, {0.5, 0.5, 0},
+		{1, 0, 0},     {0.5, 0, 0}, {0.5, 0.5, 0},
 		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_pmg(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Bottom left.
+		{0, 0, 0},     {0.5, 0, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 0, 0},
+		// Top left, mirrored.
+		{0, 1, 0},     {0.5, 1, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0, 0.5, 0}, {0, 1, 0},
+		// Top right, mirrored.
+		{1, 0.5, 0},   {0.5, 0.5, 0}, {0.5, 1, 0},
+		{0.5, 1, 0},   {1, 1, 0},     {1, 0.5, 0},
+		// Bottom right.
+		{1, 0.5, 0},   {0.5, 0.5, 0}, {0.5, 0, 0},
+		{0.5, 0, 0},   {1, 0, 0},     {1, 0.5, 0}
 	};
 	mesh_.update_buffers();
 }
