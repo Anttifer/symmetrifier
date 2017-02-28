@@ -32,6 +32,7 @@ private:
 	// Mesh construction functions for the different symmetry groups.
 	void construct_p1   (void);
 	void construct_pm   (void);
+	void construct_cm   (void);
 
 	void construct_p2   (void);
 	void construct_pmm  (void);

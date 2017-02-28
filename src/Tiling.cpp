@@ -38,6 +38,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "**";
 		construct_pm();
 	}
+	else if (!strncmp(group, "*x", 8))
+	{
+		symmetry_group_ = "*x";
+		construct_cm();
+	}
 	else if (!strncmp(group, "2222", 8))
 	{
 		symmetry_group_ = "2222";
@@ -132,6 +137,22 @@ void Tiling::construct_pm(void)
 		// Right half, mirrored.
 		{1, 0, 0},   {0.5, 0, 0}, {0.5, 1, 0},
 		{0.5, 1, 0}, {1, 1, 0},   {1, 0, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_cm(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Bottom right.
+		{1, 1, 0}, {0.5, 0.5, 0}, {1, 0, 0},
+		{1, 0, 0}, {0.5, 0.5, 0}, {0, 0, 0},
+		// Top left, mirrored.
+		{1, 1, 0}, {0.5, 0.5, 0}, {0, 1, 0},
+		{0, 1, 0}, {0.5, 0.5, 0}, {0, 0, 0}
 	};
 	mesh_.update_buffers();
 }
