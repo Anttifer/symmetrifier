@@ -63,6 +63,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "*442";
 		construct_p4m();
 	}
+	else if (!strncmp(group, "4*2", 8))
+	{
+		symmetry_group_ = "4*2";
+		construct_p4g();
+	}
 	else if (!strncmp(group, "632", 8))
 	{
 		symmetry_group_ = "632";
@@ -241,6 +246,40 @@ void Tiling::construct_p4m(void)
 		// Bottom right, mirrored.
 		{0.5, 0.5, 0}, {0.75, 0.25, 0}, {0.5, 0, 0},
 		{0.5, 0, 0},   {0.75, 0.25, 0}, {1, 0, 0},
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_p4g(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Inner bottom left.
+		{0, 0.5, 0},   {0.25, 0.25, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.25, 0.25, 0}, {0.5, 0, 0},
+		// Outer bottom left, mirrored.
+		{0, 0.5, 0},   {0.25, 0.25, 0}, {0, 0, 0},
+		{0, 0, 0},     {0.25, 0.25, 0}, {0.5, 0, 0},
+		// Inner top left.
+		{0.5, 1, 0},   {0.25, 0.75, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.25, 0.75, 0}, {0, 0.5, 0},
+		// Outer top left, mirrored.
+		{0.5, 1, 0},   {0.25, 0.75, 0}, {0, 1, 0},
+		{0, 1, 0},     {0.25, 0.75, 0}, {0, 0.5, 0},
+		// Inner top right.
+		{1, 0.5, 0},   {0.75, 0.75, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.75, 0.75, 0}, {0.5, 1, 0},
+		// Outer top right, mirrored.
+		{1, 0.5, 0},   {0.75, 0.75, 0}, {1, 1, 0},
+		{1, 1, 0},     {0.75, 0.75, 0}, {0.5, 1, 0},
+		// Inner bottom right.
+		{0.5, 0, 0},   {0.75, 0.25, 0}, {0.5, 0.5, 0},
+		{0.5, 0.5, 0}, {0.75, 0.25, 0}, {1, 0.5, 0},
+		// Outer bottom right, mirrored.
+		{0.5, 0, 0},   {0.75, 0.25, 0}, {1, 0, 0},
+		{1, 0, 0},     {0.75, 0.25, 0}, {1, 0.5, 0}
 	};
 	mesh_.update_buffers();
 }
