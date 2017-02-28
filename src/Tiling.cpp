@@ -53,6 +53,11 @@ void Tiling::set_symmetry_group(const char* group)
 		symmetry_group_ = "2*22";
 		construct_cmm();
 	}
+	else if (!strncmp(group, "22x", 8))
+	{
+		symmetry_group_ = "22x";
+		construct_pgg();
+	}
 	else if (!strncmp(group, "333", 8))
 	{
 		symmetry_group_ = "333";
@@ -188,6 +193,28 @@ void Tiling::construct_cmm(void)
 		// Right triangle. Mirrored. Clockwise again.
 		{1, 1, 0},     {1, 0.5, 0}, {0.5, 0.5, 0},
 		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
+	};
+	mesh_.update_buffers();
+}
+
+void Tiling::construct_pgg(void)
+{
+	// Square lattice.
+	t2_ = { -t1_.y(), t1_.x() };
+
+	mesh_.positions_ = {
+		// Bottom left and right.
+		{0, 0.5, 0}, {0, 0, 0},     {0.5, 0, 0},
+		{0.5, 0, 0}, {1, 0, 0},     {1, 0.5, 0},
+		// Top right and left.
+		{1, 0.5, 0}, {1, 1, 0},     {0.5, 1, 0},
+		{0.5, 1, 0}, {0, 1, 0},     {0, 0.5, 0},
+		// Bottom center, mirrored.
+		{0.5, 0, 0}, {0.5, 0.5, 0}, {1, 0.5, 0},
+		{0, 0.5, 0}, {0.5, 0.5, 0}, {0.5, 0, 0},
+		// Top center, mirrored.
+		{0.5, 1, 0}, {0.5, 0.5, 0}, {0, 0.5, 0},
+		{1, 0.5, 0}, {0.5, 0.5, 0}, {0.5, 1, 0}
 	};
 	mesh_.update_buffers();
 }

@@ -35,6 +35,7 @@ private:
 	void construct_pmm  (void);
 	void construct_pmg  (void);
 	void construct_cmm  (void);
+	void construct_pgg  (void);
 	void construct_p3   (void);
 	void construct_p3m1 (void);
 	void construct_p31m (void);
