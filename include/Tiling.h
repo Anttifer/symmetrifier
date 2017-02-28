@@ -50,6 +50,7 @@ private:
 	void construct_p4g  (void);
 
 	void construct_p6   (void);
+	void construct_p6m  (void);
 
 	// The vertices of the mesh are defined relative to the translation vectors.
 	Eigen::Vector2f position_;
