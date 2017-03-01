@@ -13,8 +13,9 @@ public:
 	const Mesh&            mesh               (void) const { return mesh_; }
 	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
 	const Eigen::Vector2f& position           (void) const { return position_; }
+	double                 rotation           (void) const;
 	const Eigen::Vector2f& t1                 (void) const { return t1_; }
-	const Eigen::Vector2f& t2                 (void) const { return t2_; }
+	Eigen::Vector2f        t2                 (void) const;
 	int                    num_domains        (void) const { return num_domains_; }
 	bool                   consistent         (void) const { return consistent_; }
 
@@ -56,7 +57,13 @@ private:
 
 	// The vertices of the mesh are defined relative to the translation vectors.
 	Eigen::Vector2f position_;
-	Eigen::Vector2f t1_, t2_;
+	Eigen::Vector2f t1_;
+
+	// The second translation vector is defined relative to the first.
+	// This allows us to deform the fundamental domain in a controlled fashion
+	// when it is possible, i.e. when we have a non-hexagonal and non-square lattice.
+	Eigen::Vector2f t2_relative_;
+
 	int num_domains_;
 
 	const char*     symmetry_group_;

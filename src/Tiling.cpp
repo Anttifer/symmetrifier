@@ -7,7 +7,6 @@
 Tiling::Tiling(void)
 :	position_             (0.0, 0.0),
 	t1_                   (1.0, 0.0),
-	t2_                   (0.0, 1.0),
 	num_domains_          (1),
 	symmetrify_shader_    (GL::ShaderProgram::from_files(
 		                      "shaders/symmetrify_vert.glsl",
@@ -24,7 +23,17 @@ Tiling::Tiling(void)
 	set_symmetry_group("o");
 }
 
-// TODO: Add the remaining groups.
+double Tiling::rotation(void) const
+{
+	return std::atan2(t1_.y(), t1_.x());
+}
+
+Eigen::Vector2f Tiling::t2(void) const
+{
+	Eigen::Vector2f orthogonal = { -t1_.y(), t1_.x() };
+	return t1_ * t2_relative_.x() + orthogonal * t2_relative_.y();
+}
+
 void Tiling::set_symmetry_group(const char* group)
 {
 	consistent_ = false;
@@ -122,15 +131,33 @@ void Tiling::set_symmetry_group(const char* group)
 	}
 }
 
+void Tiling::set_rotation(double r)
+{
+	consistent_ = false;
+
+	// Alter position for centered rotation.
+	if (num_domains_ % 2)
+	{
+		auto p_rotation = Eigen::Rotation2D<float>(r - this->rotation());
+		Eigen::Vector2f center = (t1_ + t2()) / 2;
+		position_ -= p_rotation * center - center;
+	}
+
+	double norm   = t1_.norm();
+	auto rotation = Eigen::Rotation2D<float>(r);
+
+	t1_ = rotation * Eigen::Vector2f(norm, 0);
+}
+
 void Tiling::set_scale(double factor)
 {
 	consistent_ = false;
 
+	// Centered scaling.
 	if (num_domains_ % 2)
-		position_ += (1 - factor) / 2 * (t1_ + t2_);
+		position_ += (1 - factor) / 2 * (t1_ + t2());
 
 	t1_ *= factor;
-	t2_ *= factor;
 }
 
 // TODO: Add separate frame rendering mesh.
@@ -138,7 +165,7 @@ void Tiling::set_scale(double factor)
 void Tiling::construct_p1(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
@@ -150,7 +177,7 @@ void Tiling::construct_p1(void)
 void Tiling::construct_pm(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Left half.
@@ -166,7 +193,7 @@ void Tiling::construct_pm(void)
 void Tiling::construct_cm(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom right.
@@ -182,7 +209,7 @@ void Tiling::construct_cm(void)
 void Tiling::construct_pg(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Left half.
@@ -198,7 +225,7 @@ void Tiling::construct_pg(void)
 void Tiling::construct_p2(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Lower right-hand triangle, divided in half.
@@ -214,7 +241,7 @@ void Tiling::construct_p2(void)
 void Tiling::construct_pmm(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom left.
@@ -236,7 +263,7 @@ void Tiling::construct_pmm(void)
 void Tiling::construct_pmg(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom left.
@@ -258,7 +285,7 @@ void Tiling::construct_pmg(void)
 void Tiling::construct_cmm(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom triangle, divided in half.
@@ -280,7 +307,7 @@ void Tiling::construct_cmm(void)
 void Tiling::construct_pgg(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom left and right.
@@ -302,8 +329,7 @@ void Tiling::construct_pgg(void)
 void Tiling::construct_p3(void)
 {
 	// Hexagonal lattice.
-	t2_ = { -t1_.y(), t1_.x() };
-	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+	t2_relative_ = {0.5, std::sqrt(3) / 2.0};
 
 	mesh_.positions_ = {
 		// Left and right side.
@@ -322,8 +348,7 @@ void Tiling::construct_p3(void)
 void Tiling::construct_p3m1(void)
 {
 	// Hexagonal lattice.
-	t2_ = { -t1_.y(), t1_.x() };
-	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+	t2_relative_ = {0.5, std::sqrt(3) / 2.0};
 
 	mesh_.positions_ = {
 		// Bottom and top left.
@@ -351,8 +376,7 @@ void Tiling::construct_p3m1(void)
 void Tiling::construct_p31m(void)
 {
 	// Hexagonal lattice.
-	t2_ = { -t1_.y(), t1_.x() };
-	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+	t2_relative_ = {0.5, std::sqrt(3) / 2.0};
 
 	mesh_.positions_ = {
 		// Bottom.
@@ -380,7 +404,7 @@ void Tiling::construct_p31m(void)
 void Tiling::construct_p4(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom left.
@@ -402,7 +426,7 @@ void Tiling::construct_p4(void)
 void Tiling::construct_p4m(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Bottom left.
@@ -436,7 +460,7 @@ void Tiling::construct_p4m(void)
 void Tiling::construct_p4g(void)
 {
 	// Square lattice.
-	t2_ = { -t1_.y(), t1_.x() };
+	t2_relative_ = {0, 1};
 
 	mesh_.positions_ = {
 		// Inner bottom left.
@@ -470,8 +494,7 @@ void Tiling::construct_p4g(void)
 void Tiling::construct_p6(void)
 {
 	// Hexagonal lattice.
-	t2_ = { -t1_.y(), t1_.x() };
-	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+	t2_relative_ = {0.5, std::sqrt(3) / 2.0};
 
 	mesh_.positions_ = {
 		// Bottom.
@@ -499,8 +522,7 @@ void Tiling::construct_p6(void)
 void Tiling::construct_p6m(void)
 {
 	// Hexagonal lattice.
-	t2_ = { -t1_.y(), t1_.x() };
-	t2_ = (std::sqrt(3) / 2.0) * t2_ + 0.5 * t1_;
+	t2_relative_ = {0.5, std::sqrt(3) / 2.0};
 
 	mesh_.positions_ = {
 		// Bottom left.
@@ -575,7 +597,7 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glUniform1f  (aspect_ratio_uniform_, AR);
 	glUniform2fv (position_uniform_, 1, position_.data());
 	glUniform2fv (t1_uniform_, 1, t1_.data());
-	glUniform2fv (t2_uniform_, 1, t2_.data());
+	glUniform2fv (t2_uniform_, 1, t2().data());
 	glUniform1i  (sampler_uniform_, 1);
 
 	glBindVertexArray(mesh_.vao_);
