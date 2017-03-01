@@ -15,18 +15,20 @@ public:
 	const Eigen::Vector2f& position           (void) const { return position_; }
 	const Eigen::Vector2f& t1                 (void) const { return t1_; }
 	const Eigen::Vector2f& t2                 (void) const { return t2_; }
+	int                    num_domains        (void) const { return num_domains_; }
 	bool                   consistent         (void) const { return consistent_; }
 
 	// TODO: Symmetry group parameters such as lattice angle etc.
 	void set_symmetry_group (const char*);
-	void set_position       (const Eigen::Vector2f& position) { consistent_ = false; position_ = position; }
+	void set_position       (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
 	void set_rotation       (double);
 	void set_scale          (double factor);
-	void set_inconsistent   (void)                            { consistent_ = false; }
+	void set_num_domains    (int n)                    { consistent_ = false; num_domains_ = n; }
+	void set_inconsistent   (void)                     { consistent_ = false; }
 
 	// This function constructs the symmetrified texture according to
 	// the current symmetry group.
-	void symmetrify (const GL::Texture&, int num_domains = 1);
+	void symmetrify (const GL::Texture&);
 
 private:
 	// Mesh construction functions for the different symmetry groups.
@@ -55,6 +57,8 @@ private:
 	// The vertices of the mesh are defined relative to the translation vectors.
 	Eigen::Vector2f position_;
 	Eigen::Vector2f t1_, t2_;
+	int num_domains_;
+
 	const char*     symmetry_group_;
 
 	// This shader is used for building the symmetrified fundamental domain.

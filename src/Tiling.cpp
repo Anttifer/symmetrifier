@@ -8,6 +8,7 @@ Tiling::Tiling(void)
 :	position_             (0.0, 0.0),
 	t1_                   (1.0, 0.0),
 	t2_                   (0.0, 1.0),
+	num_domains_          (1),
 	symmetrify_shader_    (GL::ShaderProgram::from_files(
 		                      "shaders/symmetrify_vert.glsl",
 		                      "shaders/symmetrify_geom.glsl",
@@ -125,7 +126,9 @@ void Tiling::set_scale(double factor)
 {
 	consistent_ = false;
 
-	position_ += (1 - factor) / 2 * (t1_ + t2_);
+	if (num_domains_ % 2)
+		position_ += (1 - factor) / 2 * (t1_ + t2_);
+
 	t1_ *= factor;
 	t2_ *= factor;
 }
@@ -540,7 +543,7 @@ void Tiling::construct_p6m(void)
 	mesh_.update_buffers();
 }
 
-void Tiling::symmetrify(const GL::Texture& texture, int num_domains)
+void Tiling::symmetrify(const GL::Texture& texture)
 {
 	auto AR        = texture.width_ / (float)texture.height_;
 	auto dimension = std::max({texture.width_, texture.height_, 512u});
@@ -568,7 +571,7 @@ void Tiling::symmetrify(const GL::Texture& texture, int num_domains)
 	// Set the shader program, uniforms and texture parameters, and draw.
 	glUseProgram(symmetrify_shader_);
 
-	glUniform1i  (instance_num_uniform_, num_domains);
+	glUniform1i  (instance_num_uniform_, num_domains_);
 	glUniform1f  (aspect_ratio_uniform_, AR);
 	glUniform2fv (position_uniform_, 1, position_.data());
 	glUniform2fv (t1_uniform_, 1, t1_.data());
@@ -576,7 +579,7 @@ void Tiling::symmetrify(const GL::Texture& texture, int num_domains)
 	glUniform1i  (sampler_uniform_, 1);
 
 	glBindVertexArray(mesh_.vao_);
-	glDrawArraysInstanced(mesh_.primitive_type_, 0, mesh_.num_vertices_, num_domains);
+	glDrawArraysInstanced(mesh_.primitive_type_, 0, mesh_.num_vertices_, num_domains_);
 
 	// Clean up.
 	glBindVertexArray(0);

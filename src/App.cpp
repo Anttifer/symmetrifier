@@ -44,7 +44,7 @@ App::App(int argc, char* argv[])
 
 	load_texture("res/kissa");
 
-	tiling_.set_symmetry_group("*632");
+	tiling_.set_symmetry_group("3*3");
 }
 
 void App::loop(void)
@@ -182,7 +182,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glViewport(0, 0, width, height);
 
 	const auto plane_side_length = 10;
-	const auto num_instances = symmetrifying ? plane_side_length * plane_side_length : 1;
+	const auto num_instances = symmetrifying ? plane_side_length * plane_side_length : tiling_.num_domains();
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
