@@ -27,9 +27,10 @@ private:
 	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
 
 	// Mouse callbacks.
-	void position_callback   (double, double);
-	void left_click_callback (int, int);
-	void scroll_callback     (double, double);
+	void position_callback    (double, double);
+	void left_click_callback  (int, int);
+	void right_click_callback (int, int);
+	void scroll_callback      (double, double);
 
 	// Key callbacks.
 	void print_screen  (int, int, int);
@@ -51,6 +52,7 @@ private:
 	Eigen::Vector2f press_position_;
 
 	Eigen::Vector2f tiling_static_position_;
+	double tiling_static_rotation_;
 	Eigen::Vector2f screen_center_static_position_;
 
 	double pixels_per_unit_;
