@@ -27,6 +27,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 	glfwSetWindowPos(window_p_, (mode->width - width) / 2, (mode->height - height) / 2);
 
 	glfwMakeContextCurrent(window_p_);
+	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
 	if (err != GLEW_OK)
 	{
