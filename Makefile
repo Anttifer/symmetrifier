@@ -10,7 +10,6 @@ CXX      := g++
 CPPFLAGS := -DGLEW_STATIC
 # CXXFLAGS := -Wall -Wextra -Wshadow -pedantic
 CXXFLAGS := -std=c++14 -g -O0 -Wall -Wextra -Wshadow -pedantic
-LDFLAGS  := -L/usr/local/lib
 LDLIBS   := -lGLEW -lGL -lglfw
 INCL     := -Iinclude -I/usr/local/include -I/usr/local/include/eigen3
 
@@ -26,7 +25,7 @@ CPPFLAGS += -MMD -MP
 
 # Default target.
 $(BIN): $(OBJS) | $(BINDIR)
-	$(CXX) $(LDFLAGS) $(LDLIBS) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Handle dependencies.
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
