@@ -9,9 +9,10 @@ DEPDIR   := dep
 CXX      := g++
 CPPFLAGS := -DGLEW_STATIC
 # CXXFLAGS := -Wall -Wextra -Wshadow -pedantic
-CXXFLAGS := -g -O0 -Wall -Wextra -Wshadow -pedantic
+CXXFLAGS := -std=c++14 -g -O0 -Wall -Wextra -Wshadow -pedantic
+LDFLAGS  := -L/usr/local/lib
 LDLIBS   := -lGLEW -lGL -lglfw
-INCL     := -Iinclude
+INCL     := -Iinclude -I/usr/local/include -I/usr/local/include/eigen3
 
 # These should not be modified.
 BIN  := $(BINDIR)/$(NAME)
