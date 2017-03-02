@@ -374,7 +374,7 @@ Mesh Mesh::torus(float major_radius, float minor_radius, size_t major_steps, siz
 			mesh.positions_.push_back(f);
 			mesh.texcoords_.emplace_back(0.0f, 0.0f);
 
-			for (int i = 0; i < 6; ++i)
+			for (int k = 0; k < 6; ++k)
 				mesh.normals_.push_back(n);
 		}
 
@@ -408,7 +408,7 @@ Mesh Mesh::torus(float major_radius, float minor_radius, size_t major_steps, siz
 		mesh.positions_.push_back(f);
 		mesh.texcoords_.emplace_back(0.0f, 0.0f);
 
-		for (int i = 0; i < 6; ++i)
+		for (int k = 0; k < 6; ++k)
 			mesh.normals_.push_back(n);
 	}
 

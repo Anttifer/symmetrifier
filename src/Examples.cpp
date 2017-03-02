@@ -22,15 +22,12 @@ void render_wave(int width, int height, GLuint framebuffer)
 	// Find uniform locations once.
 	static GLuint screen_size_uniform;
 	static GLuint time_uniform;
-	static GLuint texture_flag_uniform;
-	static GLuint texture_sampler_uniform;
 	static bool init = [&](){
 		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
 		time_uniform            = glGetUniformLocation(shader, "uTime");
-		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
-		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
+	(void)init; // Suppress unused variable warning.
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -82,6 +79,7 @@ void render_pinwheel(const Eigen::Vector2f& screen_center, double pixels_per_uni
 
 		return true;
 	}();
+	(void)init; // Suppress unused variable warning.
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -122,6 +120,7 @@ void render_texture(const GL::Texture& texture, int width, int height, GLuint fr
 		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
+	(void)init; // Suppress unused variable warning.
 	
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -169,6 +168,7 @@ void render_mesh(const Mesh& mesh, int width, int height, GLuint framebuffer)
 		time_uniform            = glGetUniformLocation(shader, "uTime");
 		return true;
 	}();
+	(void)init; // Suppress unused variable warning.
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -219,6 +219,7 @@ void render_on_mesh(const GL::Texture& texture, const Mesh& mesh, int width, int
 		texture_sampler_uniform	= glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
+	(void)init; // Suppress unused variable warning.
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);

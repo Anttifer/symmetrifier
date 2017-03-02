@@ -123,6 +123,7 @@ void MainWindow::master_path_drop_callback(GLFWwindow* window, int count, const 
 
 void MainWindow::master_error_callback(int error, const char* description)
 {
+	(void)error;
 	fputs(description, stderr);
 	getchar();
 }
