@@ -55,6 +55,11 @@ void MainWindow::add_key_callback(int key, const KeyCallback& callback)
 	key_callback_map_[key].push_back(callback);
 }
 
+void MainWindow::add_key_callback(const GeneralKeyCallback& callback)
+{
+	general_key_callbacks_.push_back(callback);
+}
+
 void MainWindow::add_mouse_button_callback(int button, const MouseButtonCallback& callback)
 {
 	mouse_button_callback_map_[button].push_back(callback);
@@ -78,12 +83,16 @@ void MainWindow::add_path_drop_callback(const PathDropCallback& callback)
 void MainWindow::master_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	const auto& callback_map = window_by_pointer__.at(window)->key_callback_map_;
+	const auto& callbacks    = window_by_pointer__.at(window)->general_key_callbacks_;
 
 	if (callback_map.find(key) != std::end(callback_map))
 	{
 		for (auto& callback : callback_map.at(key))
 			callback(scancode, action, mods);
 	}
+
+	for (auto& callback : callbacks)
+		callback(key, scancode, action, mods);
 }
 
 void MainWindow::master_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

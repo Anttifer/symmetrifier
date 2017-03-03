@@ -6,6 +6,13 @@ void MainWindow::add_key_callback(int key, const MemberKeyCallback<T>& callback,
 }
 
 template <typename T>
+void MainWindow::add_key_callback(const GeneralMemberKeyCallback<T>& callback, T* this_pointer)
+{
+	using namespace std::placeholders;
+	add_key_callback(std::bind(callback, this_pointer, _1, _2, _3, _4));
+}
+
+template <typename T>
 void MainWindow::add_mouse_button_callback(int button, const MemberMouseButtonCallback<T>& callback, T* this_pointer)
 {
 	using namespace std::placeholders;

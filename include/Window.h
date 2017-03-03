@@ -13,6 +13,10 @@ using MemberKeyCallback = void (T::*)(int, int, int);
 using KeyCallback       = std::function<void(int, int, int)>;
 
 template <typename T>
+using GeneralMemberKeyCallback = void (T::*)(int, int, int, int);
+using GeneralKeyCallback       = std::function<void(int, int, int, int)>;
+
+template <typename T>
 using MemberMouseButtonCallback = void (T::*)(int, int);
 using MouseButtonCallback       = std::function<void(int, int)>;
 
@@ -43,6 +47,10 @@ public:
 	void add_key_callback(int key, const MemberKeyCallback<T>& callback, T* this_pointer);
 	void add_key_callback(int key, const KeyCallback& callback);
 
+	template <typename T>
+	void add_key_callback(const GeneralMemberKeyCallback<T>& callback, T* this_pointer);
+	void add_key_callback(const GeneralKeyCallback& callback);
+
 	// TODO: Add general callback without the button parameter.
 	template <typename T>
 	void add_mouse_button_callback(int button, const MemberMouseButtonCallback<T>& callback, T* this_pointer);
@@ -69,9 +77,11 @@ private:
 
 	KeyCallbackMap                key_callback_map_;
 	MouseButtonCallbackMap        mouse_button_callback_map_;
-	std::vector<MousePosCallback> mouse_pos_callbacks_;
-	std::vector<ScrollCallback>   scroll_callbacks_;
-	std::vector<PathDropCallback> path_drop_callbacks_;
+
+	std::vector<GeneralKeyCallback> general_key_callbacks_;
+	std::vector<MousePosCallback>   mouse_pos_callbacks_;
+	std::vector<ScrollCallback>     scroll_callbacks_;
+	std::vector<PathDropCallback>   path_drop_callbacks_;
 
 	static void master_key_callback          (GLFWwindow*, int, int, int, int);
 	static void master_mouse_button_callback (GLFWwindow*, int, int, int);

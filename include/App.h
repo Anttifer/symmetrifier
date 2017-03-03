@@ -41,6 +41,7 @@ private:
 
 	// Framework objects.
 	MainWindow    window_;
+	double        time_;
 	ShaderCanvas  canvas_;
 
 
@@ -57,6 +58,5 @@ private:
 
 	double pixels_per_unit_;
 	double zoom_factor_;
-	double time_;
 };
 #endif // APP_H

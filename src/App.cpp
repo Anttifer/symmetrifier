@@ -9,11 +9,11 @@
 
 App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
+	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	symmetrifying_         (false),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (900.0),                           // Initial zoom level.
-	zoom_factor_           (1.2),
-	time_                  ( (glfwSetTime(0), glfwGetTime()) )
+	zoom_factor_           (1.2)
 {
 	// Suppress unused parameter warnings.
 	(void)argc;
