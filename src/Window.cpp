@@ -39,6 +39,7 @@ MainWindow::MainWindow(int width, int height, const char* title)
 
 	window_by_pointer__[window_p_] = this;
 	glfwSetKeyCallback(window_p_, &master_key_callback);
+	glfwSetCharCallback(window_p_, &master_char_callback);
 	glfwSetMouseButtonCallback(window_p_, &master_mouse_button_callback);
 	glfwSetCursorPosCallback(window_p_, &master_mouse_pos_callback);
 	glfwSetScrollCallback(window_p_, &master_scroll_callback);
@@ -58,6 +59,11 @@ void MainWindow::add_key_callback(int key, const KeyCallback& callback)
 void MainWindow::add_key_callback(const GeneralKeyCallback& callback)
 {
 	general_key_callbacks_.push_back(callback);
+}
+
+void MainWindow::add_char_callback(const CharCallback& callback)
+{
+	char_callbacks_.push_back(callback);
 }
 
 void MainWindow::add_mouse_button_callback(int button, const MouseButtonCallback& callback)
@@ -93,6 +99,14 @@ void MainWindow::master_key_callback(GLFWwindow* window, int key, int scancode, 
 
 	for (auto& callback : callbacks)
 		callback(key, scancode, action, mods);
+}
+
+void MainWindow::master_char_callback(GLFWwindow* window, unsigned int c)
+{
+	const auto& callbacks = window_by_pointer__.at(window)->char_callbacks_;
+
+	for (auto& callback : callbacks)
+		callback(c);
 }
 
 void MainWindow::master_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

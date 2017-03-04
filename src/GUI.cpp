@@ -59,8 +59,7 @@ GUI::GUI(MainWindow& window)
 	});
 
 	window_.add_key_callback(&GUI::key_callback, this);
-	// TODO: Implement this in MainWindow.
-	// window_.add_char_callback(&GUI::char_callback, this);
+	window_.add_char_callback(&GUI::char_callback, this);
 
 	create_fonts_texture();
 
