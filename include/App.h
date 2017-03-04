@@ -2,6 +2,7 @@
 #define APP_H
 
 #include "Window.h"
+#include "GUI.h"
 #include "ShaderCanvas.h"
 #include "Mesh.h"
 #include "PinwheelPlane.h"
@@ -24,7 +25,13 @@ private:
 
 	// Renders the chosen image in world coordinates (0,0) - (1, y).
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
+
+	// Renders the symmetrified plane or the symmetrification frame.
+	// TODO: Separate frame rendering and symmetrified plane rendering.
 	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
+
+	// Renders the GUI using dear ImGUI.
+	void render_gui            (int width, int height, GLuint framebuffer = 0);
 
 	// Mouse callbacks.
 	void position_callback    (double, double);
@@ -42,6 +49,7 @@ private:
 	// Framework objects.
 	MainWindow    window_;
 	double        time_;
+	GUI           gui_;
 	ShaderCanvas  canvas_;
 
 

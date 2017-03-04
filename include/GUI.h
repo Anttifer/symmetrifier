@@ -12,7 +12,7 @@ public:
 	~GUI (void);
 
 	void new_frame            (void);
-	void render               (void);
+	void render               (int width = -1, int height = -1, GLuint framebuffer = 0);
 	void create_fonts_texture (void);
 private:
 	void key_callback(int key, int scancode, int action, int mods);

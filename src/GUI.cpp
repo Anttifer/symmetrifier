@@ -130,7 +130,7 @@ void GUI::new_frame(void)
 	ImGui::NewFrame();
 }
 
-void GUI::render(void)
+void GUI::render(int width, int height, GLuint framebuffer)
 {
 	auto& io = ImGui::GetIO();
 
@@ -145,6 +145,9 @@ void GUI::render(void)
 	draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
 	// Save previous state.
+	GLint     old_fbo;                   glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	GLint     old_active;                glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	GLint     old_tex;
 	GLboolean old_blend_enabled        = glIsEnabled(GL_BLEND);
 	GLint     old_blend_eq_rgb;          glGetIntegerv(GL_BLEND_EQUATION_RGB, &old_blend_eq_rgb);
 	GLint     old_blend_eq_alpha;        glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &old_blend_eq_alpha);
@@ -154,9 +157,11 @@ void GUI::render(void)
 	GLboolean old_depth_test_enabled   = glIsEnabled(GL_DEPTH_TEST);
 	GLboolean old_scissor_test_enabled = glIsEnabled(GL_SCISSOR_TEST);
 	GLint     old_scissor_box[4];        glGetIntegerv(GL_SCISSOR_BOX, old_scissor_box);
-	GLint     old_active;                glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	glActiveTexture(GL_TEXTURE0);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
@@ -165,7 +170,10 @@ void GUI::render(void)
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_SCISSOR_TEST);
 
-	glViewport(0, 0, fb_width, fb_height);
+	if (framebuffer != 0)
+		glViewport(0, 0, width, height);
+	else
+		glViewport(0, 0, fb_width, fb_height);
 
 	glUseProgram(shader_);
 
@@ -176,7 +184,7 @@ void GUI::render(void)
 
 	for (int n = 0; n < draw_data->CmdListsCount; ++n)
 	{
-		const auto cmd_list          = draw_data->CmdLists[n];
+		const auto       cmd_list          = draw_data->CmdLists[n];
 		const ImDrawIdx* idx_buffer_offset = 0;
 
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_);
@@ -213,6 +221,7 @@ void GUI::render(void)
 	if (old_blend_enabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void GUI::create_fonts_texture(void)

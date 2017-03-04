@@ -3,6 +3,7 @@
 #include "GLFunctions.h"
 #include "GLUtils.h"
 #include "Examples.h"
+#include "imgui.h"
 #include <cstdio>
 
 //--------------------
@@ -10,6 +11,7 @@
 App::App(int argc, char* argv[])
 :	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
+	gui_                   (window_),
 	symmetrifying_         (false),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (900.0),                           // Initial zoom level.
@@ -28,19 +30,19 @@ App::App(int argc, char* argv[])
 	// Key callbacks.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
-		if (action == GLFW_PRESS)
+		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 			this->symmetrifying_ ^= true;
 	});
 	window_.add_key_callback(GLFW_KEY_1, [this](int, int action, int){
-		if (action == GLFW_PRESS)
+		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 			this->tiling_.set_num_domains(1);
 	});
 	window_.add_key_callback(GLFW_KEY_2, [this](int, int action, int){
-		if (action == GLFW_PRESS)
+		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 			this->tiling_.set_num_domains(4);
 	});
 	window_.add_key_callback(GLFW_KEY_3, [this](int, int action, int){
-		if (action == GLFW_PRESS)
+		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 			this->tiling_.set_num_domains(9);
 	});
 
@@ -59,8 +61,13 @@ App::App(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	load_texture("res/kissa");
+	// Set default GUI font.
+	auto& io = ImGui::GetIO();
+	io.Fonts->Clear();
+	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 20.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+	gui_.create_fonts_texture();
 
+	load_texture("res/kissa");
 	tiling_.set_symmetry_group("*632");
 }
 
@@ -82,8 +89,8 @@ void App::loop(void)
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
 
-		// Poll events.
-		glfwWaitEvents();
+		// Poll events. Minimum FPS = 15.
+		glfwWaitEventsTimeout(1 / 15.0);
 	}
 }
 
@@ -101,6 +108,7 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		render_image(base_image_, width, height, framebuffer);
 		render_symmetry_frame(false, width, height, framebuffer);
 	}
+	render_gui(width, height, framebuffer);
 }
 
 void App::render_image(const GL::Texture& image, int width, int height, GLuint framebuffer)
@@ -231,45 +239,57 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
+void App::render_gui(int width, int height, GLuint framebuffer)
+{
+	static bool show_test_window = true;
+	gui_.new_frame();
+	ImGui::ShowTestWindow(&show_test_window);
+	gui_.render(width, height, framebuffer);
+}
+
 void App::position_callback(double x, double y)
 {
-	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	// Don't do anything if ImGui is grabbing input.
+	if (!ImGui::GetIO().WantCaptureMouse)
 	{
-		int width, height;
-		glfwGetFramebufferSize(window_, &width, &height);
-		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
-		const auto& drag_position = position - press_position_;
-
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
-		else
-			screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
-	}
-	else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-	{
-		// TODO: Implement this in a more elegant way.
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 		{
 			int width, height;
 			glfwGetFramebufferSize(window_, &width, &height);
 			Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+			const auto& drag_position = position - press_position_;
 
-			Eigen::Vector2f world_press = screen_center_ + screen_to_world(press_position_);
-			Eigen::Vector2f world_current = screen_center_ + screen_to_world(position);
-
-			Eigen::Vector2f press_vec = world_press - tiling_.position();
-			Eigen::Vector2f current_vec = world_current - tiling_.position();
-			if (tiling_.num_domains() % 2)
+			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+				tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
+			else
+				screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
+		}
+		else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+		{
+			// TODO: Implement this in a more elegant way.
+			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 			{
-				press_vec   -= (tiling_.t1() + tiling_.t2()) / 2;
-				current_vec -= (tiling_.t1() + tiling_.t2()) / 2;
+				int width, height;
+				glfwGetFramebufferSize(window_, &width, &height);
+				Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+
+				Eigen::Vector2f world_press = screen_center_ + screen_to_world(press_position_);
+				Eigen::Vector2f world_current = screen_center_ + screen_to_world(position);
+
+				Eigen::Vector2f press_vec = world_press - tiling_.position();
+				Eigen::Vector2f current_vec = world_current - tiling_.position();
+				if (tiling_.num_domains() % 2)
+				{
+					press_vec   -= (tiling_.t1() + tiling_.t2()) / 2;
+					current_vec -= (tiling_.t1() + tiling_.t2()) / 2;
+				}
+
+				double det = (Eigen::Matrix2f() << press_vec, current_vec).finished().determinant();
+				double dot = press_vec.dot(current_vec);
+				double drag_rotation = std::atan2(det, dot);
+
+				tiling_.set_rotation(tiling_static_rotation_ + drag_rotation);
 			}
-
-			double det = (Eigen::Matrix2f() << press_vec, current_vec).finished().determinant();
-			double dot = press_vec.dot(current_vec);
-			double drag_rotation = std::atan2(det, dot);
-
-			tiling_.set_rotation(tiling_static_rotation_ + drag_rotation);
 		}
 	}
 }
@@ -312,21 +332,25 @@ void App::right_click_callback(int action, int mods)
 
 void App::scroll_callback(double x_offset, double y_offset)
 {
-	(void)x_offset; // Suppress unused parameter warning.
+	// Don't do anything if ImGui is grabbing input.
+	if (!ImGui::GetIO().WantCaptureMouse)
+	{
+		(void)x_offset; // Suppress unused parameter warning.
 
-	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-	{
-		if (y_offset < 0)
-			tiling_.set_scale(zoom_factor_);
-		else if (y_offset > 0)
-			tiling_.set_scale(1 / zoom_factor_);
-	}
-	else
-	{
-		if (y_offset > 0)
-			pixels_per_unit_ *=  zoom_factor_;
-		else if (y_offset < 0)
-			pixels_per_unit_ /=  zoom_factor_;
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		{
+			if (y_offset < 0)
+				tiling_.set_scale(zoom_factor_);
+			else if (y_offset > 0)
+				tiling_.set_scale(1 / zoom_factor_);
+		}
+		else
+		{
+			if (y_offset > 0)
+				pixels_per_unit_ *=  zoom_factor_;
+			else if (y_offset < 0)
+				pixels_per_unit_ /=  zoom_factor_;
+		}
 	}
 }
 
@@ -336,7 +360,7 @@ void App::print_screen(int scancode, int action, int mods)
 	(void)scancode;
 	(void)mods;
 
-	if (action == GLFW_PRESS)
+	if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 	{
 		printf("Taking screenshot...\n");
 
