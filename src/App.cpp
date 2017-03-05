@@ -13,8 +13,9 @@ App::App(int argc, char* argv[])
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
 	symmetrifying_         (false),
+	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
-	pixels_per_unit_       (900.0),                           // Initial zoom level.
+	pixels_per_unit_       (700.0),                           // Initial zoom level.
 	zoom_factor_           (1.2)
 {
 	// Suppress unused parameter warnings.
@@ -32,6 +33,10 @@ App::App(int argc, char* argv[])
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 			this->symmetrifying_ ^= true;
+	});
+	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
+		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+			this->show_settings_ ^= true;
 	});
 	window_.add_key_callback(GLFW_KEY_1, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
@@ -68,7 +73,7 @@ App::App(int argc, char* argv[])
 	gui_.create_fonts_texture();
 
 	load_texture("res/kissa");
-	tiling_.set_symmetry_group("*632");
+	tiling_.set_symmetry_group("333");
 }
 
 void App::loop(void)
@@ -241,9 +246,157 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 
 void App::render_gui(int width, int height, GLuint framebuffer)
 {
-	static bool show_test_window = true;
+	static bool show_usage       = false;
+
+	// We need these for positioning the windows.
+	float main_menu_height;
+	auto& io = ImGui::GetIO();
+
 	gui_.new_frame();
-	ImGui::ShowTestWindow(&show_test_window);
+
+	// Main menu.
+	if (ImGui::BeginMainMenuBar())
+	{
+		main_menu_height = ImGui::GetWindowSize().y;
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Quit", "Alt+F4"))
+				glfwSetWindowShouldClose(window_, GLFW_TRUE);
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("View"))
+		{
+			if (ImGui::MenuItem("Show usage", NULL, show_usage))
+				show_usage ^= true;
+
+			if (ImGui::MenuItem("Show settings", "Esc", show_settings_))
+				show_settings_ ^= true;
+
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
+	// Usage window.
+	if (show_usage)
+	{
+		auto flags = ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+		ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
+		ImGui::SetNextWindowPos({io.DisplaySize.x - 350, main_menu_height}, ImGuiSetCond_Appearing);
+		if (ImGui::Begin("Usage", &show_usage, flags))
+		{
+			ImGui::Bullet();
+			ImGui::TextWrapped("Drag and drop the PNG image to symmetrify in this window.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Click and drag to move around.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Control + drag to move the symmetrification frame.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Control + right drag to rotate the symmetrification frame.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Scroll to zoom.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
+		}
+		ImGui::End();
+	}
+
+	// Settings window.
+	if (show_settings_)
+	{
+		auto flags = 0;
+		ImGui::SetNextWindowSize({370, 420}, ImGuiSetCond_Once);
+		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
+		if (ImGui::Begin("Settings", &show_settings_, flags))
+		{
+			ImGui::TextWrapped("Symmetry groups:");
+			ImGui::Spacing();
+
+			ImGui::Columns(3, "groups");
+			ImGui::Separator();
+
+			ImGui::NextColumn();
+			ImGui::TextWrapped("No reflections"); ImGui::NextColumn();
+			ImGui::TextWrapped("Reflections"); ImGui::NextColumn();
+			ImGui::Separator();
+
+			ImGui::TextWrapped("No rotations"); ImGui::NextColumn();
+
+			if (ImGui::Selectable("o (p1)", !strncmp(tiling_.symmetry_group(), "o", 8)))
+				tiling_.set_symmetry_group("o");
+			if (ImGui::Selectable("xx (pg)", !strncmp(tiling_.symmetry_group(), "xx", 8)))
+				tiling_.set_symmetry_group("xx");
+			ImGui::NextColumn();
+
+			if (ImGui::Selectable("** (pm)", !strncmp(tiling_.symmetry_group(), "**", 8)))
+				tiling_.set_symmetry_group("**");
+			if (ImGui::Selectable("*x (cm)", !strncmp(tiling_.symmetry_group(), "*x", 8)))
+				tiling_.set_symmetry_group("*x");
+			ImGui::NextColumn();
+			ImGui::Separator();
+
+			ImGui::TextWrapped("2-fold rotations"); ImGui::NextColumn();
+
+			if (ImGui::Selectable("2222 (p2)", !strncmp(tiling_.symmetry_group(), "2222", 8)))
+				tiling_.set_symmetry_group("2222");
+			if (ImGui::Selectable("22x (pgg)", !strncmp(tiling_.symmetry_group(), "22x", 8)))
+				tiling_.set_symmetry_group("22x");
+			ImGui::NextColumn();
+
+			if (ImGui::Selectable("*2222 (pmm)", !strncmp(tiling_.symmetry_group(), "*2222", 8)))
+				tiling_.set_symmetry_group("*2222");
+			if (ImGui::Selectable("2*22 (cmm)", !strncmp(tiling_.symmetry_group(), "2*22", 8)))
+				tiling_.set_symmetry_group("2*22");
+			if (ImGui::Selectable("22* (pmg)", !strncmp(tiling_.symmetry_group(), "22*", 8)))
+				tiling_.set_symmetry_group("22*");
+			ImGui::NextColumn();
+			ImGui::Separator();
+
+			ImGui::TextWrapped("3-fold rotations"); ImGui::NextColumn();
+
+			if (ImGui::Selectable("333 (p3)", !strncmp(tiling_.symmetry_group(), "333", 8)))
+				tiling_.set_symmetry_group("333");
+			ImGui::NextColumn();
+
+			if (ImGui::Selectable("*333 (p3m1)", !strncmp(tiling_.symmetry_group(), "*333", 8)))
+				tiling_.set_symmetry_group("*333");
+			if (ImGui::Selectable("3*3 (p31m)", !strncmp(tiling_.symmetry_group(), "3*3", 8)))
+				tiling_.set_symmetry_group("3*3");
+			ImGui::NextColumn();
+			ImGui::Separator();
+
+			ImGui::TextWrapped("4-fold rotations"); ImGui::NextColumn();
+
+			if (ImGui::Selectable("442 (p4)", !strncmp(tiling_.symmetry_group(), "442", 8)))
+				tiling_.set_symmetry_group("442");
+			ImGui::NextColumn();
+
+			if (ImGui::Selectable("*442 (p4m)", !strncmp(tiling_.symmetry_group(), "*442", 8)))
+				tiling_.set_symmetry_group("*442");
+			if (ImGui::Selectable("4*2 (p4g)", !strncmp(tiling_.symmetry_group(), "4*2", 8)))
+				tiling_.set_symmetry_group("4*2");
+			ImGui::NextColumn();
+			ImGui::Separator();
+
+			ImGui::TextWrapped("6-fold rotations"); ImGui::NextColumn();
+
+			if (ImGui::Selectable("632 (p6)", !strncmp(tiling_.symmetry_group(), "632", 8)))
+				tiling_.set_symmetry_group("632");
+			ImGui::NextColumn();
+
+			if (ImGui::Selectable("*632 (p6m)", !strncmp(tiling_.symmetry_group(), "*632", 8)))
+				tiling_.set_symmetry_group("*632");
+			ImGui::NextColumn();
+			ImGui::Separator();
+			ImGui::Columns(1);
+		}
+		ImGui::End();
+	}
+
 	gui_.render(width, height, framebuffer);
 }
 

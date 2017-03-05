@@ -54,7 +54,7 @@ GUI::GUI(MainWindow& window)
 			this->middle_clicked_ = true;
 	});
 
-	window_.add_scroll_callback([this](double x_offset, double y_offset){
+	window_.add_scroll_callback([this](double /* x_offset */, double y_offset){
 		this->mouse_wheel_ += (float)y_offset;
 	});
 
@@ -101,7 +101,7 @@ void GUI::new_frame(void)
 	float scale_width  = win_width  > 0 ? fb_width  / (float)win_width  : 0;
 	float scale_height = win_height > 0 ? fb_height / (float)win_height : 0;
 
-	io.DisplaySize             = {win_width, win_height};
+	io.DisplaySize             = {(float)win_width, (float)win_height};
 	io.DisplayFramebufferScale = {scale_width, scale_height};
 
 	auto current_time = glfwGetTime();
@@ -112,7 +112,7 @@ void GUI::new_frame(void)
 	{
 		double mouse_x, mouse_y;
 		glfwGetCursorPos(window_, &mouse_x, &mouse_y);
-		io.MousePos = {mouse_x, mouse_y};
+		io.MousePos = {(float)mouse_x, (float)mouse_y};
 	}
 	else
 		io.MousePos = {-1, -1};
@@ -245,7 +245,7 @@ void GUI::create_fonts_texture(void)
 	io.Fonts->TexID = (void*)(intptr_t)(GLuint)fonts_texture_;
 }
 
-void GUI::key_callback(int key, int scancode, int action, int mods)
+void GUI::key_callback(int key, int /* scancode */, int action, int mods)
 {
 	auto& io = ImGui::GetIO();
 	if (action == GLFW_PRESS)

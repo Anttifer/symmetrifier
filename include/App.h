@@ -56,6 +56,7 @@ private:
 	Tiling      tiling_;
 	GL::Texture base_image_;
 	bool        symmetrifying_;
+	bool        show_settings_;
 
 	Eigen::Vector2f screen_center_;
 	Eigen::Vector2f press_position_;
