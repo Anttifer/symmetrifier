@@ -242,7 +242,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 
 void App::render_gui(int width, int height, GLuint framebuffer)
 {
-	static bool show_usage       = false;
+	static bool show_usage = false;
 
 	// We need these for positioning the windows.
 	float main_menu_height;
@@ -309,7 +309,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
 		if (ImGui::Begin("Settings", &show_settings_, flags))
 		{
-			ImGui::Text("Symmetry groups:");
+			ImGui::Text("Symmetry groups");
 			ImGui::Separator();
 
 			ImGui::Text("");                        ImGui::SameLine(95);
@@ -430,44 +430,66 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Spacing();
 
 
-			ImGui::Text("View settings:");
+			// View settings.
+			ImGui::Text("View settings");
 			ImGui::Separator();
 
 			ImGui::Text("Show result:"); ImGui::SameLine(130);
-			ImGui::Checkbox("##empty2", &symmetrifying_);
+			ImGui::Checkbox("##Show result", &symmetrifying_);
 
 			ImGui::Text("Screen center:"); ImGui::SameLine(130);
 			ImGui::PushItemWidth(-65.0f);
-			ImGui::DragFloat2("##empty3", screen_center_.data(), 0.01f);
+			ImGui::DragFloat2("##Screen center", screen_center_.data(), 0.01f);
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			if(ImGui::Button("Reset##reset1"))
+			if(ImGui::Button("Reset##Reset screen center"))
 				screen_center_ = {0.5, 0.5};
 
+			// We need a float, not a double.
+			float pixels_per_unit = pixels_per_unit_;
 			ImGui::Text("Zoom level:"); ImGui::SameLine(130);
 			ImGui::PushItemWidth(-65.0f);
-			ImGui::DragFloat("##empty4", &pixels_per_unit_);
+			if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
+				pixels_per_unit_ = pixels_per_unit;
 			ImGui::PopItemWidth();
 			ImGui::SameLine(0, 12);
-			if(ImGui::Button("Reset##reset2"))
-				pixels_per_unit_ = 700.0f;
+			if(ImGui::Button("Reset##Reset zoom level"))
+				pixels_per_unit_ = 700.0;
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();
 
-			ImGui::Text("Frame settings:");
+
+			// Frame settings.
+			ImGui::Text("Frame settings");
 			ImGui::Separator();
 
+			// TODO: Really show frame.
+			bool show_frame = !symmetrifying_;
 			ImGui::Text("Show frame:"); ImGui::SameLine(140);
-			ImGui::Checkbox("##empty5", &symmetrifying_);
+			if (ImGui::Checkbox("##Show frame", &show_frame))
+				symmetrifying_ ^= true;
 
+			auto frame_position = tiling_.position();
 			ImGui::Text("Frame position:"); ImGui::SameLine(140);
 			ImGui::PushItemWidth(-65.0f);
-			ImGui::DragFloat2("##empty6", const_cast<float*>(tiling_.position().data()), 0.01f);
+			if (ImGui::DragFloat2("##Frame position", frame_position.data(), 0.01f))
+				tiling_.set_position(frame_position);
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			if(ImGui::Button("Reset##reset3"))
+			if (ImGui::Button("Reset##Reset frame position"))
 				tiling_.set_position({0, 0});
+
+			float frame_rotation = tiling_.rotation();
+			ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
+			ImGui::PushItemWidth(-65.0f);
+			if (ImGui::SliderAngle("##Frame rotation", &frame_rotation, -180.0f, 180.0f))
+				tiling_.set_rotation(frame_rotation);
+			ImGui::PopItemWidth();
+			ImGui::SameLine(0, 12);
+			if (ImGui::Button("Reset##Reset frame rotation"))
+				tiling_.set_rotation(0.0);
+
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();
