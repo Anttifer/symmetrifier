@@ -22,4 +22,9 @@ void main() {
 
 	vec3 adjustment = vec3(x - s / 2, y - s / 2, 0);
 	gl_Position = vec4(adjustment + aPosition, 1);
+
+	// Suppress OS X errors by writing zeroes.
+	vColor    = vec3(0);
+	vNormal   = vec3(0);
+	vTexCoord = vec2(0);
 }
