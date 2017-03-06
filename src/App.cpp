@@ -8,7 +8,7 @@
 
 //--------------------
 
-App::App(int argc, char* argv[])
+App::App(int /* argc */, char** /* argv */)
 :	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
@@ -18,10 +18,6 @@ App::App(int argc, char* argv[])
 	pixels_per_unit_       (700.0),                           // Initial zoom level.
 	zoom_factor_           (1.2)
 {
-	// Suppress unused parameter warnings.
-	(void)argc;
-	(void)argv;
-
 	// Mouse callbacks.
 	window_.add_mouse_pos_callback(&App::position_callback, this);
 	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::left_click_callback, this);
@@ -309,90 +305,172 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 	if (show_settings_)
 	{
 		auto flags = 0;
-		ImGui::SetNextWindowSize({370, 420}, ImGuiSetCond_Once);
+		ImGui::SetNextWindowSize({335, 0}, ImGuiSetCond_Once);
 		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
 		if (ImGui::Begin("Settings", &show_settings_, flags))
 		{
-			ImGui::TextWrapped("Symmetry groups:");
+			ImGui::Text("Symmetry groups:");
+			ImGui::Separator();
+
+			ImGui::Text("");                        ImGui::SameLine(95);
+			ImGui::Text("No reflections");          ImGui::SameLine(215);
+			ImGui::Text("Reflections");
 			ImGui::Spacing();
 
-			ImGui::Columns(3, "groups");
+			ImGui::PushTextWrapPos(80.0f);
+			ImGui::TextWrapped("No rotations");     ImGui::SameLine(95);
+			ImGui::PopTextWrapPos();
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("o", !strncmp(tiling_.symmetry_group(), "o", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("o");
+				ImGui::SameLine(25); ImGui::Text("(p1)");
+				if (ImGui::Selectable("xx", !strncmp(tiling_.symmetry_group(), "xx", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("xx");
+				ImGui::SameLine(25); ImGui::Text("(pg)");
+			ImGui::EndGroup();                      ImGui::SameLine(215);
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("**", !strncmp(tiling_.symmetry_group(), "**", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("**");
+				ImGui::SameLine(25); ImGui::Text("(pm)");
+				if (ImGui::Selectable("*x", !strncmp(tiling_.symmetry_group(), "*x", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("*x");
+				ImGui::SameLine(25); ImGui::Text("(cm)");
+			ImGui::EndGroup();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			ImGui::PushTextWrapPos(80.0f);
+			ImGui::TextWrapped("2-fold rotations"); ImGui::SameLine(95);
+			ImGui::PopTextWrapPos();
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("2222", !strncmp(tiling_.symmetry_group(), "2222", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("2222");
+				ImGui::SameLine(45); ImGui::Text("(p2)");
+				if (ImGui::Selectable("22x", !strncmp(tiling_.symmetry_group(), "22x", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("22x");
+				ImGui::SameLine(45); ImGui::Text("(pgg)");
+			ImGui::EndGroup();                      ImGui::SameLine(215);
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("*2222", !strncmp(tiling_.symmetry_group(), "*2222", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("*2222");
+				ImGui::SameLine(55); ImGui::Text("(pmm)");
+				if (ImGui::Selectable("2*22", !strncmp(tiling_.symmetry_group(), "2*22", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("2*22");
+				ImGui::SameLine(55); ImGui::Text("(cmm)");
+				if (ImGui::Selectable("22*", !strncmp(tiling_.symmetry_group(), "22*", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("22*");
+				ImGui::SameLine(55); ImGui::Text("(pmg)");
+			ImGui::EndGroup();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			ImGui::PushTextWrapPos(80.0f);
+			ImGui::TextWrapped("3-fold rotations"); ImGui::SameLine(95);
+			ImGui::PopTextWrapPos();
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("333", !strncmp(tiling_.symmetry_group(), "333", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("333");
+				ImGui::SameLine(35); ImGui::Text("(p3)");
+			ImGui::EndGroup();                      ImGui::SameLine(215);
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("*333", !strncmp(tiling_.symmetry_group(), "*333", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("*333");
+				ImGui::SameLine(45); ImGui::Text("(p3m1)");
+				if (ImGui::Selectable("3*3", !strncmp(tiling_.symmetry_group(), "3*3", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("3*3");
+				ImGui::SameLine(45); ImGui::Text("(p31m)");
+			ImGui::EndGroup();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			ImGui::PushTextWrapPos(80.0f);
+			ImGui::TextWrapped("4-fold rotations"); ImGui::SameLine(95);
+			ImGui::PopTextWrapPos();
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("442", !strncmp(tiling_.symmetry_group(), "442", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("442");
+				ImGui::SameLine(35); ImGui::Text("(p4)");
+			ImGui::EndGroup();                      ImGui::SameLine(215);
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("*442", !strncmp(tiling_.symmetry_group(), "*442", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("*442");
+				ImGui::SameLine(45); ImGui::Text("(p4m)");
+				if (ImGui::Selectable("4*2", !strncmp(tiling_.symmetry_group(), "4*2", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("4*2");
+				ImGui::SameLine(45); ImGui::Text("(p4g)");
+			ImGui::EndGroup();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			ImGui::PushTextWrapPos(80.0f);
+			ImGui::TextWrapped("6-fold rotations"); ImGui::SameLine(95);
+			ImGui::PopTextWrapPos();
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("632", !strncmp(tiling_.symmetry_group(), "632", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("632");
+				ImGui::SameLine(35); ImGui::Text("(p6)");
+			ImGui::EndGroup();                      ImGui::SameLine(215);
+
+			ImGui::BeginGroup();
+				if (ImGui::Selectable("*632", !strncmp(tiling_.symmetry_group(), "*632", 8), 0, {110, 0}))
+					tiling_.set_symmetry_group("*632");
+				ImGui::SameLine(45); ImGui::Text("(p6m)");
+			ImGui::EndGroup();
+			ImGui::Spacing();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+
+			ImGui::Text("View settings:");
 			ImGui::Separator();
 
-			ImGui::NextColumn();
-			ImGui::TextWrapped("No reflections"); ImGui::NextColumn();
-			ImGui::TextWrapped("Reflections"); ImGui::NextColumn();
+			ImGui::Text("Show result:"); ImGui::SameLine(130);
+			ImGui::Checkbox("##empty2", &symmetrifying_);
+
+			ImGui::Text("Screen center:"); ImGui::SameLine(130);
+			ImGui::PushItemWidth(-65.0f);
+			ImGui::DragFloat2("##empty3", screen_center_.data(), 0.01f);
+			ImGui::PopItemWidth();
+			ImGui::SameLine();
+			if(ImGui::Button("Reset##reset1"))
+				screen_center_ = {0.5, 0.5};
+
+			ImGui::Text("Zoom level:"); ImGui::SameLine(130);
+			ImGui::PushItemWidth(-65.0f);
+			ImGui::DragFloat("##empty4", &pixels_per_unit_);
+			ImGui::PopItemWidth();
+			ImGui::SameLine(0, 12);
+			if(ImGui::Button("Reset##reset2"))
+				pixels_per_unit_ = 700.0f;
+			ImGui::Spacing();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			ImGui::Text("Frame settings:");
 			ImGui::Separator();
 
-			ImGui::TextWrapped("No rotations"); ImGui::NextColumn();
+			ImGui::Text("Show frame:"); ImGui::SameLine(140);
+			ImGui::Checkbox("##empty5", &symmetrifying_);
 
-			if (ImGui::Selectable("o (p1)", !strncmp(tiling_.symmetry_group(), "o", 8)))
-				tiling_.set_symmetry_group("o");
-			if (ImGui::Selectable("xx (pg)", !strncmp(tiling_.symmetry_group(), "xx", 8)))
-				tiling_.set_symmetry_group("xx");
-			ImGui::NextColumn();
-
-			if (ImGui::Selectable("** (pm)", !strncmp(tiling_.symmetry_group(), "**", 8)))
-				tiling_.set_symmetry_group("**");
-			if (ImGui::Selectable("*x (cm)", !strncmp(tiling_.symmetry_group(), "*x", 8)))
-				tiling_.set_symmetry_group("*x");
-			ImGui::NextColumn();
-			ImGui::Separator();
-
-			ImGui::TextWrapped("2-fold rotations"); ImGui::NextColumn();
-
-			if (ImGui::Selectable("2222 (p2)", !strncmp(tiling_.symmetry_group(), "2222", 8)))
-				tiling_.set_symmetry_group("2222");
-			if (ImGui::Selectable("22x (pgg)", !strncmp(tiling_.symmetry_group(), "22x", 8)))
-				tiling_.set_symmetry_group("22x");
-			ImGui::NextColumn();
-
-			if (ImGui::Selectable("*2222 (pmm)", !strncmp(tiling_.symmetry_group(), "*2222", 8)))
-				tiling_.set_symmetry_group("*2222");
-			if (ImGui::Selectable("2*22 (cmm)", !strncmp(tiling_.symmetry_group(), "2*22", 8)))
-				tiling_.set_symmetry_group("2*22");
-			if (ImGui::Selectable("22* (pmg)", !strncmp(tiling_.symmetry_group(), "22*", 8)))
-				tiling_.set_symmetry_group("22*");
-			ImGui::NextColumn();
-			ImGui::Separator();
-
-			ImGui::TextWrapped("3-fold rotations"); ImGui::NextColumn();
-
-			if (ImGui::Selectable("333 (p3)", !strncmp(tiling_.symmetry_group(), "333", 8)))
-				tiling_.set_symmetry_group("333");
-			ImGui::NextColumn();
-
-			if (ImGui::Selectable("*333 (p3m1)", !strncmp(tiling_.symmetry_group(), "*333", 8)))
-				tiling_.set_symmetry_group("*333");
-			if (ImGui::Selectable("3*3 (p31m)", !strncmp(tiling_.symmetry_group(), "3*3", 8)))
-				tiling_.set_symmetry_group("3*3");
-			ImGui::NextColumn();
-			ImGui::Separator();
-
-			ImGui::TextWrapped("4-fold rotations"); ImGui::NextColumn();
-
-			if (ImGui::Selectable("442 (p4)", !strncmp(tiling_.symmetry_group(), "442", 8)))
-				tiling_.set_symmetry_group("442");
-			ImGui::NextColumn();
-
-			if (ImGui::Selectable("*442 (p4m)", !strncmp(tiling_.symmetry_group(), "*442", 8)))
-				tiling_.set_symmetry_group("*442");
-			if (ImGui::Selectable("4*2 (p4g)", !strncmp(tiling_.symmetry_group(), "4*2", 8)))
-				tiling_.set_symmetry_group("4*2");
-			ImGui::NextColumn();
-			ImGui::Separator();
-
-			ImGui::TextWrapped("6-fold rotations"); ImGui::NextColumn();
-
-			if (ImGui::Selectable("632 (p6)", !strncmp(tiling_.symmetry_group(), "632", 8)))
-				tiling_.set_symmetry_group("632");
-			ImGui::NextColumn();
-
-			if (ImGui::Selectable("*632 (p6m)", !strncmp(tiling_.symmetry_group(), "*632", 8)))
-				tiling_.set_symmetry_group("*632");
-			ImGui::NextColumn();
-			ImGui::Separator();
-			ImGui::Columns(1);
+			ImGui::Text("Frame position:"); ImGui::SameLine(140);
+			ImGui::PushItemWidth(-65.0f);
+			ImGui::DragFloat2("##empty6", const_cast<float*>(tiling_.position().data()), 0.01f);
+			ImGui::PopItemWidth();
+			ImGui::SameLine();
+			if(ImGui::Button("Reset##reset3"))
+				tiling_.set_position({0, 0});
+			ImGui::Spacing();
+			ImGui::Spacing();
+			ImGui::Spacing();
 		}
 		ImGui::End();
 	}

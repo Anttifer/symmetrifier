@@ -15,7 +15,7 @@ layout(location = 0) out vec4 fColor;
 
 void main() {
 	if (uTextureFlag)
-		fColor = texture2D(uTextureSampler, vTexCoord);
+		fColor = texture(uTextureSampler, vTexCoord);
 	else if (any(lessThan(vColor, vec3(0.005))))
 		fColor = vec4(0.2, 0.7, 0.2, 1);
 	else
