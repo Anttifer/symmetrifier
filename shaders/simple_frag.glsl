@@ -26,5 +26,5 @@ void main() {
 	// If we have a texture, sample it instead
 	// with the interpolated texture coordinate.
 	if (uTextureFlag)
-		fColor = texture2D(uTextureSampler, vTexCoord);
+		fColor = texture(uTextureSampler, vTexCoord);
 }

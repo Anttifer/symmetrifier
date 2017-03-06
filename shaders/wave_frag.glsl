@@ -31,7 +31,7 @@ layout(location = 0) out vec4 fColor;
 void main() {
 	float pi = 3.14159265359;
 	vec4 bgColor = uTextureFlag ?
-		texture2D(uTextureSampler, vTexCoord) : vec4(0.15, 0.1, 0.1, 1);
+		texture(uTextureSampler, vTexCoord) : vec4(0.15, 0.1, 0.1, 1);
 
 	// Calculate the aspect ratio.
 	float AR = uScreenSize.x / float(uScreenSize.y);
