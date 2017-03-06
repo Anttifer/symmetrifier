@@ -35,6 +35,7 @@ public:
 	Texture& operator= (Texture&&);
 	operator GLuint    (void) const {return texture_;}
 
+	static Texture from_png                   (const char* filename, bool& successful);
 	static Texture from_png                   (const char* filename);
 	static Texture empty_2D                   (int width, int height);
 	static Texture empty_2D_multisample       (int width, int height, int samples = 4);

@@ -2,10 +2,11 @@
 #define APP_H
 
 #include "Window.h"
-#include "InputManager.h"
+#include "GUI.h"
 #include "ShaderCanvas.h"
 #include "Mesh.h"
 #include "PinwheelPlane.h"
+#include "Tiling.h"
 #include "GLObjects.h"
 
 //--------------------
@@ -20,40 +21,51 @@ public:
 	void loop (void);
 
 private:
-	void update_objects            (void);
-	Eigen::Vector2f scale_to_world (const Eigen::Vector2f&);
+	void render_scene          (int width, int height, GLuint framebuffer = 0);
 
-	void render_wave           (int width, int height, GLuint framebuffer = 0);
-	void render_pinwheel       (int width, int height, GLuint framebuffer = 0);
-	void render_texture        (const GL::Texture& texture, int width, int height, GLuint framebuffer = 0);
-	void render_mesh           (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
-	void render_extruded_mesh  (const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
-	void render_on_mesh        (const GL::Texture& texture, const Mesh& mesh, int width, int height, GLuint framebuffer = 0);
+	// Renders the chosen image in world coordinates (0,0) - (1, y).
+	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
+
+	// Renders the symmetrified plane or the symmetrification frame.
+	// TODO: Separate frame rendering and symmetrified plane rendering.
+	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
+
+	// Renders the GUI using dear ImGUI.
+	void render_gui            (int width, int height, GLuint framebuffer = 0);
+
+	// Mouse callbacks.
+	void position_callback    (double, double);
+	void left_click_callback  (int, int);
+	void right_click_callback (int, int);
+	void scroll_callback      (double, double);
 
 	// Key callbacks.
 	void print_screen  (int, int, int);
 
-	// Test callbacks.
-	void test_mouse_cb              (double, double);
-	void test_update_objects_cb     (double, double);
-	void test_left_click_cb         (int, int);
-	void test_scroll_cb             (double, double);
+	// Utilities.
+	void            load_texture    (const char*);
+	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
 
 	// Framework objects.
 	MainWindow    window_;
-	InputManager  input_manager_;
-
+	double        time_;
+	GUI           gui_;
 	ShaderCanvas  canvas_;
-	Mesh          cube_;
-	Mesh          torus_;
-	PinwheelPlane plane_;
 
-	// Test objects.
+
+	Tiling      tiling_;
+	GL::Texture base_image_;
+	bool        symmetrifying_;
+	bool        show_settings_;
+
+	Eigen::Vector2f screen_center_;
 	Eigen::Vector2f press_position_;
-	Eigen::Vector2f plane_static_position_;
+
+	Eigen::Vector2f tiling_static_position_;
+	double tiling_static_rotation_;
+	Eigen::Vector2f screen_center_static_position_;
 
 	double pixels_per_unit_;
 	double zoom_factor_;
-	double time_;
 };
 #endif // APP_H

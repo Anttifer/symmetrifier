@@ -171,6 +171,7 @@ void HeadScene::set_light_config(const Eigen::Matrix4f& V) {
 			memcpy(point_view, point_world, sizeof(point_world)),
 			true;
 	}();
+	(void)init;
 
 	Eigen::Matrix3f dir_world_to_view = V.topLeftCorner<3, 3>();
 
@@ -287,7 +288,7 @@ void HeadScene::render_head_wall(float x_len, float y_len, int x_num, int y_num,
 			auto pos = Eigen::Vector3f(x_pos, y_pos, -1.2);
 			Eigen::Matrix4f M = (Eigen::Matrix4f() << rots[index], pos, 0, 0, 0, 1).finished();
 
-			render_head(M, V, P, normals_from_texture, false, width, height, framebuffer);
+			render_head(M, V, P, normals_from_texture, env_mapped, width, height, framebuffer);
 		}
 	}
 }

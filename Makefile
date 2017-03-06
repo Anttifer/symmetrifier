@@ -25,7 +25,7 @@ CPPFLAGS += -MMD -MP
 
 # Default target.
 $(BIN): $(OBJS) | $(BINDIR)
-	$(CXX) $(LDFLAGS) $(LDLIBS) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Handle dependencies.
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp

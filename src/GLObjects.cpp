@@ -130,19 +130,37 @@ Texture& Texture::operator=(Texture&& other)
 	return *this;
 }
 
-Texture Texture::from_png(const char* filename) // TODO: Error handling & filtering.
+Texture Texture::from_png(const char* filename, bool& successful)
 {
 	assert(filename != nullptr);
 
 	std::vector<unsigned char> ud_image;
 	unsigned int width, height;
-	lodepng::decode(ud_image, width, height, filename);
 
-	std::vector<unsigned char> image(ud_image.size());
-	for (size_t i = 0; i < height; ++i)
+	auto error = lodepng::decode(ud_image, width, height, filename);
+
+	std::vector<unsigned char> image;
+	if (!error)
 	{
-		for (size_t j = 0; j < 4 * width; ++j)
-			image[4 * width * i + j] = ud_image[4 * width * (height - (1 + i)) + j];
+		successful = true;
+		image.resize(ud_image.size());
+
+		for (size_t i = 0; i < height; ++i)
+		{
+			for (size_t j = 0; j < 4 * width; ++j)
+				image[4 * width * i + j] = ud_image[4 * width * (height - (1 + i)) + j];
+		}
+	}
+	else
+	{
+		successful = false;
+		width = 4; height = 4;
+		image = { 255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
+		            0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,
+		          255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
+		            0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255 };
+		std::cerr << "PNG loading failed for " << filename << std::endl
+		          << "Error " << error << ": " << lodepng_error_text(error) << std::endl;
 	}
 
 	Texture texture;
@@ -151,8 +169,17 @@ Texture Texture::from_png(const char* filename) // TODO: Error handling & filter
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	if (successful)
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	}
+	else
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	}
+
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 
@@ -160,6 +187,12 @@ Texture Texture::from_png(const char* filename) // TODO: Error handling & filter
 	texture.height_ = height;
 
 	return texture;
+}
+
+Texture Texture::from_png(const char* filename)
+{
+	bool unused_status;
+	return from_png(filename, unused_status);
 }
 
 Texture Texture::empty_2D(int width, int height)
@@ -371,7 +404,7 @@ FBO FBO::simple_C0(const Texture& color)
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color, 0);
 
@@ -399,7 +432,7 @@ FBO FBO::simple_C0D(const Texture& color, const Texture& depth)
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color, 0);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth, 0);
@@ -427,7 +460,7 @@ FBO FBO::multisample_C0(const Texture& color)
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, color, 0);
 
@@ -455,7 +488,7 @@ FBO FBO::multisample_C0D(const Texture& color, const Texture& depth)
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, color, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depth, 0);
