@@ -12,10 +12,10 @@ App::App(int /* argc */, char** /* argv */)
 :	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
-	symmetrifying_         (false),
+	show_result_           (false),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
-	pixels_per_unit_       (700.0),                           // Initial zoom level.
+	pixels_per_unit_       (500.0),                           // Initial zoom level.
 	zoom_factor_           (1.2)
 {
 	// Mouse callbacks.
@@ -28,7 +28,7 @@ App::App(int /* argc */, char** /* argv */)
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->symmetrifying_ ^= true;
+			this->show_result_ ^= true;
 	});
 	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
@@ -70,6 +70,7 @@ App::App(int /* argc */, char** /* argv */)
 
 	load_texture("res/kissa");
 	tiling_.set_symmetry_group("333");
+	tiling_.set_center({0.5, 0.5});
 }
 
 void App::loop(void)
@@ -97,7 +98,7 @@ void App::loop(void)
 
 void App::render_scene(int width, int height, GLuint framebuffer)
 {
-	if (symmetrifying_)
+	if (show_result_)
 	{
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
@@ -223,7 +224,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
-	glUniform1i  (texture_flag_uniform, symmetrifying_);
+	glUniform1i  (texture_flag_uniform, show_result_);
 
 	const auto& mesh = tiling_.mesh();
 
@@ -242,7 +243,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 
 void App::render_gui(int width, int height, GLuint framebuffer)
 {
-	static bool show_usage       = false;
+	static bool show_usage = false;
 
 	// We need these for positioning the windows.
 	float main_menu_height;
@@ -309,7 +310,8 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
 		if (ImGui::Begin("Settings", &show_settings_, flags))
 		{
-			ImGui::Text("Symmetry groups:");
+			// Symmetry groups.
+			ImGui::Text("Symmetry groups");
 			ImGui::Separator();
 
 			ImGui::Text("");                        ImGui::SameLine(95);
@@ -430,44 +432,75 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Spacing();
 
 
-			ImGui::Text("View settings:");
+			// View settings.
+			ImGui::Text("View settings");
 			ImGui::Separator();
 
 			ImGui::Text("Show result:"); ImGui::SameLine(130);
-			ImGui::Checkbox("##empty2", &symmetrifying_);
+			ImGui::Checkbox("##Show result", &show_result_);
 
 			ImGui::Text("Screen center:"); ImGui::SameLine(130);
 			ImGui::PushItemWidth(-65.0f);
-			ImGui::DragFloat2("##empty3", screen_center_.data(), 0.01f);
+			ImGui::DragFloat2("##Screen center", screen_center_.data(), 0.01f);
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			if(ImGui::Button("Reset##reset1"))
+			if(ImGui::Button("Reset##Reset screen center"))
 				screen_center_ = {0.5, 0.5};
 
+			// We need a float, not a double.
+			float pixels_per_unit = pixels_per_unit_;
 			ImGui::Text("Zoom level:"); ImGui::SameLine(130);
 			ImGui::PushItemWidth(-65.0f);
-			ImGui::DragFloat("##empty4", &pixels_per_unit_);
+			if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
+				pixels_per_unit_ = pixels_per_unit;
 			ImGui::PopItemWidth();
 			ImGui::SameLine(0, 12);
-			if(ImGui::Button("Reset##reset2"))
-				pixels_per_unit_ = 700.0f;
+			if(ImGui::Button("Reset##Reset zoom level"))
+				pixels_per_unit_ = 700.0;
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();
 
-			ImGui::Text("Frame settings:");
+
+			// Frame settings.
+			ImGui::Text("Frame settings");
 			ImGui::Separator();
 
+			// TODO: Really show frame.
+			bool show_frame = !show_result_;
 			ImGui::Text("Show frame:"); ImGui::SameLine(140);
-			ImGui::Checkbox("##empty5", &symmetrifying_);
+			if (ImGui::Checkbox("##Show frame", &show_frame))
+				show_result_ ^= true;
 
+			auto frame_position = tiling_.center();
 			ImGui::Text("Frame position:"); ImGui::SameLine(140);
 			ImGui::PushItemWidth(-65.0f);
-			ImGui::DragFloat2("##empty6", const_cast<float*>(tiling_.position().data()), 0.01f);
+			if (ImGui::DragFloat2("##Frame position", frame_position.data(), 0.01f))
+				tiling_.set_center(frame_position);
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
-			if(ImGui::Button("Reset##reset3"))
-				tiling_.set_position({0, 0});
+			if (ImGui::Button("Reset##Reset frame position"))
+				tiling_.set_center({0.5, 0.5});
+
+			float frame_rotation = tiling_.rotation() / M_PI * 180.0f;
+			ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
+			ImGui::PushItemWidth(-65.0f);
+			if (ImGui::DragFloat("##Frame rotation", &frame_rotation, 0.5f))
+				tiling_.set_rotation(frame_rotation / 180.0 * M_PI);
+			ImGui::PopItemWidth();
+			ImGui::SameLine(0, 12);
+			if (ImGui::Button("Reset##Reset frame rotation"))
+				tiling_.set_rotation(0.0);
+
+			int num_domains = tiling_.num_domains();
+			bool domains_changed = false;
+			ImGui::Text("Domains:"); ImGui::SameLine(140);
+			domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
+			domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
+			domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
+			if (domains_changed)
+				tiling_.set_num_domains(num_domains);
+
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();

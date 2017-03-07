@@ -55,7 +55,7 @@ private:
 
 	Tiling      tiling_;
 	GL::Texture base_image_;
-	bool        symmetrifying_;
+	bool        show_result_;
 	bool        show_settings_;
 
 	Eigen::Vector2f screen_center_;
@@ -65,7 +65,7 @@ private:
 	double tiling_static_rotation_;
 	Eigen::Vector2f screen_center_static_position_;
 
-	float  pixels_per_unit_;
+	double pixels_per_unit_;
 	double zoom_factor_;
 };
 #endif // APP_H

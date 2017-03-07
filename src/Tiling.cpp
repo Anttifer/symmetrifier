@@ -23,6 +23,14 @@ Tiling::Tiling(void)
 	set_symmetry_group("o");
 }
 
+Eigen::Vector2f Tiling::center(void) const
+{
+	if (num_domains_ % 2)
+		return position_ + (t1_ + t2()) / 2.0;
+	else
+		return position_;
+}
+
 double Tiling::rotation(void) const
 {
 	return std::atan2(t1_.y(), t1_.x());
@@ -131,6 +139,15 @@ void Tiling::set_symmetry_group(const char* group)
 	}
 }
 
+void Tiling::set_center(const Eigen::Vector2f& center)
+{
+	consistent_ = false;
+
+	position_ = center;
+	if (num_domains_ % 2)
+		position_ -= (t1_ + t2()) / 2.0;
+}
+
 void Tiling::set_rotation(double r)
 {
 	consistent_ = false;
@@ -139,7 +156,7 @@ void Tiling::set_rotation(double r)
 	if (num_domains_ % 2)
 	{
 		auto p_rotation = Eigen::Rotation2D<float>(r - this->rotation());
-		Eigen::Vector2f center = (t1_ + t2()) / 2;
+		Eigen::Vector2f center = (t1_ + t2()) / 2.0;
 		position_ -= p_rotation * center - center;
 	}
 
