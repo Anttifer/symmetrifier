@@ -9,7 +9,17 @@ class Tiling {
 public:
 	Tiling (void);
 
+	// Lattice types.
+	enum class Lattice {
+		Oblique,
+		Rhombic,
+		Rectangular,
+		Square,
+		Hexagonal
+	};
+
 	const char*            symmetry_group     (void) const { return symmetry_group_; }
+	Lattice                lattice            (void) const { return lattice_; }
 	const Mesh&            mesh               (void) const { return mesh_; }
 	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
 	const Eigen::Vector2f& position           (void) const { return position_; }
@@ -66,9 +76,9 @@ private:
 	// when it is possible, i.e. when we have a non-hexagonal and non-square lattice.
 	Eigen::Vector2f t2_relative_;
 
-	int num_domains_;
-
+	int             num_domains_;
 	const char*     symmetry_group_;
+	Lattice         lattice_;
 
 	// This shader is used for building the symmetrified fundamental domain.
 	// It practically superimposes samples of the user-supplied texture in

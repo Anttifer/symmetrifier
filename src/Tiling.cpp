@@ -49,92 +49,110 @@ void Tiling::set_symmetry_group(const char* group)
 	if (!strncmp(group, "o", 8))
 	{
 		symmetry_group_ = "o";
+		lattice_        = Lattice::Oblique;
 		construct_p1();
 	}
 	else if (!strncmp(group, "**", 8))
 	{
 		symmetry_group_ = "**";
+		lattice_        = Lattice::Rectangular;
 		construct_pm();
 	}
 	else if (!strncmp(group, "*x", 8))
 	{
 		symmetry_group_ = "*x";
+		lattice_        = Lattice::Rhombic;
 		construct_cm();
 	}
 	else if (!strncmp(group, "xx", 8))
 	{
 		symmetry_group_ = "xx";
+		lattice_        = Lattice::Rectangular;
 		construct_pg();
 	}
 	else if (!strncmp(group, "2222", 8))
 	{
 		symmetry_group_ = "2222";
+		lattice_        = Lattice::Oblique;
 		construct_p2();
 	}
 	else if (!strncmp(group, "*2222", 8))
 	{
 		symmetry_group_ = "*2222";
+		lattice_        = Lattice::Rectangular;
 		construct_pmm();
 	}
 	else if (!strncmp(group, "22*", 8))
 	{
 		symmetry_group_ = "22*";
+		lattice_        = Lattice::Rectangular;
 		construct_pmg();
 	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
+		lattice_        = Lattice::Rhombic;
 		construct_cmm();
 	}
 	else if (!strncmp(group, "22x", 8))
 	{
 		symmetry_group_ = "22x";
+		lattice_        = Lattice::Rectangular;
 		construct_pgg();
 	}
 	else if (!strncmp(group, "333", 8))
 	{
 		symmetry_group_ = "333";
+		lattice_        = Lattice::Hexagonal;
 		construct_p3();
 	}
 	else if (!strncmp(group, "*333", 8))
 	{
 		symmetry_group_ = "*333";
+		lattice_        = Lattice::Hexagonal;
 		construct_p3m1();
 	}
 	else if (!strncmp(group, "3*3", 8))
 	{
 		symmetry_group_ = "3*3";
+		lattice_        = Lattice::Hexagonal;
 		construct_p31m();
 	}
 	else if (!strncmp(group, "442", 8))
 	{
 		symmetry_group_ = "442";
+		lattice_        = Lattice::Square;
 		construct_p4();
 	}
 	else if (!strncmp(group, "*442", 8))
 	{
 		symmetry_group_ = "*442";
+		lattice_        = Lattice::Square;
 		construct_p4m();
 	}
 	else if (!strncmp(group, "4*2", 8))
 	{
 		symmetry_group_ = "4*2";
+		lattice_        = Lattice::Square;
 		construct_p4g();
 	}
 	else if (!strncmp(group, "632", 8))
 	{
 		symmetry_group_ = "632";
+		lattice_        = Lattice::Hexagonal;
 		construct_p6();
 	}
 	else if (!strncmp(group, "*632", 8))
 	{
 		symmetry_group_ = "*632";
+		lattice_        = Lattice::Hexagonal;
 		construct_p6m();
 	}
 	else
 	{
 		printf("Unsupported group. Falling back to pure translational symmetry.\n");
 		symmetry_group_ = "o";
+		lattice_        = Lattice::Oblique;
 		construct_p1();
 	}
 }
