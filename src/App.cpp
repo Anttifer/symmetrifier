@@ -530,26 +530,21 @@ void App::position_callback(double x, double y)
 		}
 		else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 		{
-			// TODO: Implement this in a more elegant way.
 			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 			{
 				int width, height;
 				glfwGetFramebufferSize(window_, &width, &height);
 				Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 
-				Eigen::Vector2f world_press = screen_center_ + screen_to_world(press_position_);
-				Eigen::Vector2f world_current = screen_center_ + screen_to_world(position);
+				Eigen::Vector2f world_press_position = screen_center_ + screen_to_world(press_position_);
+				Eigen::Vector2f world_position       = screen_center_ + screen_to_world(position);
 
-				Eigen::Vector2f press_vec = world_press - tiling_.position();
-				Eigen::Vector2f current_vec = world_current - tiling_.position();
-				if (tiling_.num_domains() % 2)
-				{
-					press_vec   -= (tiling_.t1() + tiling_.t2()) / 2;
-					current_vec -= (tiling_.t1() + tiling_.t2()) / 2;
-				}
+				// This doesn't change during rotation - could be cached if deemed necessary.
+				Eigen::Vector2f press_wrt_center    = world_press_position - tiling_.center();
+				Eigen::Vector2f position_wrt_center = world_position       - tiling_.center();
 
-				double det = (Eigen::Matrix2f() << press_vec, current_vec).finished().determinant();
-				double dot = press_vec.dot(current_vec);
+				double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+				double dot = press_wrt_center.dot(position_wrt_center);
 				double drag_rotation = std::atan2(det, dot);
 
 				tiling_.set_rotation(tiling_static_rotation_ + drag_rotation);
@@ -558,10 +553,8 @@ void App::position_callback(double x, double y)
 	}
 }
 
-void App::left_click_callback(int action, int mods)
+void App::left_click_callback(int action, int /* mods */)
 {
-	(void)mods; // Suppress unused parameter warning.
-
 	if (action == GLFW_PRESS)
 	{
 		int width, height;
@@ -577,10 +570,8 @@ void App::left_click_callback(int action, int mods)
 	}
 }
 
-void App::right_click_callback(int action, int mods)
+void App::right_click_callback(int action, int /* mods */)
 {
-	(void)mods; // Suppress unused parameter warning.
-
 	if (action == GLFW_PRESS)
 	{
 		int width, height;
@@ -594,13 +585,11 @@ void App::right_click_callback(int action, int mods)
 	}
 }
 
-void App::scroll_callback(double x_offset, double y_offset)
+void App::scroll_callback(double /* x_offset */, double y_offset)
 {
 	// Don't do anything if ImGui is grabbing input.
 	if (!ImGui::GetIO().WantCaptureMouse)
 	{
-		(void)x_offset; // Suppress unused parameter warning.
-
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		{
 			if (y_offset < 0)
@@ -618,12 +607,8 @@ void App::scroll_callback(double x_offset, double y_offset)
 	}
 }
 
-void App::print_screen(int scancode, int action, int mods)
+void App::print_screen(int /* scancode */, int action, int /* mods */)
 {
-	// Suppress unused parameter warnings.
-	(void)scancode;
-	(void)mods;
-
 	if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 	{
 		printf("Taking screenshot...\n");

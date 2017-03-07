@@ -170,18 +170,13 @@ void Tiling::set_rotation(double r)
 {
 	consistent_ = false;
 
-	// Alter position for centered rotation.
-	if (num_domains_ % 2)
-	{
-		auto p_rotation = Eigen::Rotation2D<float>(r - this->rotation());
-		Eigen::Vector2f center = (t1_ + t2()) / 2.0;
-		position_ -= p_rotation * center - center;
-	}
-
+	auto center   = this->center();
 	double norm   = t1_.norm();
 	auto rotation = Eigen::Rotation2D<float>(r);
 
 	t1_ = rotation * Eigen::Vector2f(norm, 0);
+
+	this->set_center(center);
 }
 
 void Tiling::set_scale(double factor)
