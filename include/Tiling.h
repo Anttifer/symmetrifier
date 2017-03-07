@@ -13,6 +13,7 @@ public:
 	const Mesh&            mesh               (void) const { return mesh_; }
 	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
 	const Eigen::Vector2f& position           (void) const { return position_; }
+	Eigen::Vector2f        center             (void) const;
 	double                 rotation           (void) const;
 	const Eigen::Vector2f& t1                 (void) const { return t1_; }
 	Eigen::Vector2f        t2                 (void) const;
@@ -22,6 +23,7 @@ public:
 	// TODO: Symmetry group parameters such as lattice angle etc.
 	void set_symmetry_group (const char*);
 	void set_position       (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
+	void set_center         (const Eigen::Vector2f&);
 	void set_rotation       (double);
 	void set_scale          (double factor);
 	void set_num_domains    (int n)                    { consistent_ = false; num_domains_ = n; }

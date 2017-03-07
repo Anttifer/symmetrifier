@@ -12,7 +12,7 @@ App::App(int /* argc */, char** /* argv */)
 :	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
-	symmetrifying_         (false),
+	show_result_           (false),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (700.0),                           // Initial zoom level.
@@ -28,7 +28,7 @@ App::App(int /* argc */, char** /* argv */)
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->symmetrifying_ ^= true;
+			this->show_result_ ^= true;
 	});
 	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
@@ -70,6 +70,7 @@ App::App(int /* argc */, char** /* argv */)
 
 	load_texture("res/kissa");
 	tiling_.set_symmetry_group("333");
+	tiling_.set_center({0.5, 0.5});
 }
 
 void App::loop(void)
@@ -97,7 +98,7 @@ void App::loop(void)
 
 void App::render_scene(int width, int height, GLuint framebuffer)
 {
-	if (symmetrifying_)
+	if (show_result_)
 	{
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
@@ -223,7 +224,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
-	glUniform1i  (texture_flag_uniform, symmetrifying_);
+	glUniform1i  (texture_flag_uniform, show_result_);
 
 	const auto& mesh = tiling_.mesh();
 
@@ -309,6 +310,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
 		if (ImGui::Begin("Settings", &show_settings_, flags))
 		{
+			// Symmetry groups.
 			ImGui::Text("Symmetry groups");
 			ImGui::Separator();
 
@@ -435,7 +437,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Separator();
 
 			ImGui::Text("Show result:"); ImGui::SameLine(130);
-			ImGui::Checkbox("##Show result", &symmetrifying_);
+			ImGui::Checkbox("##Show result", &show_result_);
 
 			ImGui::Text("Screen center:"); ImGui::SameLine(130);
 			ImGui::PushItemWidth(-65.0f);
@@ -465,20 +467,20 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Separator();
 
 			// TODO: Really show frame.
-			bool show_frame = !symmetrifying_;
+			bool show_frame = !show_result_;
 			ImGui::Text("Show frame:"); ImGui::SameLine(140);
 			if (ImGui::Checkbox("##Show frame", &show_frame))
-				symmetrifying_ ^= true;
+				show_result_ ^= true;
 
-			auto frame_position = tiling_.position();
+			auto frame_position = tiling_.center();
 			ImGui::Text("Frame position:"); ImGui::SameLine(140);
 			ImGui::PushItemWidth(-65.0f);
 			if (ImGui::DragFloat2("##Frame position", frame_position.data(), 0.01f))
-				tiling_.set_position(frame_position);
+				tiling_.set_center(frame_position);
 			ImGui::PopItemWidth();
 			ImGui::SameLine();
 			if (ImGui::Button("Reset##Reset frame position"))
-				tiling_.set_position({0, 0});
+				tiling_.set_center({0.5, 0.5});
 
 			float frame_rotation = tiling_.rotation();
 			ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
