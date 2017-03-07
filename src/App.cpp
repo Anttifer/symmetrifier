@@ -15,7 +15,7 @@ App::App(int /* argc */, char** /* argv */)
 	show_result_           (false),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
-	pixels_per_unit_       (700.0),                           // Initial zoom level.
+	pixels_per_unit_       (500.0),                           // Initial zoom level.
 	zoom_factor_           (1.2)
 {
 	// Mouse callbacks.
@@ -482,15 +482,24 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			if (ImGui::Button("Reset##Reset frame position"))
 				tiling_.set_center({0.5, 0.5});
 
-			float frame_rotation = tiling_.rotation();
+			float frame_rotation = tiling_.rotation() / M_PI * 180.0f;
 			ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
 			ImGui::PushItemWidth(-65.0f);
-			if (ImGui::SliderAngle("##Frame rotation", &frame_rotation, -180.0f, 180.0f))
-				tiling_.set_rotation(frame_rotation);
+			if (ImGui::DragFloat("##Frame rotation", &frame_rotation, 0.5f))
+				tiling_.set_rotation(frame_rotation / 180.0 * M_PI);
 			ImGui::PopItemWidth();
 			ImGui::SameLine(0, 12);
 			if (ImGui::Button("Reset##Reset frame rotation"))
 				tiling_.set_rotation(0.0);
+
+			int num_domains = tiling_.num_domains();
+			bool domains_changed = false;
+			ImGui::Text("Domains:"); ImGui::SameLine(140);
+			domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
+			domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
+			domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
+			if (domains_changed)
+				tiling_.set_num_domains(num_domains);
 
 			ImGui::Spacing();
 			ImGui::Spacing();
