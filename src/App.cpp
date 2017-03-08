@@ -111,6 +111,8 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		render_image(base_image_, width, height, framebuffer);
 		render_symmetry_frame(false, width, height, framebuffer);
 	}
+	render_frame(width, height, framebuffer);
+
 	render_gui(width, height, framebuffer);
 }
 
@@ -239,6 +241,65 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_frame(int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/frame_vert.glsl",
+		"shaders/frame_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint instance_num_uniform;
+	static GLuint position_uniform;
+	static GLuint t1_uniform;
+	static GLuint t2_uniform;
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static bool init = [&](){
+		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
+		position_uniform        = glGetUniformLocation(shader, "uPos");
+		t1_uniform              = glGetUniformLocation(shader, "uT1");
+		t2_uniform              = glGetUniformLocation(shader, "uT2");
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		return true;
+	}();
+	(void)init; // Suppress unused variable warning.
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	const auto plane_side_length = 10;
+	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling_.num_domains();
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	glUniform1i  (instance_num_uniform, num_instances);
+	glUniform2fv (position_uniform, 1, tiling_.position().data());
+	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+
+	const auto& frame = tiling_.frame();
+
+	glBindVertexArray(frame.vao_);
+	glDrawArraysInstanced(GL_LINES, 0, frame.num_vertices_, num_instances);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 

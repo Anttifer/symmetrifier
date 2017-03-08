@@ -21,6 +21,7 @@ public:
 	const char*            symmetry_group     (void) const { return symmetry_group_; }
 	Lattice                lattice            (void) const { return lattice_; }
 	const Mesh&            mesh               (void) const { return mesh_; }
+	const Mesh&            frame              (void) const { return frame_mesh_; }
 	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
 	const Eigen::Vector2f& position           (void) const { return position_; }
 	Eigen::Vector2f        center             (void) const;
@@ -101,6 +102,11 @@ private:
 	// because of mirrored triangles, but we can write a geometry shader to correct
 	// this when rendering. When symmetrifying, the mirroring will be essential.
 	Mesh mesh_;
+
+	// Not really. We need two.
+	Mesh frame_mesh_;
+	Eigen::Vector3f line_color_;
+	Eigen::Vector3f mirror_color_;
 
 	// Is the domain texture consistent with current settings?
 	bool consistent_;
