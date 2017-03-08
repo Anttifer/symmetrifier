@@ -5,6 +5,7 @@
 #include "Examples.h"
 #include "imgui.h"
 #include <cstdio>
+#include <cstdint>
 
 //--------------------
 
@@ -492,6 +493,16 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			if (ImGui::Button("Reset##Reset frame rotation"))
 				tiling_.set_rotation(0.0);
 
+			float frame_scale = tiling_.scale();
+			ImGui::Text("Frame scale:"); ImGui::SameLine(140);
+			ImGui::PushItemWidth(-65.0f);
+			if (ImGui::DragFloat("##Frame scale", &frame_scale, 0.01f, 0.001f, FLT_MAX))
+				tiling_.set_scale(frame_scale);
+			ImGui::PopItemWidth();
+			ImGui::SameLine(0, 12);
+			if (ImGui::Button("Reset##Reset frame scale"))
+				tiling_.set_scale(1.0);
+
 			int num_domains = tiling_.num_domains();
 			bool domains_changed = false;
 			ImGui::Text("Domains:"); ImGui::SameLine(140);
@@ -593,9 +604,9 @@ void App::scroll_callback(double /* x_offset */, double y_offset)
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		{
 			if (y_offset < 0)
-				tiling_.set_scale(zoom_factor_);
-			else if (y_offset > 0)
-				tiling_.set_scale(1 / zoom_factor_);
+				tiling_.multiply_scale(zoom_factor_);
+			else if (y_offset > 0 && tiling_.scale() > 0.001)
+				tiling_.multiply_scale(1 / zoom_factor_);
 		}
 		else
 		{

@@ -179,7 +179,18 @@ void Tiling::set_rotation(double r)
 	this->set_center(center);
 }
 
-void Tiling::set_scale(double factor)
+void Tiling::set_scale(double scale)
+{
+	consistent_ = false;
+
+	auto center = this->center();
+	t1_.normalize();
+	t1_ *= scale;
+
+	this->set_center(center);
+}
+
+void Tiling::multiply_scale(double factor)
 {
 	consistent_ = false;
 

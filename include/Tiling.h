@@ -25,6 +25,7 @@ public:
 	const Eigen::Vector2f& position           (void) const { return position_; }
 	Eigen::Vector2f        center             (void) const;
 	double                 rotation           (void) const;
+	double                 scale              (void) const { return t1_.norm(); }
 	const Eigen::Vector2f& t1                 (void) const { return t1_; }
 	Eigen::Vector2f        t2                 (void) const;
 	int                    num_domains        (void) const { return num_domains_; }
@@ -35,7 +36,8 @@ public:
 	void set_position       (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
 	void set_center         (const Eigen::Vector2f&);
 	void set_rotation       (double);
-	void set_scale          (double factor);
+	void set_scale          (double);
+	void multiply_scale     (double factor);
 	void set_num_domains    (int n)                    { consistent_ = false; num_domains_ = n; }
 	void set_inconsistent   (void)                     { consistent_ = false; }
 
