@@ -14,6 +14,7 @@ App::App(int /* argc */, char** /* argv */)
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
 	show_result_           (false),
+	show_frame_            (true),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (500.0),                           // Initial zoom level.
@@ -29,7 +30,12 @@ App::App(int /* argc */, char** /* argv */)
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->show_result_ ^= true;
+		{
+			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+				this->show_frame_ ^= true;
+			else
+				this->show_result_ ^= true;
+		}
 	});
 	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
@@ -62,6 +68,9 @@ App::App(int /* argc */, char** /* argv */)
 	glDepthFunc(GL_ALWAYS);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// This probably doesn't work, but worth asking anyway. :)
+	glEnable(GL_LINE_SMOOTH);
 
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
@@ -104,14 +113,18 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
 			tiling_.symmetrify(base_image_);
-		render_symmetry_frame(true, width, height, framebuffer);
+		render_tiling(width, height, framebuffer);
+
+		if (show_frame_)
+			render_frame(width, height, framebuffer);
 	}
 	else
 	{
 		render_image(base_image_, width, height, framebuffer);
-		render_symmetry_frame(false, width, height, framebuffer);
+
+		// Always render frame when not showing the result.
+		render_frame(width, height, framebuffer);
 	}
-	render_frame(width, height, framebuffer);
 
 	render_gui(width, height, framebuffer);
 }
@@ -172,7 +185,7 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuint framebuffer)
+void App::render_tiling(int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_vert.glsl",
@@ -188,7 +201,6 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	static GLuint screen_center_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_sampler_uniform;
-	static GLuint texture_flag_uniform;
 	static bool init = [&](){
 		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform        = glGetUniformLocation(shader, "uPos");
@@ -198,7 +210,6 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
 		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
 		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
-		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
@@ -214,7 +225,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glViewport(0, 0, width, height);
 
 	const auto plane_side_length = 10;
-	const auto num_instances = symmetrifying ? plane_side_length * plane_side_length : tiling_.num_domains();
+	const auto num_instances = plane_side_length * plane_side_length;
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
@@ -227,7 +238,6 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
-	glUniform1i  (texture_flag_uniform, show_result_);
 
 	const auto& mesh = tiling_.mesh();
 
@@ -528,11 +538,8 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Text("Frame settings");
 			ImGui::Separator();
 
-			// TODO: Really show frame.
-			bool show_frame = !show_result_;
 			ImGui::Text("Show frame:"); ImGui::SameLine(140);
-			if (ImGui::Checkbox("##Show frame", &show_frame))
-				show_result_ ^= true;
+			ImGui::Checkbox("##Show frame", &show_frame_);
 
 			auto frame_position = tiling_.center();
 			ImGui::Text("Frame position:"); ImGui::SameLine(140);
