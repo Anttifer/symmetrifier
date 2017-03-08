@@ -457,7 +457,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::PopItemWidth();
 			ImGui::SameLine(0, 12);
 			if(ImGui::Button("Reset##Reset zoom level"))
-				pixels_per_unit_ = 700.0;
+				pixels_per_unit_ = 500.0;
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();
