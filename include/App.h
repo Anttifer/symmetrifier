@@ -26,11 +26,10 @@ private:
 	// Renders the chosen image in world coordinates (0,0) - (1, y).
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
 
-	// Renders the symmetrified plane or the symmetrification frame.
-	// TODO: Separate frame rendering and symmetrified plane rendering.
-	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
-
+	// Renders the symmetrified plane.
 	void render_tiling (int width, int height, GLuint framebuffer = 0);
+
+	// Renders the symmetrification frame.
 	void render_frame  (int width, int height, GLuint framebuffer = 0);
 
 	// Renders the GUI using dear ImGUI.

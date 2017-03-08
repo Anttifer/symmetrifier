@@ -268,6 +268,7 @@ void App::render_frame(int width, int height, GLuint framebuffer)
 	static GLuint screen_size_uniform;
 	static GLuint screen_center_uniform;
 	static GLuint pixels_per_unit_uniform;
+	static GLuint render_overlay_uniform;
 	static bool init = [&](){
 		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform        = glGetUniformLocation(shader, "uPos");
@@ -276,9 +277,22 @@ void App::render_frame(int width, int height, GLuint framebuffer)
 		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
 		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
 		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		render_overlay_uniform  = glGetUniformLocation(shader, "uRenderOverlay");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
+
+	// Create overlay mesh once.
+	static Mesh overlay;
+	static bool init_overlay = [&](){
+		overlay.positions_ = {
+			{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
+			{1, 1, 0}, {0, 1, 0}, {0, 0, 0}
+		};
+		overlay.update_buffers();
+		return true;
+	}();
+	(void)init_overlay;
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -299,11 +313,18 @@ void App::render_frame(int width, int height, GLuint framebuffer)
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (render_overlay_uniform, GL_FALSE);
 
 	const auto& frame = tiling_.frame();
 
 	glBindVertexArray(frame.vao_);
 	glDrawArraysInstanced(GL_LINES, 0, frame.num_vertices_, num_instances);
+
+	glUniform1i  (instance_num_uniform, tiling_.num_domains());
+	glUniform1i  (render_overlay_uniform, GL_TRUE);
+
+	glBindVertexArray(overlay.vao_);
+	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling_.num_domains());
 
 	// Clean up.
 	glBindVertexArray(0);
