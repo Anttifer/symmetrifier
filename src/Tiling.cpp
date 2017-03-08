@@ -20,6 +20,7 @@ Tiling::Tiling(void)
 	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
 	line_color_           (1.0, 0.6, 0.1),
 	mirror_color_         (0.1, 0.6, 1.0),
+	rotation_color_       (0.1, 1.0, 0.6),
 	consistent_           (false)
 {
 	set_symmetry_group("o");
@@ -196,11 +197,10 @@ void Tiling::multiply_scale(double factor)
 {
 	consistent_ = false;
 
-	// Centered scaling.
-	if (num_domains_ % 2)
-		position_ += (1 - factor) / 2 * (t1_ + t2());
-
+	auto center = this->center();
 	t1_ *= factor;
+
+	this->set_center(center);
 }
 
 // TODO: Add separate frame rendering mesh.
@@ -218,9 +218,9 @@ void Tiling::construct_p1(void)
 
 	frame_mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
 		{1, 0, 0}, {1, 1, 0},
-		{1, 1, 0}, {0, 1, 0},
-		{0, 1, 0}, {0, 0, 0}
 	};
 
 	// We'll use normals as colors.
@@ -247,8 +247,9 @@ void Tiling::construct_pm(void)
 		{0, 0, 0}, {1, 0, 0},
 		{0, 1, 0}, {1, 1, 0},
 		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
 		{0.5, 0, 0}, {0.5, 1, 0},
-		{1, 0, 0}, {1, 1, 0}
 	};
 
 	frame_mesh_.normals_ = {
@@ -256,6 +257,7 @@ void Tiling::construct_pm(void)
 		line_color_, line_color_,
 		mirror_color_, mirror_color_,
 		mirror_color_, mirror_color_,
+
 		mirror_color_, mirror_color_
 	};
 
@@ -279,9 +281,10 @@ void Tiling::construct_cm(void)
 
 	frame_mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
 		{1, 0, 0}, {1, 1, 0},
-		{1, 1, 0}, {0, 1, 0},
-		{0, 1, 0}, {0, 0, 0},
+
 		{0, 0, 0}, {1, 1, 0}
 	};
 
@@ -290,6 +293,7 @@ void Tiling::construct_cm(void)
 		line_color_, line_color_,
 		line_color_, line_color_,
 		line_color_, line_color_,
+
 		mirror_color_, mirror_color_
 	};
 
@@ -315,8 +319,9 @@ void Tiling::construct_pg(void)
 		{0, 0, 0}, {1, 0, 0},
 		{0, 1, 0}, {1, 1, 0},
 		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
 		{0.5, 0, 0}, {0.5, 1, 0},
-		{1, 0, 0}, {1, 1, 0}
 	};
 
 	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, line_color_);
@@ -340,13 +345,14 @@ void Tiling::construct_p2(void)
 
 	frame_mesh_.positions_  = {
 		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
 		{1, 0, 0}, {1, 1, 0},
-		{1, 1, 0}, {0, 1, 0},
-		{0, 1, 0}, {0, 0, 0},
+
 		{0, 0, 0}, {1, 1, 0}
 	};
 
-	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, line_color_);
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, rotation_color_);
 	frame_mesh_.update_buffers();
 }
 
@@ -373,11 +379,12 @@ void Tiling::construct_pmm(void)
 
 	frame_mesh_.positions_ = {
 		{0, 0, 0}, {1, 0, 0},
-		{0, 0.5, 0}, {1, 0.5, 0},
 		{0, 1, 0}, {1, 1, 0},
 		{0, 0, 0}, {0, 1, 0},
-		{0.5, 0, 0}, {0.5, 1, 0},
-		{1, 0, 0}, {1, 1, 0}
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0.5, 0, 0}, {0.5, 1, 0}
 	};
 
 	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(12, mirror_color_);
@@ -406,21 +413,23 @@ void Tiling::construct_pmg(void)
 	mesh_.update_buffers();
 
 	frame_mesh_.positions_ = {
-		{0, 0, 0}, {0, 1, 0},
-		{0.5, 0, 0}, {0.5, 1, 0},
-		{1, 0, 0}, {1, 1, 0},
 		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
 		{0, 0.5, 0}, {1, 0.5, 0},
-		{0, 1, 0}, {1, 1, 0}
+		{0.5, 0, 0}, {0.5, 1, 0}
 	};
 
 	frame_mesh_.normals_ = {
-		line_color_, line_color_,
-		line_color_, line_color_,
-		line_color_, line_color_,
 		mirror_color_, mirror_color_,
 		mirror_color_, mirror_color_,
-		mirror_color_, mirror_color_
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+
+		mirror_color_, mirror_color_,
+		rotation_color_, rotation_color_
 	};
 	frame_mesh_.update_buffers();
 }
@@ -445,6 +454,27 @@ void Tiling::construct_cmm(void)
 		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0, 0}, {1, 1, 0},
+		{0, 1, 0}, {1, 0, 0}
+	};
+
+	frame_mesh_.normals_ = {
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_pgg(void)
@@ -467,6 +497,27 @@ void Tiling::construct_pgg(void)
 		{1, 0.5, 0}, {0.5, 0.5, 0}, {0.5, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0.5, 0}, {0.5, 0, 0},
+		{0.5, 0, 0}, {1, 0.5, 0},
+		{1, 0.5, 0}, {0.5, 1, 0},
+		{0.5, 1, 0}, {0, 0.5, 0},
+	};
+
+	frame_mesh_.normals_ = {
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p3(void)
@@ -486,6 +537,19 @@ void Tiling::construct_p3(void)
 		{1, 0, 0}, {2 / 3., 2 / 3., 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1, 0, 0}, {1 / 3., 1 / 3., 0},
+		{0, 1, 0}, {1 / 3., 1 / 3., 0},
+
+		{1, 1, 0}, {2 / 3., 2 / 3., 0},
+		{0, 1, 0}, {2 / 3., 2 / 3., 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0},
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(12, line_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p3m1(void)
@@ -514,6 +578,17 @@ void Tiling::construct_p3m1(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_  = {
+		{0, 0, 0}, {1, 1, 0},
+		{0.5, 0, 0}, {0, 1, 0},
+		{0.5, 1, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0, 0},
+		{1, 0.5, 0}, {0, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p31m(void)
@@ -542,6 +617,39 @@ void Tiling::construct_p31m(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{1, 0, 0}, {0, 1, 0},
+
+		{0, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1, 0, 0}, {1 / 3., 1 / 3., 0},
+		{0, 1, 0}, {1 / 3., 1 / 3., 0},
+
+		{1, 1, 0}, {2 / 3., 2 / 3., 0},
+		{0, 1, 0}, {2 / 3., 2 / 3., 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0}
+	};
+
+	frame_mesh_.normals_ = {
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p4(void)
@@ -564,6 +672,18 @@ void Tiling::construct_p4(void)
 		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{0.5, 0, 0}, {0.5, 1, 0},
+		{1, 0, 0}, {1, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(12, line_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p4m(void)
@@ -598,6 +718,20 @@ void Tiling::construct_p4m(void)
 		{0.5, 0, 0},   {0.75, 0.25, 0}, {1, 0, 0},
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{0.5, 0, 0}, {0.5, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{0, 0, 0}, {1, 1, 0},
+		{0, 1, 0}, {1, 0, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(16, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p4g(void)
@@ -632,6 +766,35 @@ void Tiling::construct_p4g(void)
 		{1, 0, 0},     {0.75, 0.25, 0}, {1, 0.5, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{0.5, 0, 0}, {0.5, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0.5, 0}, {0.5, 0, 0},
+		{0.5, 0, 0}, {1, 0.5, 0},
+		{1, 0.5, 0}, {0.5, 1, 0},
+		{0.5, 1, 0}, {0, 0.5, 0}
+	};
+
+	frame_mesh_.normals_ = {
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p6(void)
@@ -660,6 +823,39 @@ void Tiling::construct_p6(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{1, 0, 0}, {0, 1, 0},
+
+		{0, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1, 0, 0}, {1 / 3., 1 / 3., 0},
+		{0, 1, 0}, {1 / 3., 1 / 3., 0},
+
+		{1, 1, 0}, {2 / 3., 2 / 3., 0},
+		{0, 1, 0}, {2 / 3., 2 / 3., 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0}
+	};
+
+	frame_mesh_.normals_ = {
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p6m(void)
@@ -706,6 +902,23 @@ void Tiling::construct_p6m(void)
 		{0.5, 0.5, 0},       {1 / 6., 2 / 3., 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_  = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{1, 0, 0}, {0, 1, 0},
+
+		{0, 0, 0}, {1, 1, 0},
+		{0.5, 0, 0}, {0, 1, 0},
+		{0.5, 1, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0, 0},
+		{1, 0.5, 0}, {0, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(20, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::symmetrify(const GL::Texture& texture)

@@ -107,6 +107,7 @@ private:
 	Mesh frame_mesh_;
 	Eigen::Vector3f line_color_;
 	Eigen::Vector3f mirror_color_;
+	Eigen::Vector3f rotation_color_;
 
 	// Is the domain texture consistent with current settings?
 	bool consistent_;
