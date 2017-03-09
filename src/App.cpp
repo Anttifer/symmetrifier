@@ -17,6 +17,7 @@ App::App(int /* argc */, char** /* argv */)
 	show_frame_            (true),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
+	clear_color_           (0.1, 0.1, 0.1),
 	pixels_per_unit_       (500.0),                           // Initial zoom level.
 	zoom_factor_           (1.2)
 {
@@ -93,7 +94,7 @@ void App::loop(void)
 		glfwGetFramebufferSize(window_, &width, &height);
 
 		// Clear the screen. Dark grey is the new black.
-		glClearColor(0.1, 0.1, 0.1, 0);
+		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		render_scene(width, height);
@@ -409,7 +410,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Text("Symmetry groups");
 			ImGui::Separator();
 
-			ImGui::Text("");                        ImGui::SameLine(95);
+			ImGui::Dummy({0, 0});                   ImGui::SameLine(95);
 			ImGui::Text("No reflections");          ImGui::SameLine(215);
 			ImGui::Text("Reflections");
 			ImGui::Spacing();
@@ -550,8 +551,24 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 				pixels_per_unit_ = pixels_per_unit;
 			ImGui::PopItemWidth();
 			ImGui::SameLine(0, 12);
-			if(ImGui::Button("Reset##Reset zoom level"))
+			if (ImGui::Button("Reset##Reset zoom level"))
 				pixels_per_unit_ = 500.0;
+
+			ImGui::Text("Background:"); ImGui::SameLine(130);
+			ImGui::PushItemWidth(-1.0f);
+			ImGui::ColorEdit3("##Background color", clear_color_.data());
+			ImGui::PopItemWidth();
+			ImGui::Dummy({0, 0}); ImGui::SameLine(130);
+			if (ImGui::Button("Reset##Reset background color"))
+				clear_color_ = {0.1, 0.1, 0.1};
+			ImGui::SameLine();
+			ImGui::Button("Pick color...");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::BeginTooltip();
+				ImGui::Text("Not implemented yet :)");
+				ImGui::EndTooltip();
+			}
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();

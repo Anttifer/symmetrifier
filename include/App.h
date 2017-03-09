@@ -54,7 +54,6 @@ private:
 	GUI           gui_;
 	ShaderCanvas  canvas_;
 
-
 	Tiling      tiling_;
 	GL::Texture base_image_;
 	bool        show_result_;
@@ -68,6 +67,7 @@ private:
 	double tiling_static_rotation_;
 	Eigen::Vector2f screen_center_static_position_;
 
+	Eigen::Vector3f clear_color_;
 	double pixels_per_unit_;
 	double zoom_factor_;
 };
