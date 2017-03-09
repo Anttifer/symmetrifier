@@ -184,6 +184,10 @@ void Tiling::set_rotation(double r)
 
 void Tiling::set_scale(double scale)
 {
+	// Never scale to zero.
+	if (scale == 0.0)
+		return;
+
 	consistent_ = false;
 
 	auto center = this->center();
@@ -195,6 +199,10 @@ void Tiling::set_scale(double scale)
 
 void Tiling::multiply_scale(double factor)
 {
+	// Never scale to zero.
+	if (factor == 0.0)
+		return;
+
 	consistent_ = false;
 
 	auto center = this->center();
