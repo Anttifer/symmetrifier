@@ -7,7 +7,7 @@ file(GLOB_RECURSE INCLUDE_FILES include/*)
 include_directories(include)
 
 find_package(Eigen3 REQUIRED)
-find_package(glfw3 3.1 REQUIRED)
+find_package(glfw3 3.2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
