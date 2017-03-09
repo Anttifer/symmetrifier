@@ -8,10 +8,13 @@ in Data {
 	vec2 vTexCoord;
 };
 
-uniform sampler2D uTextureSampler;
+uniform bool uRenderOverlay = false;
 
 layout(location = 0) out vec4 fColor;
 
 void main() {
-	fColor = texture(uTextureSampler, vTexCoord);
+	if (uRenderOverlay)
+		fColor = vec4(0.5, 0.7, 1.0, 0.05);
+	else
+		fColor = vec4(vColor, 1);
 }

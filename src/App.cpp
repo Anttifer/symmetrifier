@@ -5,6 +5,7 @@
 #include "Examples.h"
 #include "imgui.h"
 #include <cstdio>
+#include <cstdint>
 
 //--------------------
 
@@ -13,8 +14,10 @@ App::App(int /* argc */, char** /* argv */)
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
 	show_result_           (false),
+	show_frame_            (true),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
+	clear_color_           (0.1, 0.1, 0.1),
 	pixels_per_unit_       (500.0),                           // Initial zoom level.
 	zoom_factor_           (1.2)
 {
@@ -28,7 +31,12 @@ App::App(int /* argc */, char** /* argv */)
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->show_result_ ^= true;
+		{
+			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+				this->show_frame_ ^= true;
+			else
+				this->show_result_ ^= true;
+		}
 	});
 	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
@@ -62,10 +70,13 @@ App::App(int /* argc */, char** /* argv */)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	// This probably doesn't work, but worth asking anyway. :)
+	glEnable(GL_LINE_SMOOTH);
+
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
 	io.Fonts->Clear();
-	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 20.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
 	gui_.create_fonts_texture();
 
 	load_texture("res/kissa");
@@ -83,7 +94,7 @@ void App::loop(void)
 		glfwGetFramebufferSize(window_, &width, &height);
 
 		// Clear the screen. Dark grey is the new black.
-		glClearColor(0.1, 0.1, 0.1, 0);
+		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		render_scene(width, height);
@@ -103,13 +114,19 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
 			tiling_.symmetrify(base_image_);
-		render_symmetry_frame(true, width, height, framebuffer);
+		render_tiling(width, height, framebuffer);
+
+		if (show_frame_)
+			render_frame(width, height, framebuffer);
 	}
 	else
 	{
 		render_image(base_image_, width, height, framebuffer);
-		render_symmetry_frame(false, width, height, framebuffer);
+
+		// Always render frame when not showing the result.
+		render_frame(width, height, framebuffer);
 	}
+
 	render_gui(width, height, framebuffer);
 }
 
@@ -169,7 +186,7 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuint framebuffer)
+void App::render_tiling(int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_vert.glsl",
@@ -185,7 +202,6 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	static GLuint screen_center_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_sampler_uniform;
-	static GLuint texture_flag_uniform;
 	static bool init = [&](){
 		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform        = glGetUniformLocation(shader, "uPos");
@@ -195,7 +211,6 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
 		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
 		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
-		texture_flag_uniform    = glGetUniformLocation(shader, "uTextureFlag");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
@@ -211,7 +226,7 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glViewport(0, 0, width, height);
 
 	const auto plane_side_length = 10;
-	const auto num_instances = symmetrifying ? plane_side_length * plane_side_length : tiling_.num_domains();
+	const auto num_instances = plane_side_length * plane_side_length;
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
@@ -224,7 +239,6 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
-	glUniform1i  (texture_flag_uniform, show_result_);
 
 	const auto& mesh = tiling_.mesh();
 
@@ -238,6 +252,86 @@ void App::render_symmetry_frame(bool symmetrifying, int width, int height, GLuin
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_frame(int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/frame_vert.glsl",
+		"shaders/frame_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint instance_num_uniform;
+	static GLuint position_uniform;
+	static GLuint t1_uniform;
+	static GLuint t2_uniform;
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint render_overlay_uniform;
+	static bool init = [&](){
+		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
+		position_uniform        = glGetUniformLocation(shader, "uPos");
+		t1_uniform              = glGetUniformLocation(shader, "uT1");
+		t2_uniform              = glGetUniformLocation(shader, "uT2");
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		render_overlay_uniform  = glGetUniformLocation(shader, "uRenderOverlay");
+		return true;
+	}();
+	(void)init; // Suppress unused variable warning.
+
+	// Create overlay mesh once.
+	static Mesh overlay;
+	static bool init_overlay = [&](){
+		overlay.positions_ = {
+			{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
+			{1, 1, 0}, {0, 1, 0}, {0, 0, 0}
+		};
+		overlay.update_buffers();
+		return true;
+	}();
+	(void)init_overlay;
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	glViewport(0, 0, width, height);
+
+	const auto plane_side_length = 10;
+	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling_.num_domains();
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	glUniform1i  (instance_num_uniform, num_instances);
+	glUniform2fv (position_uniform, 1, tiling_.position().data());
+	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (render_overlay_uniform, GL_FALSE);
+
+	const auto& frame = tiling_.frame();
+
+	glBindVertexArray(frame.vao_);
+	glDrawArraysInstanced(GL_LINES, 0, frame.num_vertices_, num_instances);
+
+	glUniform1i  (instance_num_uniform, tiling_.num_domains());
+	glUniform1i  (render_overlay_uniform, GL_TRUE);
+
+	glBindVertexArray(overlay.vao_);
+	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling_.num_domains());
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
@@ -298,6 +392,8 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
 		}
 		ImGui::End();
 	}
@@ -314,7 +410,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Text("Symmetry groups");
 			ImGui::Separator();
 
-			ImGui::Text("");                        ImGui::SameLine(95);
+			ImGui::Dummy({0, 0});                   ImGui::SameLine(95);
 			ImGui::Text("No reflections");          ImGui::SameLine(215);
 			ImGui::Text("Reflections");
 			ImGui::Spacing();
@@ -455,8 +551,24 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 				pixels_per_unit_ = pixels_per_unit;
 			ImGui::PopItemWidth();
 			ImGui::SameLine(0, 12);
-			if(ImGui::Button("Reset##Reset zoom level"))
-				pixels_per_unit_ = 700.0;
+			if (ImGui::Button("Reset##Reset zoom level"))
+				pixels_per_unit_ = 500.0;
+
+			ImGui::Text("Background:"); ImGui::SameLine(130);
+			ImGui::PushItemWidth(-1.0f);
+			ImGui::ColorEdit3("##Background color", clear_color_.data());
+			ImGui::PopItemWidth();
+			ImGui::Dummy({0, 0}); ImGui::SameLine(130);
+			if (ImGui::Button("Reset##Reset background color"))
+				clear_color_ = {0.1, 0.1, 0.1};
+			ImGui::SameLine();
+			ImGui::Button("Pick color...");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::BeginTooltip();
+				ImGui::Text("Not implemented yet :)");
+				ImGui::EndTooltip();
+			}
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();
@@ -466,11 +578,8 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Text("Frame settings");
 			ImGui::Separator();
 
-			// TODO: Really show frame.
-			bool show_frame = !show_result_;
 			ImGui::Text("Show frame:"); ImGui::SameLine(140);
-			if (ImGui::Checkbox("##Show frame", &show_frame))
-				show_result_ ^= true;
+			ImGui::Checkbox("##Show frame", &show_frame_);
 
 			auto frame_position = tiling_.center();
 			ImGui::Text("Frame position:"); ImGui::SameLine(140);
@@ -491,6 +600,16 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::SameLine(0, 12);
 			if (ImGui::Button("Reset##Reset frame rotation"))
 				tiling_.set_rotation(0.0);
+
+			float frame_scale = tiling_.scale();
+			ImGui::Text("Frame scale:"); ImGui::SameLine(140);
+			ImGui::PushItemWidth(-65.0f);
+			if (ImGui::DragFloat("##Frame scale", &frame_scale, 0.01f, 0.001f, FLT_MAX))
+				tiling_.set_scale(frame_scale);
+			ImGui::PopItemWidth();
+			ImGui::SameLine(0, 12);
+			if (ImGui::Button("Reset##Reset frame scale"))
+				tiling_.set_scale(1.0);
 
 			int num_domains = tiling_.num_domains();
 			bool domains_changed = false;
@@ -530,26 +649,21 @@ void App::position_callback(double x, double y)
 		}
 		else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 		{
-			// TODO: Implement this in a more elegant way.
 			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 			{
 				int width, height;
 				glfwGetFramebufferSize(window_, &width, &height);
 				Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 
-				Eigen::Vector2f world_press = screen_center_ + screen_to_world(press_position_);
-				Eigen::Vector2f world_current = screen_center_ + screen_to_world(position);
+				Eigen::Vector2f world_press_position = screen_center_ + screen_to_world(press_position_);
+				Eigen::Vector2f world_position       = screen_center_ + screen_to_world(position);
 
-				Eigen::Vector2f press_vec = world_press - tiling_.position();
-				Eigen::Vector2f current_vec = world_current - tiling_.position();
-				if (tiling_.num_domains() % 2)
-				{
-					press_vec   -= (tiling_.t1() + tiling_.t2()) / 2;
-					current_vec -= (tiling_.t1() + tiling_.t2()) / 2;
-				}
+				// This doesn't change during rotation - could be cached if deemed necessary.
+				Eigen::Vector2f press_wrt_center    = world_press_position - tiling_.center();
+				Eigen::Vector2f position_wrt_center = world_position       - tiling_.center();
 
-				double det = (Eigen::Matrix2f() << press_vec, current_vec).finished().determinant();
-				double dot = press_vec.dot(current_vec);
+				double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+				double dot = press_wrt_center.dot(position_wrt_center);
 				double drag_rotation = std::atan2(det, dot);
 
 				tiling_.set_rotation(tiling_static_rotation_ + drag_rotation);
@@ -558,10 +672,8 @@ void App::position_callback(double x, double y)
 	}
 }
 
-void App::left_click_callback(int action, int mods)
+void App::left_click_callback(int action, int /* mods */)
 {
-	(void)mods; // Suppress unused parameter warning.
-
 	if (action == GLFW_PRESS)
 	{
 		int width, height;
@@ -577,10 +689,8 @@ void App::left_click_callback(int action, int mods)
 	}
 }
 
-void App::right_click_callback(int action, int mods)
+void App::right_click_callback(int action, int /* mods */)
 {
-	(void)mods; // Suppress unused parameter warning.
-
 	if (action == GLFW_PRESS)
 	{
 		int width, height;
@@ -594,19 +704,17 @@ void App::right_click_callback(int action, int mods)
 	}
 }
 
-void App::scroll_callback(double x_offset, double y_offset)
+void App::scroll_callback(double /* x_offset */, double y_offset)
 {
 	// Don't do anything if ImGui is grabbing input.
 	if (!ImGui::GetIO().WantCaptureMouse)
 	{
-		(void)x_offset; // Suppress unused parameter warning.
-
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		{
 			if (y_offset < 0)
-				tiling_.set_scale(zoom_factor_);
-			else if (y_offset > 0)
-				tiling_.set_scale(1 / zoom_factor_);
+				tiling_.multiply_scale(zoom_factor_);
+			else if (y_offset > 0 && tiling_.scale() > 0.001)
+				tiling_.multiply_scale(1 / zoom_factor_);
 		}
 		else
 		{
@@ -618,12 +726,8 @@ void App::scroll_callback(double x_offset, double y_offset)
 	}
 }
 
-void App::print_screen(int scancode, int action, int mods)
+void App::print_screen(int /* scancode */, int action, int /* mods */)
 {
-	// Suppress unused parameter warnings.
-	(void)scancode;
-	(void)mods;
-
 	if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
 	{
 		printf("Taking screenshot...\n");

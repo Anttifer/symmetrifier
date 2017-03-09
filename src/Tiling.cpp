@@ -18,6 +18,9 @@ Tiling::Tiling(void)
 	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
 	t2_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT2")),
 	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
+	line_color_           (1.0, 0.6, 0.1),
+	mirror_color_         (0.1, 0.6, 1.0),
+	rotation_color_       (0.1, 1.0, 0.6),
 	consistent_           (false)
 {
 	set_symmetry_group("o");
@@ -49,92 +52,110 @@ void Tiling::set_symmetry_group(const char* group)
 	if (!strncmp(group, "o", 8))
 	{
 		symmetry_group_ = "o";
+		lattice_        = Lattice::Oblique;
 		construct_p1();
 	}
 	else if (!strncmp(group, "**", 8))
 	{
 		symmetry_group_ = "**";
+		lattice_        = Lattice::Rectangular;
 		construct_pm();
 	}
 	else if (!strncmp(group, "*x", 8))
 	{
 		symmetry_group_ = "*x";
+		lattice_        = Lattice::Rhombic;
 		construct_cm();
 	}
 	else if (!strncmp(group, "xx", 8))
 	{
 		symmetry_group_ = "xx";
+		lattice_        = Lattice::Rectangular;
 		construct_pg();
 	}
 	else if (!strncmp(group, "2222", 8))
 	{
 		symmetry_group_ = "2222";
+		lattice_        = Lattice::Oblique;
 		construct_p2();
 	}
 	else if (!strncmp(group, "*2222", 8))
 	{
 		symmetry_group_ = "*2222";
+		lattice_        = Lattice::Rectangular;
 		construct_pmm();
 	}
 	else if (!strncmp(group, "22*", 8))
 	{
 		symmetry_group_ = "22*";
+		lattice_        = Lattice::Rectangular;
 		construct_pmg();
 	}
 	else if (!strncmp(group, "2*22", 8))
 	{
 		symmetry_group_ = "2*22";
+		lattice_        = Lattice::Rhombic;
 		construct_cmm();
 	}
 	else if (!strncmp(group, "22x", 8))
 	{
 		symmetry_group_ = "22x";
+		lattice_        = Lattice::Rectangular;
 		construct_pgg();
 	}
 	else if (!strncmp(group, "333", 8))
 	{
 		symmetry_group_ = "333";
+		lattice_        = Lattice::Hexagonal;
 		construct_p3();
 	}
 	else if (!strncmp(group, "*333", 8))
 	{
 		symmetry_group_ = "*333";
+		lattice_        = Lattice::Hexagonal;
 		construct_p3m1();
 	}
 	else if (!strncmp(group, "3*3", 8))
 	{
 		symmetry_group_ = "3*3";
+		lattice_        = Lattice::Hexagonal;
 		construct_p31m();
 	}
 	else if (!strncmp(group, "442", 8))
 	{
 		symmetry_group_ = "442";
+		lattice_        = Lattice::Square;
 		construct_p4();
 	}
 	else if (!strncmp(group, "*442", 8))
 	{
 		symmetry_group_ = "*442";
+		lattice_        = Lattice::Square;
 		construct_p4m();
 	}
 	else if (!strncmp(group, "4*2", 8))
 	{
 		symmetry_group_ = "4*2";
+		lattice_        = Lattice::Square;
 		construct_p4g();
 	}
 	else if (!strncmp(group, "632", 8))
 	{
 		symmetry_group_ = "632";
+		lattice_        = Lattice::Hexagonal;
 		construct_p6();
 	}
 	else if (!strncmp(group, "*632", 8))
 	{
 		symmetry_group_ = "*632";
+		lattice_        = Lattice::Hexagonal;
 		construct_p6m();
 	}
 	else
 	{
 		printf("Unsupported group. Falling back to pure translational symmetry.\n");
 		symmetry_group_ = "o";
+		lattice_        = Lattice::Oblique;
 		construct_p1();
 	}
 }
@@ -152,32 +173,44 @@ void Tiling::set_rotation(double r)
 {
 	consistent_ = false;
 
-	// Alter position for centered rotation.
-	if (num_domains_ % 2)
-	{
-		auto p_rotation = Eigen::Rotation2D<float>(r - this->rotation());
-		Eigen::Vector2f center = (t1_ + t2()) / 2.0;
-		position_ -= p_rotation * center - center;
-	}
-
+	auto center   = this->center();
 	double norm   = t1_.norm();
 	auto rotation = Eigen::Rotation2D<float>(r);
 
 	t1_ = rotation * Eigen::Vector2f(norm, 0);
+
+	this->set_center(center);
 }
 
-void Tiling::set_scale(double factor)
+void Tiling::set_scale(double scale)
 {
+	// Never scale to zero.
+	if (scale == 0.0)
+		return;
+
 	consistent_ = false;
 
-	// Centered scaling.
-	if (num_domains_ % 2)
-		position_ += (1 - factor) / 2 * (t1_ + t2());
+	auto center = this->center();
+	t1_.normalize();
+	t1_ *= scale;
 
-	t1_ *= factor;
+	this->set_center(center);
 }
 
-// TODO: Add separate frame rendering mesh.
+void Tiling::multiply_scale(double factor)
+{
+	// Never scale to zero.
+	if (factor == 0.0)
+		return;
+
+	consistent_ = false;
+
+	auto center = this->center();
+	t1_ *= factor;
+
+	this->set_center(center);
+}
+
 // TODO: Custom lattice transformations.
 void Tiling::construct_p1(void)
 {
@@ -189,6 +222,17 @@ void Tiling::construct_p1(void)
 		{1, 1, 0}, {0, 1, 0}, {0, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+	};
+
+	// We'll use normals as colors.
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(8, line_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_pm(void)
@@ -205,6 +249,26 @@ void Tiling::construct_pm(void)
 		{0.5, 1, 0}, {1, 1, 0},   {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0.5, 0, 0}, {0.5, 1, 0},
+	};
+
+	frame_mesh_.normals_ = {
+		line_color_, line_color_,
+		line_color_, line_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+
+		mirror_color_, mirror_color_
+	};
+
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_cm(void)
@@ -221,6 +285,26 @@ void Tiling::construct_cm(void)
 		{0, 1, 0}, {0.5, 0.5, 0}, {0, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0, 0}, {1, 1, 0}
+	};
+
+	frame_mesh_.normals_ = {
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		mirror_color_, mirror_color_
+	};
+
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_pg(void)
@@ -237,6 +321,18 @@ void Tiling::construct_pg(void)
 		{1, 0, 0},   {0.5, 0, 0}, {0.5, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0.5, 0, 0}, {0.5, 1, 0},
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, line_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p2(void)
@@ -253,6 +349,18 @@ void Tiling::construct_p2(void)
 		{0, 0, 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_  = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0, 0}, {1, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, rotation_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_pmm(void)
@@ -275,6 +383,19 @@ void Tiling::construct_pmm(void)
 		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0.5, 0, 0}, {0.5, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(12, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_pmg(void)
@@ -297,6 +418,27 @@ void Tiling::construct_pmg(void)
 		{0.5, 0, 0},   {1, 0, 0},     {1, 0.5, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0.5, 0, 0}, {0.5, 1, 0}
+	};
+
+	frame_mesh_.normals_ = {
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+
+		mirror_color_, mirror_color_,
+		rotation_color_, rotation_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_cmm(void)
@@ -319,6 +461,27 @@ void Tiling::construct_cmm(void)
 		{0.5, 0.5, 0}, {1, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0, 0}, {1, 1, 0},
+		{0, 1, 0}, {1, 0, 0}
+	};
+
+	frame_mesh_.normals_ = {
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_pgg(void)
@@ -341,6 +504,27 @@ void Tiling::construct_pgg(void)
 		{1, 0.5, 0}, {0.5, 0.5, 0}, {0.5, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0.5, 0}, {0.5, 0, 0},
+		{0.5, 0, 0}, {1, 0.5, 0},
+		{1, 0.5, 0}, {0.5, 1, 0},
+		{0.5, 1, 0}, {0, 0.5, 0},
+	};
+
+	frame_mesh_.normals_ = {
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p3(void)
@@ -360,6 +544,19 @@ void Tiling::construct_p3(void)
 		{1, 0, 0}, {2 / 3., 2 / 3., 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1, 0, 0}, {1 / 3., 1 / 3., 0},
+		{0, 1, 0}, {1 / 3., 1 / 3., 0},
+
+		{1, 1, 0}, {2 / 3., 2 / 3., 0},
+		{0, 1, 0}, {2 / 3., 2 / 3., 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0},
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(12, line_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p3m1(void)
@@ -388,6 +585,17 @@ void Tiling::construct_p3m1(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_  = {
+		{0, 0, 0}, {1, 1, 0},
+		{0.5, 0, 0}, {0, 1, 0},
+		{0.5, 1, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0, 0},
+		{1, 0.5, 0}, {0, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(10, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p31m(void)
@@ -416,6 +624,39 @@ void Tiling::construct_p31m(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{1, 0, 0}, {0, 1, 0},
+
+		{0, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1, 0, 0}, {1 / 3., 1 / 3., 0},
+		{0, 1, 0}, {1 / 3., 1 / 3., 0},
+
+		{1, 1, 0}, {2 / 3., 2 / 3., 0},
+		{0, 1, 0}, {2 / 3., 2 / 3., 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0}
+	};
+
+	frame_mesh_.normals_ = {
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p4(void)
@@ -438,6 +679,18 @@ void Tiling::construct_p4(void)
 		{0.5, 0.5, 0}, {0.5, 0, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{0.5, 0, 0}, {0.5, 1, 0},
+		{1, 0, 0}, {1, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(12, line_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p4m(void)
@@ -472,6 +725,20 @@ void Tiling::construct_p4m(void)
 		{0.5, 0, 0},   {0.75, 0.25, 0}, {1, 0, 0},
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{0.5, 0, 0}, {0.5, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{0, 0, 0}, {1, 1, 0},
+		{0, 1, 0}, {1, 0, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(16, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p4g(void)
@@ -506,6 +773,35 @@ void Tiling::construct_p4g(void)
 		{1, 0, 0},     {0.75, 0.25, 0}, {1, 0.5, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0.5, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{0.5, 0, 0}, {0.5, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+
+		{0, 0.5, 0}, {0.5, 0, 0},
+		{0.5, 0, 0}, {1, 0.5, 0},
+		{1, 0.5, 0}, {0.5, 1, 0},
+		{0.5, 1, 0}, {0, 0.5, 0}
+	};
+
+	frame_mesh_.normals_ = {
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_,
+		mirror_color_, mirror_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p6(void)
@@ -534,6 +830,39 @@ void Tiling::construct_p6(void)
 		{2 / 3., 2 / 3., 0}, {0.5, 0.5, 0}, {1, 0, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_ = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{1, 0, 0}, {0, 1, 0},
+
+		{0, 0, 0}, {1 / 3., 1 / 3., 0},
+		{1, 0, 0}, {1 / 3., 1 / 3., 0},
+		{0, 1, 0}, {1 / 3., 1 / 3., 0},
+
+		{1, 1, 0}, {2 / 3., 2 / 3., 0},
+		{0, 1, 0}, {2 / 3., 2 / 3., 0},
+		{1, 0, 0}, {2 / 3., 2 / 3., 0}
+	};
+
+	frame_mesh_.normals_ = {
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+		rotation_color_, rotation_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_,
+
+		line_color_, line_color_,
+		line_color_, line_color_,
+		line_color_, line_color_
+	};
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::construct_p6m(void)
@@ -580,6 +909,23 @@ void Tiling::construct_p6m(void)
 		{0.5, 0.5, 0},       {1 / 6., 2 / 3., 0}, {0, 1, 0}
 	};
 	mesh_.update_buffers();
+
+	frame_mesh_.positions_  = {
+		{0, 0, 0}, {1, 0, 0},
+		{0, 1, 0}, {1, 1, 0},
+		{0, 0, 0}, {0, 1, 0},
+		{1, 0, 0}, {1, 1, 0},
+		{1, 0, 0}, {0, 1, 0},
+
+		{0, 0, 0}, {1, 1, 0},
+		{0.5, 0, 0}, {0, 1, 0},
+		{0.5, 1, 0}, {1, 0, 0},
+		{0, 0.5, 0}, {1, 0, 0},
+		{1, 0.5, 0}, {0, 1, 0}
+	};
+
+	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(20, mirror_color_);
+	frame_mesh_.update_buffers();
 }
 
 void Tiling::symmetrify(const GL::Texture& texture)

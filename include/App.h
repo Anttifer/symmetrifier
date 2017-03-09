@@ -26,9 +26,11 @@ private:
 	// Renders the chosen image in world coordinates (0,0) - (1, y).
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
 
-	// Renders the symmetrified plane or the symmetrification frame.
-	// TODO: Separate frame rendering and symmetrified plane rendering.
-	void render_symmetry_frame (bool symmetrifying, int width, int height, GLuint framebuffer = 0);
+	// Renders the symmetrified plane.
+	void render_tiling (int width, int height, GLuint framebuffer = 0);
+
+	// Renders the symmetrification frame.
+	void render_frame  (int width, int height, GLuint framebuffer = 0);
 
 	// Renders the GUI using dear ImGUI.
 	void render_gui            (int width, int height, GLuint framebuffer = 0);
@@ -52,10 +54,10 @@ private:
 	GUI           gui_;
 	ShaderCanvas  canvas_;
 
-
 	Tiling      tiling_;
 	GL::Texture base_image_;
 	bool        show_result_;
+	bool        show_frame_;
 	bool        show_settings_;
 
 	Eigen::Vector2f screen_center_;
@@ -65,6 +67,7 @@ private:
 	double tiling_static_rotation_;
 	Eigen::Vector2f screen_center_static_position_;
 
+	Eigen::Vector3f clear_color_;
 	double pixels_per_unit_;
 	double zoom_factor_;
 };
