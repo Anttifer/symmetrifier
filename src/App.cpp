@@ -76,7 +76,7 @@ App::App(int /* argc */, char** /* argv */)
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
 	io.Fonts->Clear();
-	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 20.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
 	gui_.create_fonts_texture();
 
 	load_texture("res/kissa");
