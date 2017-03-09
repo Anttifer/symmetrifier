@@ -211,7 +211,6 @@ void Tiling::multiply_scale(double factor)
 	this->set_center(center);
 }
 
-// TODO: Add separate frame rendering mesh.
 // TODO: Custom lattice transformations.
 void Tiling::construct_p1(void)
 {

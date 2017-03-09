@@ -47,7 +47,7 @@ public:
 private:
 	GLuint texture_;
 public:
-	unsigned int width_, height_; // TODO: Make these const with casting.
+	unsigned int width_, height_; // TODO: Getters and setters.
 };
 
 class VAO {

@@ -27,7 +27,7 @@ vec2 getTexCoord(in vec2 pos) {
 	                  gl_in[1].gl_Position.xy +
 	                  gl_in[2].gl_Position.xy) / 3;
 
-	// TODO: Make the scaling factor (0.98) an uniform.
+	// TODO: Make the scaling factor (0.98) a uniform.
 	// It is also used in the rendering shader.
 	const float scale = 1 / 0.98;
 	vec2 scaledPos = scale * (pos - ccentroid) + ccentroid;
