@@ -391,6 +391,8 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
 		}
 		ImGui::End();
 	}
