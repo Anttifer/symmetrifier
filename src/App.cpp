@@ -98,6 +98,7 @@ void App::loop(void)
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		render_scene(width, height);
+		render_gui(width, height);
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
@@ -126,8 +127,6 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		// Always render frame when not showing the result.
 		render_frame(width, height, framebuffer);
 	}
-
-	render_gui(width, height, framebuffer);
 }
 
 void App::render_image(const GL::Texture& image, int width, int height, GLuint framebuffer)
@@ -743,7 +742,7 @@ void App::print_screen(int /* scancode */, int action, int /* mods */)
 		// We don't want transparency in the resulting PNG.
 		// Thus we set the clear color alpha to 1 and change our blending function
 		// to prefer destination alpha (this is the clear color alpha, i.e. 1).
-		glClearColor(0.1, 0.1, 0.1, 1);
+		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 1);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, fbo);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE);
 
