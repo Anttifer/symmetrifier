@@ -13,7 +13,7 @@ out Data {
 };
 
 void main() {
-	gl_Position = vec4(aPosition, 1);
+	gl_Position = vec4(2 * aPosition - 1, 1);
 
 	// Suppress OS X errors by writing zeroes.
 	vColor    = vec3(0);

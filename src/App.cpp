@@ -189,11 +189,9 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_vert.glsl",
-		"shaders/tiling_geom.glsl",
 		"shaders/tiling_frag.glsl");
 
 	// Find uniform locations once.
-	static GLuint instance_num_uniform;
 	static GLuint position_uniform;
 	static GLuint t1_uniform;
 	static GLuint t2_uniform;
@@ -202,7 +200,6 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_sampler_uniform;
 	static bool init = [&](){
-		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform        = glGetUniformLocation(shader, "uPos");
 		t1_uniform              = glGetUniformLocation(shader, "uT1");
 		t2_uniform              = glGetUniformLocation(shader, "uT2");
@@ -220,17 +217,13 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, tiling_.domain_texture());
+	glBindTexture(GL_TEXTURE_2D, tiling_.lattice_texture());
 
 	glViewport(0, 0, width, height);
-
-	const auto plane_side_length = 10;
-	const auto num_instances = plane_side_length * plane_side_length;
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
-	glUniform1i  (instance_num_uniform, num_instances);
 	glUniform2fv (position_uniform, 1, tiling_.position().data());
 	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
 	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
@@ -239,10 +232,8 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
 
-	const auto& mesh = tiling_.mesh();
-
-	glBindVertexArray(mesh.vao_);
-	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
+	glBindVertexArray(canvas_.vao_);
+	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
 
 	// Clean up.
 	glBindVertexArray(0);

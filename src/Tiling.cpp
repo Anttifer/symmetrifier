@@ -5,23 +5,28 @@
 #include <cstdio>
 
 Tiling::Tiling(void)
-:	position_             (0.0, 0.0),
-	t1_                   (1.0, 0.0),
-	num_domains_          (1),
-	symmetrify_shader_    (GL::ShaderProgram::from_files(
-		                      "shaders/symmetrify_vert.glsl",
-		                      "shaders/symmetrify_geom.glsl",
-		                      "shaders/symmetrify_frag.glsl")),
-	instance_num_uniform_ (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
-	aspect_ratio_uniform_ (glGetUniformLocation(symmetrify_shader_, "uAR")),
-	position_uniform_     (glGetUniformLocation(symmetrify_shader_, "uPos")),
-	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
-	t2_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT2")),
-	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
-	line_color_           (1.0, 0.6, 0.1),
-	mirror_color_         (0.1, 0.6, 1.0),
-	rotation_color_       (0.1, 1.0, 0.6),
-	consistent_           (false)
+:	position_                (0.0, 0.0),
+	t1_                      (1.0, 0.0),
+	num_domains_             (1),
+	symmetrify_shader_       (GL::ShaderProgram::from_files(
+		                         "shaders/symmetrify_vert.glsl",
+		                         "shaders/symmetrify_geom.glsl",
+		                         "shaders/symmetrify_frag.glsl")),
+	instance_num_uniform_    (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
+	aspect_ratio_uniform_    (glGetUniformLocation(symmetrify_shader_, "uAR")),
+	position_uniform_        (glGetUniformLocation(symmetrify_shader_, "uPos")),
+	t1_uniform_              (glGetUniformLocation(symmetrify_shader_, "uT1")),
+	t2_uniform_              (glGetUniformLocation(symmetrify_shader_, "uT2")),
+	sampler_uniform_         (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
+	lattice_shader_          (GL::ShaderProgram::from_files(
+		                         "shaders/lattice_vert.glsl",
+		                         "shaders/lattice_geom.glsl",
+		                         "shaders/lattice_frag.glsl")),
+	lattice_sampler_uniform_ (glGetUniformLocation(lattice_shader_, "uTextureSampler")),
+	line_color_              (1.0, 0.6, 0.1),
+	mirror_color_            (0.1, 0.6, 1.0),
+	rotation_color_          (0.1, 1.0, 0.6),
+	consistent_              (false)
 {
 	set_symmetry_group("o");
 }
@@ -939,6 +944,12 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glClearColor(0, 0, 0, 0);
 	GL::clear(GL_COLOR_BUFFER_BIT, fbo);
 
+	// Set up the lattice texture.
+	lattice_texture_ = GL::Texture::empty_2D(2 * dimension, 2 * dimension);
+	auto lattice_fbo = GL::FBO::simple_C0(lattice_texture_);
+	glClearColor(0, 0, 0, 0);
+	GL::clear(GL_COLOR_BUFFER_BIT, lattice_fbo);
+
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -953,7 +964,7 @@ void Tiling::symmetrify(const GL::Texture& texture)
 
 	glViewport(0, 0, dimension, dimension);
 
-	// Set the shader program, uniforms and texture parameters, and draw.
+	// First draw the intermediate domain texture.
 	glUseProgram(symmetrify_shader_);
 
 	glUniform1i  (instance_num_uniform_, num_domains_);
@@ -965,6 +976,19 @@ void Tiling::symmetrify(const GL::Texture& texture)
 
 	glBindVertexArray(mesh_.vao_);
 	glDrawArraysInstanced(mesh_.primitive_type_, 0, mesh_.num_vertices_, num_domains_);
+
+	// Then draw the final lattice domain.
+	glBindFramebuffer(GL_FRAMEBUFFER, lattice_fbo);
+	glViewport(0, 0, 2 * dimension, 2 * dimension);
+
+	glUseProgram(lattice_shader_);
+
+	// Bind the symmetrified domain texture.
+	glBindTexture(GL_TEXTURE_2D, domain_texture_);
+
+	glUniform1i(lattice_sampler_uniform_, 1);
+
+	glDrawArrays(mesh_.primitive_type_, 0, mesh_.num_vertices_);
 
 	// Clean up.
 	glBindVertexArray(0);

@@ -23,6 +23,7 @@ public:
 	const Mesh&            mesh               (void) const { return mesh_; }
 	const Mesh&            frame              (void) const { return frame_mesh_; }
 	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
+	const GL::Texture&     lattice_texture    (void) const { return lattice_texture_; }
 	const Eigen::Vector2f& position           (void) const { return position_; }
 	Eigen::Vector2f        center             (void) const;
 	double                 rotation           (void) const;
@@ -95,8 +96,15 @@ private:
 	GLuint t2_uniform_;
 	GLuint sampler_uniform_;
 
+	// This shader is used for rendering the repeatable lattice domain once.
+	GL::ShaderProgram lattice_shader_;
+	GLuint lattice_sampler_uniform_;
+
 	// This texture will contain the symmetrified fundamental domain.
 	GL::Texture domain_texture_;
+
+	// This texture will contain the repeatable lattice domain.
+	GL::Texture lattice_texture_;
 
 	// We only need one mesh. It will be unrenderable in its base state
 	// because of mirrored triangles, but we can write a geometry shader to correct
