@@ -70,6 +70,8 @@ private:
 	void construct_p6   (void);
 	void construct_p6m  (void);
 
+	void construct_symmetry_mesh (void);
+
 	// The vertices of the mesh are defined relative to the translation vectors.
 	Eigen::Vector2f position_;
 	Eigen::Vector2f t1_;
@@ -98,10 +100,17 @@ private:
 	// This texture will contain the symmetrified fundamental domain.
 	GL::Texture domain_texture_;
 
-	// We only need one mesh. It will be unrenderable in its base state
-	// because of mirrored triangles, but we can write a geometry shader to correct
-	// this when rendering. When symmetrifying, the mirroring will be essential.
+	// The mesh representation of one lattice domain. Triangles are defined clockwise
+	// or counterclockwise depending on whether they should be mirrored or not.
 	Mesh mesh_;
+
+	// We only need texture coordinates for two triangles, so no need to define them
+	// in the mesh for every vertex separately.
+	std::vector<Eigen::Vector2f> domain_texture_coordinates_;
+
+	// This is used internally for symmetrifying. Each triangle is rescaled
+	// with respect to its centroid.
+	Mesh symmetry_mesh_;
 
 	// Not really. We need two.
 	Mesh frame_mesh_;

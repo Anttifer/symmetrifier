@@ -4,13 +4,14 @@
 #include <cstring>
 #include <cstdio>
 
+#define SCALE 0.98f
+
 Tiling::Tiling(void)
 :	position_             (0.0, 0.0),
 	t1_                   (1.0, 0.0),
 	num_domains_          (1),
 	symmetrify_shader_    (GL::ShaderProgram::from_files(
 		                      "shaders/symmetrify_vert.glsl",
-		                      "shaders/symmetrify_geom.glsl",
 		                      "shaders/symmetrify_frag.glsl")),
 	instance_num_uniform_ (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
 	aspect_ratio_uniform_ (glGetUniformLocation(symmetrify_shader_, "uAR")),
@@ -24,6 +25,18 @@ Tiling::Tiling(void)
 	consistent_           (false)
 {
 	set_symmetry_group("o");
+
+	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
+	const Eigen::Vector2f top_centroid = {1.0f / 3.0f, 2.0f / 3.0f};
+	domain_texture_coordinates_ = {
+		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
+		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
+		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+
+		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
+		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
+	};
 }
 
 Eigen::Vector2f Tiling::center(void) const
@@ -158,6 +171,8 @@ void Tiling::set_symmetry_group(const char* group)
 		lattice_        = Lattice::Oblique;
 		construct_p1();
 	}
+
+	construct_symmetry_mesh();
 }
 
 void Tiling::set_center(const Eigen::Vector2f& center)
@@ -928,6 +943,24 @@ void Tiling::construct_p6m(void)
 	frame_mesh_.update_buffers();
 }
 
+void Tiling::construct_symmetry_mesh(void)
+{
+	symmetry_mesh_ = Mesh();
+	for (size_t i = 0; i < mesh_.positions_.size(); i += 3)
+	{
+		const Eigen::Vector3f& a        = mesh_.positions_[i];
+		const Eigen::Vector3f& b        = mesh_.positions_[i+1];
+		const Eigen::Vector3f& c        = mesh_.positions_[i+2];
+		const Eigen::Vector3f  centroid = (a + b + c) / 3.0f;
+
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (a - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (b - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (c - centroid));
+	}
+
+	symmetry_mesh_.update_buffers();
+}
+
 void Tiling::symmetrify(const GL::Texture& texture)
 {
 	auto AR        = texture.width_ / (float)texture.height_;
@@ -963,8 +996,8 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glUniform2fv (t2_uniform_, 1, t2().data());
 	glUniform1i  (sampler_uniform_, 1);
 
-	glBindVertexArray(mesh_.vao_);
-	glDrawArraysInstanced(mesh_.primitive_type_, 0, mesh_.num_vertices_, num_domains_);
+	glBindVertexArray(symmetry_mesh_.vao_);
+	glDrawArraysInstanced(symmetry_mesh_.primitive_type_, 0, symmetry_mesh_.num_vertices_, num_domains_);
 
 	// Clean up.
 	glBindVertexArray(0);
