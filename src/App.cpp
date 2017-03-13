@@ -189,7 +189,6 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_vert.glsl",
-		"shaders/tiling_geom.glsl",
 		"shaders/tiling_frag.glsl");
 
 	// Find uniform locations once.
@@ -200,16 +199,18 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	static GLuint screen_size_uniform;
 	static GLuint screen_center_uniform;
 	static GLuint pixels_per_unit_uniform;
+	static GLuint texture_coordinate_uniform;
 	static GLuint texture_sampler_uniform;
 	static bool init = [&](){
-		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
-		position_uniform        = glGetUniformLocation(shader, "uPos");
-		t1_uniform              = glGetUniformLocation(shader, "uT1");
-		t2_uniform              = glGetUniformLocation(shader, "uT2");
-		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
-		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
-		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
-		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
+		instance_num_uniform       = glGetUniformLocation(shader, "uNumInstances");
+		position_uniform           = glGetUniformLocation(shader, "uPos");
+		t1_uniform                 = glGetUniformLocation(shader, "uT1");
+		t2_uniform                 = glGetUniformLocation(shader, "uT2");
+		screen_size_uniform        = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform      = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform    = glGetUniformLocation(shader, "uPixelsPerUnit");
+		texture_coordinate_uniform = glGetUniformLocation(shader, "uTexCoords");
+		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
@@ -237,6 +238,7 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform2fv (texture_coordinate_uniform, 6, tiling_.texture_coordinates()[0].data());
 	glUniform1i  (texture_sampler_uniform, 1);
 
 	const auto& mesh = tiling_.mesh();

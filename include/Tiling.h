@@ -18,19 +18,21 @@ public:
 		Hexagonal
 	};
 
-	const char*            symmetry_group     (void) const { return symmetry_group_; }
-	Lattice                lattice            (void) const { return lattice_; }
-	const Mesh&            mesh               (void) const { return mesh_; }
-	const Mesh&            frame              (void) const { return frame_mesh_; }
-	const GL::Texture&     domain_texture     (void) const { return domain_texture_; }
-	const Eigen::Vector2f& position           (void) const { return position_; }
-	Eigen::Vector2f        center             (void) const;
-	double                 rotation           (void) const;
-	double                 scale              (void) const { return t1_.norm(); }
-	const Eigen::Vector2f& t1                 (void) const { return t1_; }
-	Eigen::Vector2f        t2                 (void) const;
-	int                    num_domains        (void) const { return num_domains_; }
-	bool                   consistent         (void) const { return consistent_; }
+	const char*            symmetry_group      (void) const { return symmetry_group_; }
+	Lattice                lattice             (void) const { return lattice_; }
+	const Mesh&            mesh                (void) const { return mesh_; }
+	const Mesh&            frame               (void) const { return frame_mesh_; }
+	const std::vector<Eigen::Vector2f>&
+	                       texture_coordinates (void) const { return domain_texture_coordinates_; }
+	const GL::Texture&     domain_texture      (void) const { return domain_texture_; }
+	const Eigen::Vector2f& position            (void) const { return position_; }
+	Eigen::Vector2f        center              (void) const;
+	double                 rotation            (void) const;
+	double                 scale               (void) const { return t1_.norm(); }
+	const Eigen::Vector2f& t1                  (void) const { return t1_; }
+	Eigen::Vector2f        t2                  (void) const;
+	int                    num_domains         (void) const { return num_domains_; }
+	bool                   consistent          (void) const { return consistent_; }
 
 	// TODO: Symmetry group parameters such as lattice angle etc.
 	void set_symmetry_group (const char*);
