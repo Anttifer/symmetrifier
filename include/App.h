@@ -27,7 +27,8 @@ private:
 	void render_image          (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
 
 	// Renders the symmetrified plane.
-	void render_tiling (int width, int height, GLuint framebuffer = 0);
+	void render_tiling    (int width, int height, GLuint framebuffer = 0);
+	void render_tiling_hq (int width, int height, GLuint framebuffer = 0);
 
 	// Renders the symmetrification frame.
 	void render_frame  (int width, int height, GLuint framebuffer = 0);

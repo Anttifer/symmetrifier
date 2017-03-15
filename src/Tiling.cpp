@@ -7,28 +7,28 @@
 #define SCALE 0.98f
 
 Tiling::Tiling(void)
-:	position_             (0.0, 0.0),
-	t1_                   (1.0, 0.0),
-	num_domains_          (1),
-	symmetrify_shader_    (GL::ShaderProgram::from_files(
-		                      "shaders/symmetrify_vert.glsl",
-		                      "shaders/symmetrify_frag.glsl")),
-	instance_num_uniform_ (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
-	aspect_ratio_uniform_ (glGetUniformLocation(symmetrify_shader_, "uAR")),
-	position_uniform_     (glGetUniformLocation(symmetrify_shader_, "uPos")),
-	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
-	t2_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT2")),
-	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
-	line_color_           (1.0, 0.6, 0.1),
-	mirror_color_         (0.1, 0.6, 1.0),
-	rotation_color_       (0.1, 1.0, 0.6),
-	consistent_           (false)
+:	position_              (0.0, 0.0),
+	t1_                    (1.0, 0.0),
+	num_lattice_domains_   (1),
+	symmetrify_shader_     (GL::ShaderProgram::from_files(
+		                       "shaders/symmetrify_vert.glsl",
+		                       "shaders/symmetrify_frag.glsl")),
+	num_instances_uniform_ (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
+	aspect_ratio_uniform_  (glGetUniformLocation(symmetrify_shader_, "uAR")),
+	position_uniform_      (glGetUniformLocation(symmetrify_shader_, "uPos")),
+	t1_uniform_            (glGetUniformLocation(symmetrify_shader_, "uT1")),
+	t2_uniform_            (glGetUniformLocation(symmetrify_shader_, "uT2")),
+	sampler_uniform_       (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
+	line_color_            (1.0, 0.6, 0.1),
+	mirror_color_          (0.1, 0.6, 1.0),
+	rotation_color_        (0.1, 1.0, 0.6),
+	consistent_            (false)
 {
 	set_symmetry_group("o");
 
 	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
 	const Eigen::Vector2f top_centroid = {1.0f / 3.0f, 2.0f / 3.0f};
-	domain_texture_coordinates_ = {
+	domain_coordinates_ = {
 		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
 		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
 		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
@@ -41,7 +41,7 @@ Tiling::Tiling(void)
 
 Eigen::Vector2f Tiling::center(void) const
 {
-	if (num_domains_ % 2)
+	if (num_lattice_domains_ % 2)
 		return position_ + (t1_ + t2()) / 2.0;
 	else
 		return position_;
@@ -173,6 +173,7 @@ void Tiling::set_symmetry_group(const char* group)
 	}
 
 	construct_symmetry_mesh();
+	construct_mesh_texture();
 }
 
 void Tiling::set_center(const Eigen::Vector2f& center)
@@ -180,7 +181,7 @@ void Tiling::set_center(const Eigen::Vector2f& center)
 	consistent_ = false;
 
 	position_ = center;
-	if (num_domains_ % 2)
+	if (num_lattice_domains_ % 2)
 		position_ -= (t1_ + t2()) / 2.0;
 }
 
@@ -961,6 +962,12 @@ void Tiling::construct_symmetry_mesh(void)
 	symmetry_mesh_.update_buffers();
 }
 
+void Tiling::construct_mesh_texture(void)
+{
+	// TODO: Support multiple lattice domains.
+	mesh_texture_ = GL::Texture::buffer_texture(mesh_.position_buffer_, GL_RGB32F);
+}
+
 void Tiling::symmetrify(const GL::Texture& texture)
 {
 	auto AR        = texture.width_ / (float)texture.height_;
@@ -989,7 +996,7 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	// Set the shader program, uniforms and texture parameters, and draw.
 	glUseProgram(symmetrify_shader_);
 
-	glUniform1i  (instance_num_uniform_, num_domains_);
+	glUniform1i  (num_instances_uniform_, num_lattice_domains_);
 	glUniform1f  (aspect_ratio_uniform_, AR);
 	glUniform2fv (position_uniform_, 1, position_.data());
 	glUniform2fv (t1_uniform_, 1, t1_.data());
@@ -997,7 +1004,7 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	glUniform1i  (sampler_uniform_, 1);
 
 	glBindVertexArray(symmetry_mesh_.vao_);
-	glDrawArraysInstanced(symmetry_mesh_.primitive_type_, 0, symmetry_mesh_.num_vertices_, num_domains_);
+	glDrawArraysInstanced(symmetry_mesh_.primitive_type_, 0, symmetry_mesh_.num_vertices_, num_lattice_domains_);
 
 	// Clean up.
 	glBindVertexArray(0);

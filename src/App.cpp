@@ -44,15 +44,15 @@ App::App(int /* argc */, char** /* argv */)
 	});
 	window_.add_key_callback(GLFW_KEY_1, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->tiling_.set_num_domains(1);
+			this->tiling_.set_num_lattice_domains(1);
 	});
 	window_.add_key_callback(GLFW_KEY_2, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->tiling_.set_num_domains(4);
+			this->tiling_.set_num_lattice_domains(4);
 	});
 	window_.add_key_callback(GLFW_KEY_3, [this](int, int action, int){
 		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
-			this->tiling_.set_num_domains(9);
+			this->tiling_.set_num_lattice_domains(9);
 	});
 
 	// Drop callback.
@@ -115,7 +115,7 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
 			tiling_.symmetrify(base_image_);
-		render_tiling(width, height, framebuffer);
+		render_tiling_hq(width, height, framebuffer);
 
 		if (show_frame_)
 			render_frame(width, height, framebuffer);
@@ -238,10 +238,92 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
-	glUniform2fv (texture_coordinate_uniform, 6, tiling_.texture_coordinates()[0].data());
+	glUniform2fv (texture_coordinate_uniform, 6, tiling_.domain_coordinates()[0].data());
 	glUniform1i  (texture_sampler_uniform, 1);
 
 	const auto& mesh = tiling_.mesh();
+
+	glBindVertexArray(mesh.vao_);
+	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_tiling_hq(int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/tiling_hq_vert.glsl",
+		"shaders/tiling_hq_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint num_instances_uniform;
+	static GLuint aspect_ratio_uniform;
+	static GLuint frame_position_uniform;
+	static GLuint t1_uniform;
+	static GLuint t2_uniform;
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint num_domains_uniform;
+	static GLuint mesh_sampler_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		num_instances_uniform      = glGetUniformLocation(shader, "uNumInstances");
+		aspect_ratio_uniform       = glGetUniformLocation(shader, "uAR");
+		frame_position_uniform     = glGetUniformLocation(shader, "uFramePos");
+		t1_uniform                 = glGetUniformLocation(shader, "uT1");
+		t2_uniform                 = glGetUniformLocation(shader, "uT2");
+		screen_size_uniform        = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform      = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform    = glGetUniformLocation(shader, "uPixelsPerUnit");
+		num_domains_uniform        = glGetUniformLocation(shader, "uNumSymmetryDomains");
+		mesh_sampler_uniform       = glGetUniformLocation(shader, "uMeshSampler");
+		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+	(void)init; // Suppress unused variable warning.
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, base_image_);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_BUFFER, tiling_.mesh_texture());
+	glActiveTexture(GL_TEXTURE1);
+
+	glViewport(0, 0, width, height);
+
+	const auto plane_side_length = 10;
+	const auto num_instances = plane_side_length * plane_side_length;
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	auto AR = base_image_.width_ / (float)base_image_.height_;
+	const auto& mesh = tiling_.mesh();
+
+	glUniform1i  (num_instances_uniform, num_instances);
+	glUniform1f  (aspect_ratio_uniform, AR);
+	glUniform2fv (frame_position_uniform, 1, tiling_.position().data());
+	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (num_domains_uniform, tiling_.num_symmetry_domains());
+	glUniform1i  (texture_sampler_uniform, 1);
+	glUniform1i  (mesh_sampler_uniform, 2);
 
 	glBindVertexArray(mesh.vao_);
 	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
@@ -303,7 +385,7 @@ void App::render_frame(int width, int height, GLuint framebuffer)
 	glViewport(0, 0, width, height);
 
 	const auto plane_side_length = 10;
-	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling_.num_domains();
+	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling_.num_lattice_domains();
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
@@ -322,11 +404,11 @@ void App::render_frame(int width, int height, GLuint framebuffer)
 	glBindVertexArray(frame.vao_);
 	glDrawArraysInstanced(GL_LINES, 0, frame.num_vertices_, num_instances);
 
-	glUniform1i  (instance_num_uniform, tiling_.num_domains());
+	glUniform1i  (instance_num_uniform, tiling_.num_lattice_domains());
 	glUniform1i  (render_overlay_uniform, GL_TRUE);
 
 	glBindVertexArray(overlay.vao_);
-	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling_.num_domains());
+	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling_.num_lattice_domains());
 
 	// Clean up.
 	glBindVertexArray(0);
@@ -612,14 +694,14 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			if (ImGui::Button("Reset##Reset frame scale"))
 				tiling_.set_scale(1.0);
 
-			int num_domains = tiling_.num_domains();
+			int num_domains = tiling_.num_lattice_domains();
 			bool domains_changed = false;
 			ImGui::Text("Domains:"); ImGui::SameLine(140);
 			domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
 			domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
 			domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
 			if (domains_changed)
-				tiling_.set_num_domains(num_domains);
+				tiling_.set_num_lattice_domains(num_domains);
 
 			ImGui::Spacing();
 			ImGui::Spacing();
