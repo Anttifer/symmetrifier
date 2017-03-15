@@ -33,7 +33,7 @@ public:
 	const Eigen::Vector2f& t1                   (void) const { return t1_; }
 	Eigen::Vector2f        t2                   (void) const;
 	int                    num_lattice_domains  (void) const { return num_lattice_domains_; }
-	int                    num_symmetry_domains (void) const { return mesh_.positions_.size() / 6; }
+	int                    num_symmetry_domains (void) const { return mesh_.positions_.size() / 6 * num_lattice_domains_; }
 	bool                   consistent           (void) const { return consistent_; }
 
 	// TODO: Symmetry group parameters such as lattice angle etc.
@@ -43,7 +43,7 @@ public:
 	void set_rotation            (double);
 	void set_scale               (double);
 	void multiply_scale          (double factor);
-	void set_num_lattice_domains (int n)                    { consistent_ = false; num_lattice_domains_ = n; }
+	void set_num_lattice_domains (int n);
 	void set_inconsistent        (void)                     { consistent_ = false; }
 
 	// This function constructs the symmetrified texture according to
@@ -107,6 +107,7 @@ private:
 
 	// This is a buffer texture and will contain the sampling mesh.
 	GL::Texture mesh_texture_;
+	GL::Buffer  mesh_buffer_;
 
 	// The mesh representation of one lattice domain. Triangles are defined clockwise
 	// or counterclockwise depending on whether they should be mirrored or not.

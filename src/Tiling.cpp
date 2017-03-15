@@ -227,6 +227,14 @@ void Tiling::multiply_scale(double factor)
 	this->set_center(center);
 }
 
+void Tiling::set_num_lattice_domains(int n)
+{
+	consistent_ = false;
+
+	num_lattice_domains_ = n;
+	construct_mesh_texture();
+}
+
 // TODO: Custom lattice transformations.
 void Tiling::construct_p1(void)
 {
@@ -964,8 +972,27 @@ void Tiling::construct_symmetry_mesh(void)
 
 void Tiling::construct_mesh_texture(void)
 {
-	// TODO: Support multiple lattice domains.
-	mesh_texture_ = GL::Texture::buffer_texture(mesh_.position_buffer_, GL_RGB32F);
+	std::vector<Eigen::Vector3f> vertices;
+	vertices.reserve(num_lattice_domains_ * mesh_.positions_.size());
+
+	int s = std::sqrt(num_lattice_domains_);
+	for (int y = 0; y < s; ++y)
+	{
+		for (int x = 0; x < s; ++x)
+		{
+			Eigen::Vector3f adjustment = {(float)(x - s/2), (float)(y - s/2), 0};
+
+			for (const auto& vertex : mesh_.positions_)
+				vertices.push_back(vertex + adjustment);
+		}
+	}
+
+	GLint old_arr; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &old_arr);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh_buffer_);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices[0].data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, old_arr);
+
+	mesh_texture_ = GL::Texture::buffer_texture(mesh_buffer_, GL_RGB32F);
 }
 
 void Tiling::symmetrify(const GL::Texture& texture)
