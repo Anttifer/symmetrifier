@@ -43,6 +43,7 @@ public:
 	void set_rotation            (double);
 	void set_scale               (double);
 	void multiply_scale          (double factor);
+	void set_t2                  (const Eigen::Vector2f&);
 	void set_num_lattice_domains (int n);
 	void set_inconsistent        (void)                     { consistent_ = false; }
 

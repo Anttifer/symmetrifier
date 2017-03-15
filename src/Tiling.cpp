@@ -227,6 +227,31 @@ void Tiling::multiply_scale(double factor)
 	this->set_center(center);
 }
 
+void Tiling::set_t2(const Eigen::Vector2f& t2)
+{
+	// Early out if lattice is square or hexagonal and thus fixed.
+	if (lattice_ == Lattice::Square || lattice_ == Lattice::Hexagonal)
+		return;
+
+	consistent_ = false;
+
+	// Convert t2 to relative coordinates.
+	Eigen::Vector2f orthogonal = { -t1_.y(), t1_.x() };
+
+	Eigen::Matrix2f basis;
+	basis << t1_, orthogonal;
+
+	Eigen::Vector2f t2_relative = basis.inverse() * t2;
+
+	// Fulfill lattice constraints as well as possible.
+	if (lattice_ == Lattice::Oblique)
+		t2_relative_ = t2_relative;
+	else if (lattice_ == Lattice::Rhombic)
+		t2_relative_ = t2_relative.normalized();
+	else if (lattice_ == Lattice::Rectangular)
+		t2_relative_ = {0.0f, t2_relative.y()};
+}
+
 void Tiling::set_num_lattice_domains(int n)
 {
 	consistent_ = false;
