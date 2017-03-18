@@ -65,7 +65,6 @@ private:
 	Eigen::Vector2f press_position_;
 
 	Eigen::Vector2f tiling_static_position_;
-	Eigen::Vector2f tiling_static_t2_;
 	double tiling_static_rotation_;
 	Eigen::Vector2f screen_center_static_position_;
 

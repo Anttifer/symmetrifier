@@ -5,12 +5,14 @@
 #include "Mesh.h"
 #include <Eigen/Geometry>
 
-class Tiling {
+class Tiling
+{
 public:
 	Tiling (void);
 
 	// Lattice types.
-	enum class Lattice {
+	enum class Lattice
+	{
 		Oblique,
 		Rhombic,
 		Rectangular,
@@ -18,34 +20,52 @@ public:
 		Hexagonal
 	};
 
-	const char*            symmetry_group       (void) const { return symmetry_group_; }
-	Lattice                lattice              (void) const { return lattice_; }
-	const Mesh&            mesh                 (void) const { return mesh_; }
-	const Mesh&            frame                (void) const { return frame_mesh_; }
-	const std::vector<Eigen::Vector2f>&
-	                       domain_coordinates   (void) const { return domain_coordinates_; }
-	const GL::Texture&     domain_texture       (void) const { return domain_texture_; }
-	const GL::Texture&     mesh_texture         (void) const { return mesh_texture_; }
-	const Eigen::Vector2f& position             (void) const { return position_; }
-	Eigen::Vector2f        center               (void) const;
-	double                 rotation             (void) const;
-	double                 scale                (void) const { return t1_.norm(); }
-	const Eigen::Vector2f& t1                   (void) const { return t1_; }
-	Eigen::Vector2f        t2                   (void) const;
-	int                    num_lattice_domains  (void) const { return num_lattice_domains_; }
-	int                    num_symmetry_domains (void) const { return mesh_.positions_.size() / 6 * num_lattice_domains_; }
-	bool                   consistent           (void) const { return consistent_; }
+	// Properties.
+	const char* symmetry_group       (void) const { return symmetry_group_; }
+	Lattice     lattice              (void) const { return lattice_; }
+	int         num_lattice_domains  (void) const { return num_lattice_domains_; }
+	int         num_symmetry_domains (void) const { return mesh_.positions_.size() / 6 * num_lattice_domains_; }
+	bool        consistent           (void) const { return consistent_; }
 
-	// TODO: Symmetry group parameters such as lattice angle etc.
+	// Transformations.
+	const Eigen::Vector2f& position (void) const { return position_; }
+	Eigen::Vector2f        center   (void) const;
+
+	const Eigen::Vector2f& t1       (void) const { return t1_; }
+	Eigen::Vector2f        t2       (void) const;
+
+	double                 rotation (void) const;
+	double                 scale    (void) const { return t1_.norm(); }
+
+	// Meshes.
+	const Mesh&            mesh  (void) const { return mesh_; }
+	const Mesh&            frame (void) const { return frame_mesh_; }
+
+	// Textures & coordinates.
+	const GL::Texture& domain_texture     (void) const { return domain_texture_; }
+	const GL::Texture& mesh_texture       (void) const { return mesh_texture_; }
+	const std::vector<Eigen::Vector2f>&
+	                   domain_coordinates (void) const { return domain_coordinates_; }
+
+	// Set properties.
 	void set_symmetry_group      (const char*);
-	void set_position            (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
-	void set_center              (const Eigen::Vector2f&);
-	void set_rotation            (double);
-	void set_scale               (double);
-	void multiply_scale          (double factor);
-	void set_t2                  (const Eigen::Vector2f&);
 	void set_num_lattice_domains (int n);
-	void set_inconsistent        (void)                     { consistent_ = false; }
+	void set_inconsistent        (void) { consistent_ = false; }
+
+	// Set transformations.
+	void set_position   (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
+	void set_center     (const Eigen::Vector2f&);
+
+	void set_t1         (const Eigen::Vector2f&);
+	void set_t2         (const Eigen::Vector2f&);
+
+	void set_rotation   (double);
+	void set_scale      (double);
+	void multiply_scale (double factor);
+
+	// Intuitive lattice domain deformations.
+	void set_deform_origin  (const Eigen::Vector2f&);
+	void deform                  (const Eigen::Vector2f&);
 
 	// This function constructs the symmetrified texture according to
 	// the current symmetry group.
@@ -75,61 +95,90 @@ private:
 	void construct_p6   (void);
 	void construct_p6m  (void);
 
-	void construct_symmetry_mesh  (void);
-	void construct_mesh_texture (void);
 
-	// The vertices of the mesh are defined relative to the translation vectors.
+	// Auxiliary mesh construction functions.
+	void construct_symmetry_mesh  (void);
+	void construct_mesh_texture   (void);
+
+
+	// Properties.
+	const char* symmetry_group_;
+	Lattice     lattice_;
+
+	// How many lattice domains to take into account when building
+	// the domain texture?
+	int         num_lattice_domains_;
+
+	// Is the domain texture consistent with current settings?
+	bool        consistent_;
+
+
+	// Transformations.
 	Eigen::Vector2f position_;
 	Eigen::Vector2f t1_;
 
 	// The second translation vector is defined relative to the first.
-	// This allows us to deform the fundamental domain in a controlled fashion
-	// when it is possible, i.e. when we have a non-hexagonal and non-square lattice.
 	Eigen::Vector2f t2_relative_;
 
-	int             num_lattice_domains_;
-	const char*     symmetry_group_;
-	Lattice         lattice_;
+
+	// Meshes.
+
+	// The mesh representation of one lattice domain. Triangles are defined clockwise
+	// or counterclockwise depending on whether they should be mirrored or not.
+	// The vertices are defined relative to the translation vectors.
+	Mesh mesh_;
+
+	// Line mesh for visualizing the lattice domain.
+	// Lines that are mirrors or 180-degree flips are coloured separately.
+	Mesh frame_mesh_;
+	Eigen::Vector3f line_color_;
+	Eigen::Vector3f mirror_color_;
+	Eigen::Vector3f rotation_color_;
+
+	// This mesh is used internally for building the domain texture.
+	// In this mesh, each triangle is rescaled with respect to its centroid.
+	// This is reflected in the domain_coordinates_ for proper sampling.
+	// This is necessary in order to avoid ugly seams when rendering.
+	Mesh symmetry_mesh_;
+
+
+	// Textures & coordinates.
+
+	// This texture will contain the symmetrified fundamental domain.
+	GL::Texture                  domain_texture_;
+
+	// This is a buffer texture and will contain the sampling mesh.
+	GL::Texture                  mesh_texture_;
+	GL::Buffer                   mesh_buffer_;
+
+	// We only need texture coordinates for two triangles, so no need to define them
+	// in the mesh for every vertex separately.
+	std::vector<Eigen::Vector2f> domain_coordinates_;
+
 
 	// This shader is used for building the symmetrified fundamental domain.
 	// It practically superimposes samples of the user-supplied texture in
 	// such a way that the resulting fundamental domain conforms to the chosen
 	// symmetry group.
 	GL::ShaderProgram symmetrify_shader_;
-	GLuint num_instances_uniform_;
-	GLuint aspect_ratio_uniform_;
-	GLuint position_uniform_;
-	GLuint t1_uniform_;
-	GLuint t2_uniform_;
-	GLuint sampler_uniform_;
+	struct Uniforms
+	{
+		GLint num_instances;
+		GLint aspect_ratio;
+		GLint position;
+		GLint t1;
+		GLint t2;
+		GLint sampler;
+	}
+	uniforms_;
 
-	// This texture will contain the symmetrified fundamental domain.
-	GL::Texture domain_texture_;
 
-	// This is a buffer texture and will contain the sampling mesh.
-	GL::Texture mesh_texture_;
-	GL::Buffer  mesh_buffer_;
+	// Variables used for intuitive deformations.
+	Eigen::Vector2f deform_origin_;
+	Eigen::Vector2f deform_original_t1_;
+	Eigen::Vector2f deform_original_t2_;
 
-	// The mesh representation of one lattice domain. Triangles are defined clockwise
-	// or counterclockwise depending on whether they should be mirrored or not.
-	Mesh mesh_;
-
-	// We only need texture coordinates for two triangles, so no need to define them
-	// in the mesh for every vertex separately.
-	std::vector<Eigen::Vector2f> domain_coordinates_;
-
-	// This is used internally for symmetrifying. Each triangle is rescaled
-	// with respect to its centroid.
-	Mesh symmetry_mesh_;
-
-	// Not really. We need two.
-	Mesh frame_mesh_;
-	Eigen::Vector3f line_color_;
-	Eigen::Vector3f mirror_color_;
-	Eigen::Vector3f rotation_color_;
-
-	// Is the domain texture consistent with current settings?
-	bool consistent_;
+	Eigen::Vector2f deform_quadrant_;
 };
 
 #endif // TILING_H

@@ -728,7 +728,7 @@ void App::position_callback(double x, double y)
 			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 				tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
 			else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-				tiling_.set_t2(tiling_static_t2_ + screen_to_world(drag_position));
+				tiling_.deform(screen_to_world(drag_position));
 			else
 				screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
 		}
@@ -771,7 +771,8 @@ void App::left_click_callback(int action, int /* mods */)
 
 		screen_center_static_position_ = screen_center_;
 		tiling_static_position_        = tiling_.position();
-		tiling_static_t2_              = tiling_.t2();
+
+		tiling_.set_deform_origin(screen_center_ + screen_to_world(press_position_));
 	}
 }
 
