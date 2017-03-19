@@ -286,11 +286,11 @@ void Tiling::multiply_scale(double factor)
 
 void Tiling::set_deform_origin(const Eigen::Vector2f& deform_origin)
 {
-	deform_origin_      = deform_origin;
-	deform_original_t1_ = t1_;
-	deform_original_t2_ = t2();
+	deform_origin_         = deform_origin;
+	deform_original_t1_    = t1_;
+	deform_original_t2_    = t2();
 
-	if (lattice_ == Lattice::Rectangular)
+	if (lattice_ == Lattice::Rectangular || lattice_ == Lattice::Rhombic)
 	{
 		Eigen::Matrix2f basis;
 		basis << t1_.normalized(), t2().normalized();
@@ -299,6 +299,8 @@ void Tiling::set_deform_origin(const Eigen::Vector2f& deform_origin)
 
 		deform_quadrant_ = { origin.x() >= 0.0f ? 1.0f : -1.0f,
 		                     origin.y() >= 0.0f ? 1.0f : -1.0f };
+		deform_corner_   = deform_quadrant_.x() * t1_
+		                 + deform_quadrant_.y() * t2();
 	}
 }
 
@@ -308,25 +310,47 @@ void Tiling::deform(const Eigen::Vector2f& deformation)
 
 	auto center = this->center();
 
-	if (lattice_ == Lattice::Rectangular)
+	float adj_factor = 2.0f / std::sqrt(num_lattice_domains_);
+	Eigen::Vector2f adj_deformation = adj_factor * deformation;
+
+	if (lattice_ == Lattice::Rhombic)
+	{
+		Eigen::Vector2f orthogonal = { -deform_corner_.y(), deform_corner_.x() };
+		Eigen::Matrix2f basis;
+		basis << deform_corner_.normalized(),
+		         orthogonal.normalized() * (-deform_quadrant_.prod());
+
+		Eigen::Vector2f c_relative = basis.inverse() * (deform_corner_ + adj_deformation);
+
+		float h = deform_original_t1_.norm();
+		float x = std::abs(c_relative.x() / 2.0f);
+		while (x >= h) // We don't want NaNs from the square root.
+			x = std::abs(2.0f * h - x);
+		float y = std::sqrt(h*h - x*x);
+
+		Eigen::Vector2f t1_relative = {x, y};
+		Eigen::Vector2f t2_relative = {x, -y};
+
+		t1_        = basis * t1_relative * deform_quadrant_.x();
+		this->set_t2(basis * t2_relative * deform_quadrant_.y());
+	}
+	else if (lattice_ == Lattice::Rectangular)
 	{
 		Eigen::Matrix2f basis;
-		basis << deform_original_t1_.normalized(), deform_original_t2_.normalized();
+		basis << deform_original_t1_.normalized(),
+		         deform_original_t2_.normalized();
+		basis *= deform_quadrant_.asDiagonal();
 
-		Eigen::Vector2f d_relative = (basis.inverse() * deformation).cwiseProduct(deform_quadrant_);
+		Eigen::Vector2f c_relative = basis.inverse() * (deform_corner_ + adj_deformation);
 
-		float adj_factor  = 2.0f / std::sqrt(num_lattice_domains_);
-		float new_t1_norm = adj_factor * d_relative.x() + deform_original_t1_.norm();
-		float new_t2_norm = adj_factor * d_relative.y() + deform_original_t2_.norm();
-
-		t1_          = new_t1_norm * deform_original_t1_.normalized();
-		t2_relative_ = {0.0f, new_t2_norm / t1_.norm()};
+		t1_          = c_relative.cwiseAbs().x() * deform_original_t1_.normalized();
+		t2_relative_ = {0.0f, c_relative.cwiseAbs().y() / t1_.norm()};
 	}
 
 	this->set_center(center);
 }
 
-// TODO: Preserve custom lattice transformations.
+// TODO: Preserve custom lattice transformations?
 void Tiling::construct_p1(void)
 {
 	// Square lattice.

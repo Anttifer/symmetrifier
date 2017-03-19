@@ -179,6 +179,7 @@ private:
 	Eigen::Vector2f deform_original_t2_;
 
 	Eigen::Vector2f deform_quadrant_;
+	Eigen::Vector2f deform_corner_;
 };
 
 #endif // TILING_H
