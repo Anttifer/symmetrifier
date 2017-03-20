@@ -286,9 +286,9 @@ void Tiling::multiply_scale(double factor)
 
 void Tiling::set_deform_origin(const Eigen::Vector2f& deform_origin)
 {
-	deform_origin_         = deform_origin;
-	deform_original_t1_    = t1_;
-	deform_original_t2_    = t2();
+	deform_origin_      = deform_origin;
+	deform_original_t1_ = t1_;
+	deform_original_t2_ = t2();
 
 	if (lattice_ == Lattice::Rectangular || lattice_ == Lattice::Rhombic)
 	{
@@ -324,7 +324,7 @@ void Tiling::deform(const Eigen::Vector2f& deformation)
 
 		float h = deform_original_t1_.norm();
 		float x = std::abs(c_relative.x() / 2.0f);
-		while (x >= h) // We don't want NaNs from the square root.
+		while (x > h) // We don't want NaNs from the square root.
 			x = std::abs(2.0f * h - x);
 		float y = std::sqrt(h*h - x*x);
 

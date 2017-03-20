@@ -31,10 +31,18 @@ private:
 	void render_tiling_hq (int width, int height, GLuint framebuffer = 0);
 
 	// Renders the symmetrification frame.
-	void render_frame  (int width, int height, GLuint framebuffer = 0);
+	void render_symmetry_frame  (int width, int height, GLuint framebuffer = 0);
 
-	// Renders the GUI using dear ImGUI.
-	void render_gui            (int width, int height, GLuint framebuffer = 0);
+	// Renders the export cropping frame.
+	void render_export_frame    (int width, int height, GLuint framebuffer = 0);
+
+	// Renders the GUI using dear ImGui.
+	void render_gui           (int width, int height, GLuint framebuffer = 0);
+
+	void show_symmetry_groups (void);
+	void show_view_settings   (void);
+	void show_frame_settings  (void);
+	void show_export_settings (void);
 
 	// Mouse callbacks.
 	void position_callback    (double, double);
@@ -47,6 +55,7 @@ private:
 
 	// Utilities.
 	void            load_texture    (const char*);
+	void            export_result   (void);
 	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
 
 	// Framework objects.
@@ -58,7 +67,8 @@ private:
 	Tiling      tiling_;
 	GL::Texture base_image_;
 	bool        show_result_;
-	bool        show_frame_;
+	bool        show_symmetry_frame_;
+	bool        show_export_frame_;
 	bool        show_settings_;
 
 	Eigen::Vector2f screen_center_;
@@ -71,5 +81,10 @@ private:
 	Eigen::Vector3f clear_color_;
 	double pixels_per_unit_;
 	double zoom_factor_;
+
+	int         export_width_;
+	int         export_height_;
+	std::string export_base_name_;
+	std::string export_filename_;
 };
 #endif // APP_H
