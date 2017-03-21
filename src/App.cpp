@@ -1033,8 +1033,17 @@ void App::print_screen(int /* scancode */, int action, int /* mods */)
 
 void App::load_texture(const char* filename)
 {
-	base_image_ = GL::Texture::from_png(filename);
 	tiling_.set_inconsistent();
+	base_image_ = GL::Texture::from_png(filename);
+
+	// We'll use nearest neighbor filtering.
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, base_image_);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
 }
 
 // TODO: Figure out where this should go.
