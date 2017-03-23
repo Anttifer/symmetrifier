@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 project(symmetry)
 
 file(GLOB_RECURSE SRC_FILES src/*)
@@ -10,6 +10,11 @@ find_package(Eigen3 REQUIRED)
 find_package(glfw3 3.2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+
+set(CMAKE_AUTOMOC ON)
+find_package(Qt5Widgets)
+
+set(CMAKE_CXX_STANDARD 14)
 
 add_executable(supersymmetry
 	${SRC_FILES}
@@ -26,8 +31,7 @@ target_include_directories(supersymmetry
 target_link_libraries(supersymmetry
 	PRIVATE
 	glfw
+	Qt5::Widgets
 	${GLEW_LIBRARIES}
 	${OPENGL_LIBRARIES}
 )
-
-set_property(TARGET supersymmetry PROPERTY CXX_STANDARD 14)

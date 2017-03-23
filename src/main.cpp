@@ -2,13 +2,17 @@
 //#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
 //#endif
 
-#include "App.h"
+#include <QApplication>
+#include "QtWindow.h"
 
 //--------------------
 
-int main(int argc, char* argv[]) {
-	App app(argc, argv);
-	app.loop();
+int main(int argc, char* argv[])
+{
+	QApplication app(argc, argv);
 
-	return 0;
+	QtWindow window;
+	window.show();
+
+	return app.exec();
 }
