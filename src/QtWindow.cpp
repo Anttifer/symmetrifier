@@ -19,9 +19,7 @@ QtWindow::QtWindow(QWidget* parent) :
 	left_button_     = new QPushButton("Kek!");
 
 	layout->addWidget(left_button_);
-	layout->setStretchFactor(left_button_, 1);
-	layout->addWidget(symmetry_canvas_);
-	layout->setStretchFactor(symmetry_canvas_, 3);
+	layout->addWidget(symmetry_canvas_, 1);
 
 	central_area_->setLayout(layout);
 
