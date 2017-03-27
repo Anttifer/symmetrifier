@@ -1,24 +1,22 @@
-// Nonstandard inclusion order because of Qt and GLEW.
 #include <GL/glew.h>
 #include "QtSymmetryCanvas.h"
 
+#include <QMouseEvent>
+#include <iostream>
 #include "GLObjects.h"
 #include "Tiling.h"
 #include "ShaderCanvas.h"
-#include <iostream>
-#include <QMouseEvent>
 
 QtSymmetryCanvas::QtSymmetryCanvas(QWidget* parent) :
-	QOpenGLWidget    (parent),
+	QWidget          (parent),
+
 	clear_color_     (0.1f, 0.1f, 0.1f),
 	screen_center_   (0.5f, 0.5f),
-	pixels_per_unit_ (500)
+	pixels_per_unit_ (500),
+
+	mouse_down_      (false)
 {
-	QSurfaceFormat fmt;
-	fmt.setVersion(3, 3);
-	fmt.setProfile(QSurfaceFormat::CoreProfile);
-	fmt.setSwapInterval(0);
-	setFormat(fmt);
+	subwindow_setup();
 }
 
 QtSymmetryCanvas::~QtSymmetryCanvas(void) {}
@@ -31,7 +29,7 @@ void QtSymmetryCanvas::initializeGL(void)
 	if (status != GLEW_OK)
 	{
 		std::cerr << "Error " << glewGetErrorString(status) << std::endl;
-		throw std::runtime_error("Failed to initialize GLEW for QOpenGLWidget.");
+		throw std::runtime_error("Failed to initialize GLEW for QtSymmetryCanvas.");
 	}
 
 	// "Enable" depth testing and alpha blending.
@@ -83,17 +81,26 @@ void QtSymmetryCanvas::mousePressEvent(QMouseEvent* event)
 	               1.0f - event->y() / (float)height() * 2.0f };
 
 	press_screen_center_ = screen_center_;
+	mouse_down_ = true;
+}
+
+void QtSymmetryCanvas::mouseReleaseEvent(QMouseEvent* event)
+{
+	mouse_down_ = false;
 }
 
 void QtSymmetryCanvas::mouseMoveEvent(QMouseEvent* event)
 {
-	Eigen::Vector2f pos  = { event->x() / (float)width() * 2.0f - 1.0f,
-	                         1.0f - event->y() / (float)height() * 2.0f };
-	Eigen::Vector2f diff = pos - press_pos_;
+	if (mouse_down_)
+	{
+		Eigen::Vector2f pos  = { event->x() / (float)width() * 2.0f - 1.0f,
+		                         1.0f - event->y() / (float)height() * 2.0f };
+		Eigen::Vector2f diff = pos - press_pos_;
 
-	screen_center_ = press_screen_center_ - screen_to_world(diff);
+		screen_center_ = press_screen_center_ - screen_to_world(diff);
 
-	update();
+		subwindow_update();
+	}
 }
 
 void QtSymmetryCanvas::render_image(const GL::Texture& image, int fb_width, int fb_height, GLuint fbo)
@@ -148,6 +155,6 @@ void QtSymmetryCanvas::render_image(const GL::Texture& image, int fb_width, int 
 
 Eigen::Vector2f QtSymmetryCanvas::screen_to_world(const Eigen::Vector2f& v)
 {
-	return { v.x() * (0.5 * width()) / pixels_per_unit_,
-	         v.y() * (0.5 * height()) / pixels_per_unit_ };
+	return { v.x() * (0.5f * width()) / pixels_per_unit_,
+	         v.y() * (0.5f * height()) / pixels_per_unit_ };
 }
