@@ -4,45 +4,64 @@
 #include <cstring>
 #include <cstdio>
 
-Tiling::Tiling(void)
-:	position_             (0.0, 0.0),
-	t1_                   (1.0, 0.0),
-	num_domains_          (1),
-	symmetrify_shader_    (GL::ShaderProgram::from_files(
-		                      "shaders/symmetrify_vert.glsl",
-		                      "shaders/symmetrify_geom.glsl",
-		                      "shaders/symmetrify_frag.glsl")),
-	instance_num_uniform_ (glGetUniformLocation(symmetrify_shader_, "uNumInstances")),
-	aspect_ratio_uniform_ (glGetUniformLocation(symmetrify_shader_, "uAR")),
-	position_uniform_     (glGetUniformLocation(symmetrify_shader_, "uPos")),
-	t1_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT1")),
-	t2_uniform_           (glGetUniformLocation(symmetrify_shader_, "uT2")),
-	sampler_uniform_      (glGetUniformLocation(symmetrify_shader_, "uTextureSampler")),
-	line_color_           (1.0, 0.6, 0.1),
-	mirror_color_         (0.1, 0.6, 1.0),
-	rotation_color_       (0.1, 1.0, 0.6),
-	consistent_           (false)
+#define SCALE 0.98f
+
+Tiling::Tiling(void) :
+	num_lattice_domains_ (1),
+	consistent_          (false),
+
+	position_            (0.0f, 0.0f),
+	t1_                  (1.0f, 0.0f),
+
+	line_color_          (1.0, 0.6, 0.1),
+	mirror_color_        (0.1, 0.6, 1.0),
+	rotation_color_      (0.1, 1.0, 0.6),
+
+	symmetrify_shader_   (GL::ShaderProgram::from_files(
+		                     "shaders/symmetrify_vert.glsl",
+		                     "shaders/symmetrify_frag.glsl")
+	                     ),
+	uniforms_            {
+		                     glGetUniformLocation(symmetrify_shader_, "uNumInstances"),
+		                     glGetUniformLocation(symmetrify_shader_, "uAR"),
+		                     glGetUniformLocation(symmetrify_shader_, "uPos"),
+		                     glGetUniformLocation(symmetrify_shader_, "uT1"),
+		                     glGetUniformLocation(symmetrify_shader_, "uT2"),
+		                     glGetUniformLocation(symmetrify_shader_, "uTextureSampler")
+	                     }
 {
 	set_symmetry_group("o");
+
+	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
+	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
+	domain_coordinates_ = {
+		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
+		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
+		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+
+		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
+		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
+	};
 }
 
 Eigen::Vector2f Tiling::center(void) const
 {
-	if (num_domains_ % 2)
+	if (num_lattice_domains_ % 2)
 		return position_ + (t1_ + t2()) / 2.0;
 	else
 		return position_;
-}
-
-double Tiling::rotation(void) const
-{
-	return std::atan2(t1_.y(), t1_.x());
 }
 
 Eigen::Vector2f Tiling::t2(void) const
 {
 	Eigen::Vector2f orthogonal = { -t1_.y(), t1_.x() };
 	return t1_ * t2_relative_.x() + orthogonal * t2_relative_.y();
+}
+
+double Tiling::rotation(void) const
+{
+	return std::atan2(t1_.y(), t1_.x());
 }
 
 void Tiling::set_symmetry_group(const char* group)
@@ -158,6 +177,17 @@ void Tiling::set_symmetry_group(const char* group)
 		lattice_        = Lattice::Oblique;
 		construct_p1();
 	}
+
+	construct_symmetry_mesh();
+	construct_mesh_texture();
+}
+
+void Tiling::set_num_lattice_domains(int n)
+{
+	consistent_ = false;
+
+	num_lattice_domains_ = n;
+	construct_mesh_texture();
 }
 
 void Tiling::set_center(const Eigen::Vector2f& center)
@@ -165,8 +195,51 @@ void Tiling::set_center(const Eigen::Vector2f& center)
 	consistent_ = false;
 
 	position_ = center;
-	if (num_domains_ % 2)
+	if (num_lattice_domains_ % 2)
 		position_ -= (t1_ + t2()) / 2.0;
+}
+
+void Tiling::set_t1(const Eigen::Vector2f& t1)
+{
+	// Never scale to zero.
+	if (t1.x() == 0.0f && t1.y() == 0.0f)
+		return;
+
+	consistent_ = false;
+
+	auto center = this->center();
+
+	t1_ = t1;
+
+	this->set_center(center);
+}
+
+void Tiling::set_t2(const Eigen::Vector2f& t2)
+{
+	// Early out if lattice is square or hexagonal and thus fixed.
+	if (lattice_ == Lattice::Square || lattice_ == Lattice::Hexagonal)
+		return;
+
+	consistent_ = false;
+
+	// Convert t2 to relative coordinates.
+	Eigen::Vector2f orthogonal = { -t1_.y(), t1_.x() };
+
+	Eigen::Matrix2f basis;
+	basis << t1_, orthogonal;
+
+	Eigen::Vector2f t2_relative = basis.inverse() * t2;
+
+	// Fulfill lattice constraints as well as possible.
+	if (lattice_ == Lattice::Oblique)
+		// No constraints.
+		t2_relative_ = t2_relative;
+	else if (lattice_ == Lattice::Rhombic)
+		// Must be of same length as t1.
+		t2_relative_ = t2_relative.normalized();
+	else if (lattice_ == Lattice::Rectangular)
+		// Must be orthogonal to t1.
+		t2_relative_ = {0.0f, t2_relative.y()};
 }
 
 void Tiling::set_rotation(double r)
@@ -211,7 +284,73 @@ void Tiling::multiply_scale(double factor)
 	this->set_center(center);
 }
 
-// TODO: Custom lattice transformations.
+void Tiling::set_deform_origin(const Eigen::Vector2f& deform_origin)
+{
+	deform_origin_      = deform_origin;
+	deform_original_t1_ = t1_;
+	deform_original_t2_ = t2();
+
+	if (lattice_ == Lattice::Rectangular || lattice_ == Lattice::Rhombic)
+	{
+		Eigen::Matrix2f basis;
+		basis << t1_.normalized(), t2().normalized();
+
+		Eigen::Vector2f origin = basis.inverse() * (deform_origin - center());
+
+		deform_quadrant_ = { origin.x() >= 0.0f ? 1.0f : -1.0f,
+		                     origin.y() >= 0.0f ? 1.0f : -1.0f };
+		deform_corner_   = deform_quadrant_.x() * t1_
+		                 + deform_quadrant_.y() * t2();
+	}
+}
+
+void Tiling::deform(const Eigen::Vector2f& deformation)
+{
+	consistent_ = false;
+
+	auto center = this->center();
+
+	float adj_factor = 2.0f / std::sqrt(num_lattice_domains_);
+	Eigen::Vector2f adj_deformation = adj_factor * deformation;
+
+	if (lattice_ == Lattice::Rhombic)
+	{
+		Eigen::Vector2f orthogonal = { -deform_corner_.y(), deform_corner_.x() };
+		Eigen::Matrix2f basis;
+		basis << deform_corner_.normalized(),
+		         orthogonal.normalized() * (-deform_quadrant_.prod());
+
+		Eigen::Vector2f c_relative = basis.inverse() * (deform_corner_ + adj_deformation);
+
+		float h = deform_original_t1_.norm();
+		float x = std::abs(c_relative.x() / 2.0f);
+		while (x > h) // We don't want NaNs from the square root.
+			x = std::abs(2.0f * h - x);
+		float y = std::sqrt(h*h - x*x);
+
+		Eigen::Vector2f t1_relative = {x, y};
+		Eigen::Vector2f t2_relative = {x, -y};
+
+		t1_        = basis * t1_relative * deform_quadrant_.x();
+		this->set_t2(basis * t2_relative * deform_quadrant_.y());
+	}
+	else if (lattice_ == Lattice::Rectangular)
+	{
+		Eigen::Matrix2f basis;
+		basis << deform_original_t1_.normalized(),
+		         deform_original_t2_.normalized();
+		basis *= deform_quadrant_.asDiagonal();
+
+		Eigen::Vector2f c_relative = basis.inverse() * (deform_corner_ + adj_deformation);
+
+		t1_          = c_relative.cwiseAbs().x() * deform_original_t1_.normalized();
+		t2_relative_ = {0.0f, c_relative.cwiseAbs().y() / t1_.norm()};
+	}
+
+	this->set_center(center);
+}
+
+// TODO: Preserve custom lattice transformations?
 void Tiling::construct_p1(void)
 {
 	// Square lattice.
@@ -928,6 +1067,49 @@ void Tiling::construct_p6m(void)
 	frame_mesh_.update_buffers();
 }
 
+void Tiling::construct_symmetry_mesh(void)
+{
+	symmetry_mesh_ = Mesh();
+	for (size_t i = 0; i < mesh_.positions_.size(); i += 3)
+	{
+		const Eigen::Vector3f& a        = mesh_.positions_[i];
+		const Eigen::Vector3f& b        = mesh_.positions_[i+1];
+		const Eigen::Vector3f& c        = mesh_.positions_[i+2];
+		const Eigen::Vector3f  centroid = (a + b + c) / 3.0f;
+
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (a - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (b - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (c - centroid));
+	}
+
+	symmetry_mesh_.update_buffers();
+}
+
+void Tiling::construct_mesh_texture(void)
+{
+	std::vector<Eigen::Vector3f> vertices;
+	vertices.reserve(num_lattice_domains_ * mesh_.positions_.size());
+
+	int s = std::sqrt(num_lattice_domains_);
+	for (int y = 0; y < s; ++y)
+	{
+		for (int x = 0; x < s; ++x)
+		{
+			Eigen::Vector3f adjustment = {(float)(x - s/2), (float)(y - s/2), 0};
+
+			for (const auto& vertex : mesh_.positions_)
+				vertices.push_back(vertex + adjustment);
+		}
+	}
+
+	GLint old_arr; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &old_arr);
+	glBindBuffer(GL_ARRAY_BUFFER, mesh_buffer_);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices[0].data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, old_arr);
+
+	mesh_texture_ = GL::Texture::buffer_texture(mesh_buffer_, GL_RGB32F);
+}
+
 void Tiling::symmetrify(const GL::Texture& texture)
 {
 	auto AR        = texture.width_ / (float)texture.height_;
@@ -956,15 +1138,15 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	// Set the shader program, uniforms and texture parameters, and draw.
 	glUseProgram(symmetrify_shader_);
 
-	glUniform1i  (instance_num_uniform_, num_domains_);
-	glUniform1f  (aspect_ratio_uniform_, AR);
-	glUniform2fv (position_uniform_, 1, position_.data());
-	glUniform2fv (t1_uniform_, 1, t1_.data());
-	glUniform2fv (t2_uniform_, 1, t2().data());
-	glUniform1i  (sampler_uniform_, 1);
+	glUniform1i  (uniforms_.num_instances, num_lattice_domains_);
+	glUniform1f  (uniforms_.aspect_ratio, AR);
+	glUniform2fv (uniforms_.position, 1, position_.data());
+	glUniform2fv (uniforms_.t1, 1, t1_.data());
+	glUniform2fv (uniforms_.t2, 1, t2().data());
+	glUniform1i  (uniforms_.sampler, 1);
 
-	glBindVertexArray(mesh_.vao_);
-	glDrawArraysInstanced(mesh_.primitive_type_, 0, mesh_.num_vertices_, num_domains_);
+	glBindVertexArray(symmetry_mesh_.vao_);
+	glDrawArraysInstanced(symmetry_mesh_.primitive_type_, 0, symmetry_mesh_.num_vertices_, num_lattice_domains_);
 
 	// Clean up.
 	glBindVertexArray(0);
