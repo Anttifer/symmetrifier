@@ -978,16 +978,17 @@ void App::position_callback(double x, double y)
 			Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 			const auto& drag_position = position - press_position_;
 
-			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-				tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
+			if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+				screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
 			else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
 				tiling_.deform(screen_to_world(drag_position));
 			else
-				screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
+				tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
 		}
 		else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 		{
-			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			// if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			if (true)
 			{
 				int width, height;
 				glfwGetFramebufferSize(window_, &width, &height);
@@ -1049,19 +1050,19 @@ void App::scroll_callback(double /* x_offset */, double y_offset)
 	// Don't do anything if ImGui is grabbing input.
 	if (!ImGui::GetIO().WantCaptureMouse)
 	{
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-		{
-			if (y_offset < 0)
-				tiling_.multiply_scale(zoom_factor_);
-			else if (y_offset > 0 && tiling_.scale() > 0.001)
-				tiling_.multiply_scale(1 / zoom_factor_);
-		}
-		else
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		{
 			if (y_offset > 0)
 				pixels_per_unit_ *=  zoom_factor_;
 			else if (y_offset < 0)
 				pixels_per_unit_ /=  zoom_factor_;
+		}
+		else
+		{
+			if (y_offset < 0)
+				tiling_.multiply_scale(zoom_factor_);
+			else if (y_offset > 0 && tiling_.scale() > 0.001)
+				tiling_.multiply_scale(1 / zoom_factor_);
 		}
 	}
 }
