@@ -533,19 +533,15 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Bullet();
 			ImGui::TextWrapped("Drag and drop the PNG image to symmetrify in this window.");
 			ImGui::Bullet();
-			ImGui::TextWrapped("Click and drag to move around.");
+			ImGui::TextWrapped("Drag to move the frame.");
 			ImGui::Bullet();
-			ImGui::TextWrapped("Control + drag to move the symmetrification frame.");
+			ImGui::TextWrapped("Shift + drag to move the view.");
 			ImGui::Bullet();
-			ImGui::TextWrapped("Control + right drag to rotate the symmetrification frame.");
+			ImGui::TextWrapped("Right drag to rotate the frame.");
 			ImGui::Bullet();
-			ImGui::TextWrapped("Scroll to zoom.");
+			ImGui::TextWrapped("Scroll to scale the frame.");
 			ImGui::Bullet();
-			ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
+			ImGui::TextWrapped("Shift + scroll to zoom.");
 		}
 		ImGui::End();
 	}
