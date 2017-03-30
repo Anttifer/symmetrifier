@@ -15,7 +15,7 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_                   (window_),
 	show_result_           (true),
 	show_symmetry_frame_   (true),
-	show_export_frame_     (false),
+	show_export_settings_  (false),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
 	clear_color_           (0.1, 0.1, 0.1),
@@ -129,7 +129,7 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		if (show_symmetry_frame_)
 			render_symmetry_frame(width, height, framebuffer);
 
-		if (show_export_frame_)
+		if (show_export_settings_)
 			render_export_frame(width, height, framebuffer);
 	}
 	else
@@ -483,10 +483,11 @@ void App::render_export_frame(int width, int height, GLuint framebuffer)
 
 void App::render_gui(int width, int height, GLuint framebuffer)
 {
-	static bool show_usage = false;
+	static bool show_usage = true;
 
 	// We need these for positioning the windows.
-	float main_menu_height;
+	static float main_menu_height;
+	static float usage_window_height;
 	auto& io = ImGui::GetIO();
 
 	gui_.new_frame();
@@ -502,6 +503,9 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 
 			if (ImGui::MenuItem("Show usage", NULL, show_usage))
 				show_usage ^= true;
+
+			if (ImGui::MenuItem("Show export settings", NULL, show_export_settings_))
+				show_export_settings_ ^= true;
 
 			if (ImGui::MenuItem("Quit", "Alt+F4"))
 				glfwSetWindowShouldClose(window_, GLFW_TRUE);
@@ -542,6 +546,7 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::TextWrapped("Scroll to scale the frame.");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Shift + scroll to zoom.");
+			usage_window_height = ImGui::GetWindowSize().y;
 		}
 		ImGui::End();
 	}
@@ -578,6 +583,18 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Spacing();
 			ImGui::Spacing();
 			ImGui::Spacing();
+		}
+		ImGui::End();
+	}
+
+	if (show_export_settings_)
+	{
+		auto flags = ImGuiWindowFlags_ShowBorders;
+		ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Once);
+		ImGui::SetNextWindowPos({io.DisplaySize.x - 350, usage_window_height + main_menu_height}, ImGuiSetCond_Once);
+		if (ImGui::Begin("Export settings", &show_export_settings_, flags))
+		{
+			show_export_settings();
 		}
 		ImGui::End();
 	}
