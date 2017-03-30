@@ -13,13 +13,13 @@ App::App(int /* argc */, char** /* argv */) :
 	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_),
-	show_result_           (false),
+	show_result_           (true),
 	show_symmetry_frame_   (true),
-	show_export_frame_     (true),
+	show_export_frame_     (false),
 	show_settings_         (true),
 	screen_center_         (0.5, 0.5),
 	clear_color_           (0.1, 0.1, 0.1),
-	pixels_per_unit_       (500.0), // Initial zoom level.
+	pixels_per_unit_       (300.0), // Initial zoom level.
 	zoom_factor_           (1.2),
 	export_width_          (1600),
 	export_height_         (1200),
@@ -86,8 +86,11 @@ App::App(int /* argc */, char** /* argv */) :
 	load_texture("res/kissa");
 	tiling_.set_symmetry_group("333");
 	tiling_.set_center({0.5, 0.5});
+	tiling_.set_scale(2.0f);
 
 	export_filename_ = export_base_name_ + ".png";
+
+	populate_thumbnail_map();
 }
 
 void App::loop(void)
@@ -549,13 +552,8 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
 		if (ImGui::Begin("Settings", &show_settings_, flags))
 		{
-			show_symmetry_groups();
-
-			ImGui::Spacing();
-			ImGui::Spacing();
-			ImGui::Spacing();
-
-			show_view_settings();
+			// show_symmetry_groups();
+			show_symmetry_buttons();
 
 			ImGui::Spacing();
 			ImGui::Spacing();
@@ -567,7 +565,13 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 			ImGui::Spacing();
 			ImGui::Spacing();
 
-			show_export_settings();
+			show_view_settings();
+
+			ImGui::Spacing();
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			// show_export_settings();
 
 			ImGui::Spacing();
 			ImGui::Spacing();
@@ -577,6 +581,28 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 	}
 
 	gui_.render(width, height, framebuffer);
+}
+
+void App::show_symmetry_buttons(void)
+{
+	ImGui::Text("Choose the symmetry group");
+	ImGui::Separator();
+
+	auto current_group = tiling_.symmetry_group();
+
+	ImGui::Text("Current"); ImGui::SameLine(148); ImGui::Text(current_group);
+	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
+	ImGui::PushID("Group choice");
+	if (ImGui::ImageButton((ImTextureID)(GLuint)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
+		ImGui::OpenPopup("Choose a symmetry group");
+
+	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
+	if (ImGui::BeginPopupModal("Choose a symmetry group", NULL, modal_flags))
+	{
+		modal_symmetry_buttons_1();
+		ImGui::EndPopup();
+	}
+	ImGui::PopID();
 }
 
 void App::show_symmetry_groups(void)
@@ -699,15 +725,84 @@ void App::show_symmetry_groups(void)
 	ImGui::EndGroup();
 }
 
+void App::modal_symmetry_buttons_1(void)
+{
+	bool modal_should_close = false;
+
+	auto create_button_group = [&](const char* symmetry_group, int label_offset = 60)
+	{
+		ImGui::BeginGroup();
+		ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
+		ImGui::Text(symmetry_group);
+		ImGui::PushID(symmetry_group);
+		if (ImGui::ImageButton((ImTextureID)(GLuint)thumbnail_map_[symmetry_group], {120, 120}, {0, 1}, {1, 0}, 10))
+		{
+			tiling_.set_symmetry_group(symmetry_group);
+			modal_should_close = true;
+		}
+		ImGui::PopID();
+		ImGui::EndGroup();
+	};
+
+	ImGui::PushID("modal buttons");
+
+	// No rotations.
+	create_button_group("o");
+	ImGui::SameLine();
+	create_button_group("xx");
+	ImGui::SameLine();
+	create_button_group("*x");
+	ImGui::SameLine();
+	create_button_group("**");
+
+	// 2-fold rotations.
+	create_button_group("2222", 45);
+	ImGui::SameLine();
+	create_button_group("22x", 45);
+	ImGui::SameLine();
+	create_button_group("22*", 45);
+	ImGui::SameLine();
+	create_button_group("2*22", 45);
+	ImGui::SameLine();
+	create_button_group("*2222", 45);
+
+	// 3-fold rotations.
+	create_button_group("333", 50);
+	ImGui::SameLine();
+	create_button_group("3*3", 50);
+	ImGui::SameLine();
+	create_button_group("*333", 50);
+
+	// 4-fold rotations.
+	create_button_group("442", 50);
+	ImGui::SameLine();
+	create_button_group("4*2", 50);
+	ImGui::SameLine();
+	create_button_group("*442", 50);
+
+	// 6-fold rotations.
+	create_button_group("632", 50);
+	ImGui::SameLine();
+	create_button_group("*632", 50);
+	ImGui::SameLine();
+
+	ImGui::PopID();
+
+	if (modal_should_close)
+		ImGui::CloseCurrentPopup();
+}
+
 void App::show_view_settings(void)
 {
 	ImGui::Text("View settings");
 	ImGui::Separator();
 
-	ImGui::Text("Show result:"); ImGui::SameLine(130);
+	ImGui::Text("Show result:"); ImGui::SameLine(140);
 	ImGui::Checkbox("##Show result", &show_result_);
+	ImGui::SameLine(0, 12);
+	ImGui::TextDisabled("(Spacebar)");
 
-	ImGui::Text("Screen center:"); ImGui::SameLine(130);
+	ImGui::Text("Screen center:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	ImGui::DragFloat2("##Screen center", screen_center_.data(), 0.01f);
 	ImGui::PopItemWidth();
@@ -717,7 +812,7 @@ void App::show_view_settings(void)
 
 	// We need a float, not a double.
 	float pixels_per_unit = pixels_per_unit_;
-	ImGui::Text("Zoom level:"); ImGui::SameLine(130);
+	ImGui::Text("Zoom level:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
 		pixels_per_unit_ = pixels_per_unit;
@@ -726,21 +821,21 @@ void App::show_view_settings(void)
 	if (ImGui::Button("Reset##Reset zoom level"))
 		pixels_per_unit_ = 500.0;
 
-	ImGui::Text("Background:"); ImGui::SameLine(130);
+	ImGui::Text("Background:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-1.0f);
 	ImGui::ColorEdit3("##Background color", clear_color_.data());
 	ImGui::PopItemWidth();
-	ImGui::Dummy({0, 0}); ImGui::SameLine(130);
-	if (ImGui::Button("Reset##Reset background color"))
+	ImGui::Dummy({0, 0}); ImGui::SameLine(140);
+	if (ImGui::Button("Reset color##Reset background color"))
 		clear_color_ = {0.1, 0.1, 0.1};
 	ImGui::SameLine();
-	ImGui::Button("Pick color...");
-	if (ImGui::IsItemHovered())
-	{
-		ImGui::BeginTooltip();
-		ImGui::Text("Not implemented yet :)");
-		ImGui::EndTooltip();
-	}
+	// ImGui::Button("Pick color...");
+	// if (ImGui::IsItemHovered())
+	// {
+	// 	ImGui::BeginTooltip();
+	// 	ImGui::Text("Not implemented yet :)");
+	// 	ImGui::EndTooltip();
+	// }
 }
 
 void App::show_frame_settings(void)
@@ -750,6 +845,7 @@ void App::show_frame_settings(void)
 
 	ImGui::Text("Show frame:"); ImGui::SameLine(140);
 	ImGui::Checkbox("##Show frame", &show_symmetry_frame_);
+	ImGui::SameLine(0, 12); ImGui::TextDisabled("(Ctrl + Spacebar)");
 
 	auto frame_position = tiling_.center();
 	ImGui::Text("Frame position:"); ImGui::SameLine(140);
@@ -781,14 +877,14 @@ void App::show_frame_settings(void)
 	if (ImGui::Button("Reset##Reset frame scale"))
 		tiling_.set_scale(1.0);
 
-	int num_domains = tiling_.num_lattice_domains();
-	bool domains_changed = false;
-	ImGui::Text("Domains:"); ImGui::SameLine(140);
-	domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
-	domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
-	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
-	if (domains_changed)
-		tiling_.set_num_lattice_domains(num_domains);
+	// int num_domains = tiling_.num_lattice_domains();
+	// bool domains_changed = false;
+	// ImGui::Text("Domains:"); ImGui::SameLine(140);
+	// domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
+	// domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
+	// domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
+	// if (domains_changed)
+	// 	tiling_.set_num_lattice_domains(num_domains);
 }
 
 void App::show_export_settings(void)
@@ -1044,6 +1140,31 @@ void App::load_texture(const char* filename)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
+}
+
+void App::populate_thumbnail_map(void)
+{
+	thumbnail_map_["o"]     = GL::Texture::from_png("res/thumbnails/o");
+	thumbnail_map_["xx"]    = GL::Texture::from_png("res/thumbnails/xx");
+	thumbnail_map_["*x"]    = GL::Texture::from_png("res/thumbnails/_x");
+	thumbnail_map_["**"]    = GL::Texture::from_png("res/thumbnails/__");
+
+	thumbnail_map_["2222"]  = GL::Texture::from_png("res/thumbnails/2222");
+	thumbnail_map_["22x"]   = GL::Texture::from_png("res/thumbnails/22x");
+	thumbnail_map_["22*"]   = GL::Texture::from_png("res/thumbnails/22_");
+	thumbnail_map_["2*22"]  = GL::Texture::from_png("res/thumbnails/2_22");
+	thumbnail_map_["*2222"] = GL::Texture::from_png("res/thumbnails/_2222");
+
+	thumbnail_map_["333"]   = GL::Texture::from_png("res/thumbnails/333");
+	thumbnail_map_["3*3"]   = GL::Texture::from_png("res/thumbnails/3_3");
+	thumbnail_map_["*333"]  = GL::Texture::from_png("res/thumbnails/_333");
+
+	thumbnail_map_["442"]   = GL::Texture::from_png("res/thumbnails/442");
+	thumbnail_map_["4*2"]   = GL::Texture::from_png("res/thumbnails/4_2");
+	thumbnail_map_["*442"]  = GL::Texture::from_png("res/thumbnails/_442");
+
+	thumbnail_map_["632"]   = GL::Texture::from_png("res/thumbnails/632");
+	thumbnail_map_["*632"]  = GL::Texture::from_png("res/thumbnails/_632");
 }
 
 // TODO: Figure out where this should go.

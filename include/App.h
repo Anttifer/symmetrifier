@@ -8,6 +8,7 @@
 #include "PinwheelPlane.h"
 #include "Tiling.h"
 #include "GLObjects.h"
+#include <unordered_map>
 
 //--------------------
 
@@ -39,10 +40,13 @@ private:
 	// Renders the GUI using dear ImGui.
 	void render_gui           (int width, int height, GLuint framebuffer = 0);
 
-	void show_symmetry_groups (void);
-	void show_view_settings   (void);
-	void show_frame_settings  (void);
-	void show_export_settings (void);
+	void show_symmetry_groups  (void);
+	void show_symmetry_buttons (void);
+	void show_view_settings    (void);
+	void show_frame_settings   (void);
+	void show_export_settings  (void);
+
+	void modal_symmetry_buttons_1 (void);
 
 	// Mouse callbacks.
 	void position_callback    (double, double);
@@ -54,9 +58,10 @@ private:
 	void print_screen  (int, int, int);
 
 	// Utilities.
-	void            load_texture    (const char*);
-	void            export_result   (void);
-	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
+	void            load_texture           (const char*);
+	void            populate_thumbnail_map (void);
+	void            export_result          (void);
+	Eigen::Vector2f screen_to_world        (const Eigen::Vector2f&);
 
 	// Framework objects.
 	MainWindow    window_;
@@ -86,5 +91,7 @@ private:
 	int         export_height_;
 	std::string export_base_name_;
 	std::string export_filename_;
+
+	std::unordered_map<std::string, GL::Texture> thumbnail_map_;
 };
 #endif // APP_H
