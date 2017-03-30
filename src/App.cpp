@@ -495,24 +495,30 @@ void App::render_gui(int width, int height, GLuint framebuffer)
 	if (ImGui::BeginMainMenuBar())
 	{
 		main_menu_height = ImGui::GetWindowSize().y;
-		if (ImGui::BeginMenu("File"))
+		if (ImGui::BeginMenu("Menu"))
 		{
+			if (ImGui::MenuItem("Show settings", "Esc", show_settings_))
+				show_settings_ ^= true;
+
+			if (ImGui::MenuItem("Show usage", NULL, show_usage))
+				show_usage ^= true;
+
 			if (ImGui::MenuItem("Quit", "Alt+F4"))
 				glfwSetWindowShouldClose(window_, GLFW_TRUE);
 
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("View"))
-		{
-			if (ImGui::MenuItem("Show usage", NULL, show_usage))
-				show_usage ^= true;
+		// if (ImGui::BeginMenu("View"))
+		// {
+		// 	if (ImGui::MenuItem("Show usage", NULL, show_usage))
+		// 		show_usage ^= true;
 
-			if (ImGui::MenuItem("Show settings", "Esc", show_settings_))
-				show_settings_ ^= true;
+		// 	if (ImGui::MenuItem("Show settings", "Esc", show_settings_))
+		// 		show_settings_ ^= true;
 
-			ImGui::EndMenu();
-		}
+		// 	ImGui::EndMenu();
+		// }
 		ImGui::EndMainMenuBar();
 	}
 
@@ -590,7 +596,7 @@ void App::show_symmetry_buttons(void)
 
 	auto current_group = tiling_.symmetry_group();
 
-	ImGui::Text("Current"); ImGui::SameLine(148); ImGui::Text(current_group);
+	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
 	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
 	ImGui::PushID("Group choice");
 	if (ImGui::ImageButton((ImTextureID)(GLuint)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
@@ -819,7 +825,7 @@ void App::show_view_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset zoom level"))
-		pixels_per_unit_ = 500.0;
+		pixels_per_unit_ = 300.0;
 
 	ImGui::Text("Background:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-1.0f);
@@ -875,7 +881,7 @@ void App::show_frame_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset frame scale"))
-		tiling_.set_scale(1.0);
+		tiling_.set_scale(2.0);
 
 	// int num_domains = tiling_.num_lattice_domains();
 	// bool domains_changed = false;
