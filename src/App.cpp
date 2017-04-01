@@ -612,7 +612,7 @@ void App::show_symmetry_buttons(void)
 	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
 	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
 	ImGui::PushID("Group choice");
-	if (ImGui::ImageButton((ImTextureID)(GLuint)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
+	if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
 		ImGui::OpenPopup("Choose a symmetry group");
 
 	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
@@ -754,7 +754,7 @@ void App::modal_symmetry_buttons_1(void)
 		ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
 		ImGui::Text(symmetry_group);
 		ImGui::PushID(symmetry_group);
-		if (ImGui::ImageButton((ImTextureID)(GLuint)thumbnail_map_[symmetry_group], {120, 120}, {0, 1}, {1, 0}, 10))
+		if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[symmetry_group], {120, 120}, {0, 1}, {1, 0}, 10))
 		{
 			tiling_.set_symmetry_group(symmetry_group);
 			modal_should_close = true;
