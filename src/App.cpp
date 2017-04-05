@@ -62,7 +62,7 @@ App::App(int /* argc */, char** /* argv */) :
 	// Drop callback.
 	window_.add_path_drop_callback([this](int count, const char** paths){
 		if (count > 0)
-			this->load_texture(paths[0]);
+			this->tiling_.set_base_image(GL::Texture::from_png(paths[0]));
 	});
 
 	// Disable vsync.
@@ -83,9 +83,9 @@ App::App(int /* argc */, char** /* argv */) :
 	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
 	gui_.create_fonts_texture();
 
-	load_texture("res/kissa");
+	tiling_.set_base_image(GL::Texture::from_png("res/kissa"));
 	tiling_.set_symmetry_group("333");
-	tiling_.set_center({0.5, 0.5});
+	tiling_.set_center({0.5f, 0.5f});
 
 	export_filename_ = export_base_name_ + ".png";
 }
@@ -120,7 +120,7 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 	{
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
-			tiling_.symmetrify(base_image_);
+			tiling_.symmetrify();
 		render_tiling(width, height, framebuffer);
 
 		if (show_symmetry_frame_)
@@ -131,7 +131,7 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 	}
 	else
 	{
-		render_image(base_image_, width, height, framebuffer);
+		render_image(tiling_.base_image(), width, height, framebuffer);
 
 		// Always render frame when not showing the result.
 		render_symmetry_frame(width, height, framebuffer);
@@ -305,7 +305,7 @@ void App::render_tiling_hq(int width, int height, GLuint framebuffer)
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, base_image_);
+	glBindTexture(GL_TEXTURE_2D, tiling_.base_image());
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_BUFFER, tiling_.mesh_texture());
@@ -319,7 +319,7 @@ void App::render_tiling_hq(int width, int height, GLuint framebuffer)
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
-	auto AR = base_image_.width_ / (float)base_image_.height_;
+	auto AR = tiling_.base_image().width_ / (float)tiling_.base_image().height_;
 	const auto& mesh = tiling_.mesh();
 
 	glUniform1i  (num_instances_uniform, num_instances);
@@ -1029,21 +1029,6 @@ void App::print_screen(int /* scancode */, int action, int /* mods */)
 
 		printf("Screenshot saved. (screenshot.png)\n");
 	}
-}
-
-void App::load_texture(const char* filename)
-{
-	tiling_.set_inconsistent();
-	base_image_ = GL::Texture::from_png(filename);
-
-	// We'll use nearest neighbor filtering.
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, base_image_);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
 }
 
 // TODO: Figure out where this should go.

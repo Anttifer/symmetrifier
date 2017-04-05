@@ -284,6 +284,26 @@ void Tiling::multiply_scale(double factor)
 	this->set_center(center);
 }
 
+void Tiling::set_base_image(GL::Texture&& texture)
+{
+	consistent_ = false;
+
+	base_image_ = std::move(texture);
+
+	// We'll use nearest neighbor filtering.
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, base_image_);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	// Sensible wrapping parameters.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+}
+
 void Tiling::set_deform_origin(const Eigen::Vector2f& deform_origin)
 {
 	deform_origin_      = deform_origin;
@@ -1110,10 +1130,10 @@ void Tiling::construct_mesh_texture(void)
 	mesh_texture_ = GL::Texture::buffer_texture(mesh_buffer_, GL_RGB32F);
 }
 
-void Tiling::symmetrify(const GL::Texture& texture)
+void Tiling::symmetrify(void)
 {
-	auto AR        = texture.width_ / (float)texture.height_;
-	auto dimension = std::max({texture.width_, texture.height_, 512u});
+	auto AR        = base_image_.width_ / (float)base_image_.height_;
+	auto dimension = std::max({base_image_.width_, base_image_.height_, 512u});
 
 	// Set up the symmetrified texture.
 	domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
@@ -1127,11 +1147,7 @@ void Tiling::symmetrify(const GL::Texture& texture)
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-
-	// Set texture wrapping parameters.
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glBindTexture(GL_TEXTURE_2D, base_image_);
 
 	glViewport(0, 0, dimension, dimension);
 

@@ -42,6 +42,7 @@ public:
 	const Mesh&            frame (void) const { return frame_mesh_; }
 
 	// Textures & coordinates.
+	const GL::Texture& base_image         (void) const { return base_image_; }
 	const GL::Texture& domain_texture     (void) const { return domain_texture_; }
 	const GL::Texture& mesh_texture       (void) const { return mesh_texture_; }
 	const std::vector<Eigen::Vector2f>&
@@ -63,13 +64,16 @@ public:
 	void set_scale      (double);
 	void multiply_scale (double factor);
 
+
+	void set_base_image (GL::Texture&&);
+
 	// Intuitive lattice domain deformations.
-	void set_deform_origin  (const Eigen::Vector2f&);
+	void set_deform_origin       (const Eigen::Vector2f&);
 	void deform                  (const Eigen::Vector2f&);
 
 	// This function constructs the symmetrified texture according to
 	// the current symmetry group.
-	void symmetrify (const GL::Texture&);
+	void symmetrify (void);
 
 private:
 	// Mesh construction functions for the different symmetry groups.
@@ -143,6 +147,8 @@ private:
 
 
 	// Textures & coordinates.
+
+	GL::Texture                  base_image_;
 
 	// This texture will contain the symmetrified fundamental domain.
 	GL::Texture                  domain_texture_;

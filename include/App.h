@@ -54,7 +54,6 @@ private:
 	void print_screen  (int, int, int);
 
 	// Utilities.
-	void            load_texture    (const char*);
 	void            export_result   (void);
 	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
 
