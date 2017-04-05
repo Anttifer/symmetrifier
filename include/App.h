@@ -2,10 +2,9 @@
 #define APP_H
 
 #include "Window.h"
-#include "GUI.h"
+#include "GLFWImGui.h"
 #include "ShaderCanvas.h"
 #include "Mesh.h"
-#include "PinwheelPlane.h"
 #include "Tiling.h"
 #include "GLObjects.h"
 
@@ -60,7 +59,7 @@ private:
 	// Framework objects.
 	MainWindow    window_;
 	double        time_;
-	GUI           gui_;
+	GLFWImGui     gui_;
 	ShaderCanvas  canvas_;
 
 	Tiling      tiling_;

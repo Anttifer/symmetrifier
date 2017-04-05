@@ -1,15 +1,15 @@
-#ifndef GUI_H
-#define GUI_H
+#ifndef GLFWIMGUI_H
+#define GLFWIMGUI_H
 
 #include "GLObjects.h"
 
 class MainWindow;
 
-class GUI
+class GLFWImGui
 {
 public:
-	GUI  (MainWindow&);
-	~GUI (void);
+	GLFWImGui  (MainWindow&);
+	~GLFWImGui (void);
 
 	void new_frame            (void);
 	void render               (int width = -1, int height = -1, GLuint framebuffer = 0);
@@ -36,4 +36,4 @@ private:
 	static const char* get_clipboard_text(void* user_data);
 	static void        set_clipboard_text(void* user_data, const char* text);
 };
-#endif // GUI_H
+#endif // GLFWIMGUI_H

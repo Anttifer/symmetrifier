@@ -1,4 +1,4 @@
-#include "GUI.h"
+#include "GLFWImGui.h"
 
 #include "Window.h"
 #include "imgui.h"
@@ -6,7 +6,7 @@
 #define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
 
 
-GUI::GUI(MainWindow& window)
+GLFWImGui::GLFWImGui(MainWindow& window)
 :	window_                  (window),
 	shader_                  (GL::ShaderProgram::from_files(
 		                          "shaders/gui_vert.glsl",
@@ -58,14 +58,14 @@ GUI::GUI(MainWindow& window)
 		this->mouse_wheel_ += (float)y_offset;
 	});
 
-	window_.add_key_callback(&GUI::key_callback, this);
-	window_.add_char_callback(&GUI::char_callback, this);
+	window_.add_key_callback(&GLFWImGui::key_callback, this);
+	window_.add_char_callback(&GLFWImGui::char_callback, this);
 
 	create_fonts_texture();
 
 	io.RenderDrawListsFn = NULL;
-	io.SetClipboardTextFn = &GUI::set_clipboard_text;
-	io.GetClipboardTextFn = &GUI::get_clipboard_text;
+	io.SetClipboardTextFn = &GLFWImGui::set_clipboard_text;
+	io.GetClipboardTextFn = &GLFWImGui::get_clipboard_text;
 	io.ClipboardUserData = (GLFWwindow*)window_;
 
 	glBindVertexArray(vao_);
@@ -83,13 +83,13 @@ GUI::GUI(MainWindow& window)
 	glBindVertexArray(0);
 }
 
-GUI::~GUI(void)
+GLFWImGui::~GLFWImGui(void)
 {
 	ImGui::GetIO().Fonts->TexID = 0;
 	ImGui::Shutdown();
 }
 
-void GUI::new_frame(void)
+void GLFWImGui::new_frame(void)
 {
 	auto& io = ImGui::GetIO();
 
@@ -130,7 +130,7 @@ void GUI::new_frame(void)
 	ImGui::NewFrame();
 }
 
-void GUI::render(int width, int height, GLuint framebuffer)
+void GLFWImGui::render(int width, int height, GLuint framebuffer)
 {
 	auto& io = ImGui::GetIO();
 
@@ -224,7 +224,7 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void GUI::create_fonts_texture(void)
+void GLFWImGui::create_fonts_texture(void)
 {
 	auto& io = ImGui::GetIO();
 	unsigned char* pixels;
@@ -245,7 +245,7 @@ void GUI::create_fonts_texture(void)
 	io.Fonts->TexID = (void*)(intptr_t)(GLuint)fonts_texture_;
 }
 
-void GUI::key_callback(int key, int /* scancode */, int action, int mods)
+void GLFWImGui::key_callback(int key, int /* scancode */, int action, int mods)
 {
 	auto& io = ImGui::GetIO();
 	if (action == GLFW_PRESS)
@@ -260,19 +260,19 @@ void GUI::key_callback(int key, int /* scancode */, int action, int mods)
     io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER]   || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
 }
 
-void GUI::char_callback(unsigned int c)
+void GLFWImGui::char_callback(unsigned int c)
 {
 	auto& io = ImGui::GetIO();
 	if (c > 0 && c < 0x10000)
 		io.AddInputCharacter((unsigned short)c);
 }
 
-const char* GUI::get_clipboard_text(void* user_data)
+const char* GLFWImGui::get_clipboard_text(void* user_data)
 {
 	return glfwGetClipboardString((GLFWwindow*)user_data);
 }
 
-void  GUI::set_clipboard_text(void* user_data, const char* text)
+void  GLFWImGui::set_clipboard_text(void* user_data, const char* text)
 {
 	glfwSetClipboardString((GLFWwindow*)user_data, text);
 }
