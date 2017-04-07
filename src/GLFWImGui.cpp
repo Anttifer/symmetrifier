@@ -6,8 +6,8 @@
 #define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
 
 
-GLFWImGui::GLFWImGui(MainWindow& window)
-:	window_                  (window),
+GLFWImGui::GLFWImGui(MainWindow& window) :
+	window_                  (window),
 	shader_                  (GL::ShaderProgram::from_files(
 		                          "shaders/gui_vert.glsl",
 		                          "shaders/gui_frag.glsl")),
@@ -272,7 +272,7 @@ const char* GLFWImGui::get_clipboard_text(void* user_data)
 	return glfwGetClipboardString((GLFWwindow*)user_data);
 }
 
-void  GLFWImGui::set_clipboard_text(void* user_data, const char* text)
+void GLFWImGui::set_clipboard_text(void* user_data, const char* text)
 {
 	glfwSetClipboardString((GLFWwindow*)user_data, text);
 }
