@@ -12,19 +12,33 @@
 App::App(int /* argc */, char** /* argv */) :
 	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
-	gui_                   (window_),
-	show_result_           (false),
-	show_symmetry_frame_   (true),
-	show_export_frame_     (true),
-	show_settings_         (true),
-	screen_center_         (0.5, 0.5),
+	gui_                   (window_, tiling_),
+
 	clear_color_           (0.1, 0.1, 0.1),
-	pixels_per_unit_       (500.0), // Initial zoom level.
-	zoom_factor_           (1.2),
+	screen_center_         (0.5, 0.5),
+	pixels_per_unit_       (500.0),
+	show_symmetry_frame_   (true),
+	show_result_           (false),
+	show_settings_         (true),
 	export_width_          (1600),
 	export_height_         (1200),
-	export_base_name_      ("image")
+
+	zoom_factor_           (1.2),
+	show_export_frame_     (true)
 {
+	// Set GUI to track the relevant variables.
+	gui_.clear_color_track(clear_color_);
+	gui_.screen_center_track(screen_center_);
+	gui_.pixels_per_unit_track(pixels_per_unit_);
+	gui_.frame_visible_track(show_symmetry_frame_);
+	gui_.result_visible_track(show_result_);
+	gui_.settings_window_visible_track(show_settings_);
+	gui_.export_width_track(export_width_);
+	gui_.export_height_track(export_height_);
+
+	// Set GUI export button callback.
+	gui_.set_export_callback(&App::export_result, this);
+
 	// Mouse callbacks.
 	window_.add_mouse_pos_callback(&App::position_callback, this);
 	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::left_click_callback, this);
@@ -77,17 +91,9 @@ App::App(int /* argc */, char** /* argv */) :
 	// This probably doesn't work, but worth asking anyway. :)
 	glEnable(GL_LINE_SMOOTH);
 
-	// Set default GUI font.
-	auto& io = ImGui::GetIO();
-	io.Fonts->Clear();
-	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
-	gui_.create_fonts_texture();
-
 	tiling_.set_base_image(GL::Texture::from_png("res/kissa"));
 	tiling_.set_symmetry_group("333");
 	tiling_.set_center({0.5f, 0.5f});
-
-	export_filename_ = export_base_name_ + ".png";
 }
 
 void App::loop(void)
@@ -104,7 +110,7 @@ void App::loop(void)
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		render_scene(width, height);
-		render_gui(width, height);
+		gui_.render(width, height);
 
 		// Show the result on screen.
 		glfwSwapBuffers(window_);
@@ -478,392 +484,6 @@ void App::render_export_frame(int width, int height, GLuint framebuffer)
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_gui(int width, int height, GLuint framebuffer)
-{
-	static bool show_usage = false;
-
-	// We need these for positioning the windows.
-	float main_menu_height;
-	auto& io = ImGui::GetIO();
-
-	gui_.new_frame();
-
-	// Main menu.
-	if (ImGui::BeginMainMenuBar())
-	{
-		main_menu_height = ImGui::GetWindowSize().y;
-		if (ImGui::BeginMenu("File"))
-		{
-			if (ImGui::MenuItem("Quit", "Alt+F4"))
-				glfwSetWindowShouldClose(window_, GLFW_TRUE);
-
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu("View"))
-		{
-			if (ImGui::MenuItem("Show usage", NULL, show_usage))
-				show_usage ^= true;
-
-			if (ImGui::MenuItem("Show settings", "Esc", show_settings_))
-				show_settings_ ^= true;
-
-			ImGui::EndMenu();
-		}
-		ImGui::EndMainMenuBar();
-	}
-
-	// Usage window.
-	if (show_usage)
-	{
-		auto flags = ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
-		ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
-		ImGui::SetNextWindowPos({io.DisplaySize.x - 350, main_menu_height}, ImGuiSetCond_Appearing);
-		if (ImGui::Begin("Usage", &show_usage, flags))
-		{
-			ImGui::Bullet();
-			ImGui::TextWrapped("Drag and drop the PNG image to symmetrify in this window.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Click and drag to move around.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Control + drag to move the symmetrification frame.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Control + right drag to rotate the symmetrification frame.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Scroll to zoom.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
-		}
-		ImGui::End();
-	}
-
-	// Settings window.
-	if (show_settings_)
-	{
-		auto flags = 0;
-		ImGui::SetNextWindowSize({335, 0}, ImGuiSetCond_Once);
-		ImGui::SetNextWindowPos({0, main_menu_height}, ImGuiSetCond_Once);
-		if (ImGui::Begin("Settings", &show_settings_, flags))
-		{
-			show_symmetry_groups();
-
-			ImGui::Spacing();
-			ImGui::Spacing();
-			ImGui::Spacing();
-
-			show_view_settings();
-
-			ImGui::Spacing();
-			ImGui::Spacing();
-			ImGui::Spacing();
-
-			show_frame_settings();
-
-			ImGui::Spacing();
-			ImGui::Spacing();
-			ImGui::Spacing();
-
-			show_export_settings();
-
-			ImGui::Spacing();
-			ImGui::Spacing();
-			ImGui::Spacing();
-		}
-		ImGui::End();
-	}
-
-	gui_.render(width, height, framebuffer);
-}
-
-void App::show_symmetry_groups(void)
-{
-	ImGui::Text("Symmetry groups");
-	ImGui::Separator();
-
-	ImGui::Dummy({0, 0});                   ImGui::SameLine(95);
-	ImGui::Text("No reflections");          ImGui::SameLine(215);
-	ImGui::Text("Reflections");
-	ImGui::Spacing();
-
-	ImGui::PushTextWrapPos(80.0f);
-	ImGui::TextWrapped("No rotations");     ImGui::SameLine(95);
-	ImGui::PopTextWrapPos();
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("o", !strncmp(tiling_.symmetry_group(), "o", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("o");
-	ImGui::SameLine(25); ImGui::Text("(p1)");
-	if (ImGui::Selectable("xx", !strncmp(tiling_.symmetry_group(), "xx", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("xx");
-	ImGui::SameLine(25); ImGui::Text("(pg)");
-	ImGui::EndGroup();                      ImGui::SameLine(215);
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("**", !strncmp(tiling_.symmetry_group(), "**", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("**");
-	ImGui::SameLine(25); ImGui::Text("(pm)");
-	if (ImGui::Selectable("*x", !strncmp(tiling_.symmetry_group(), "*x", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*x");
-	ImGui::SameLine(25); ImGui::Text("(cm)");
-	ImGui::EndGroup();
-	ImGui::Spacing();
-	ImGui::Spacing();
-
-	ImGui::PushTextWrapPos(80.0f);
-	ImGui::TextWrapped("2-fold rotations"); ImGui::SameLine(95);
-	ImGui::PopTextWrapPos();
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("2222", !strncmp(tiling_.symmetry_group(), "2222", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("2222");
-	ImGui::SameLine(45); ImGui::Text("(p2)");
-	if (ImGui::Selectable("22x", !strncmp(tiling_.symmetry_group(), "22x", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("22x");
-	ImGui::SameLine(45); ImGui::Text("(pgg)");
-	ImGui::EndGroup();                      ImGui::SameLine(215);
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("*2222", !strncmp(tiling_.symmetry_group(), "*2222", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*2222");
-	ImGui::SameLine(55); ImGui::Text("(pmm)");
-	if (ImGui::Selectable("2*22", !strncmp(tiling_.symmetry_group(), "2*22", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("2*22");
-	ImGui::SameLine(55); ImGui::Text("(cmm)");
-	if (ImGui::Selectable("22*", !strncmp(tiling_.symmetry_group(), "22*", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("22*");
-	ImGui::SameLine(55); ImGui::Text("(pmg)");
-	ImGui::EndGroup();
-	ImGui::Spacing();
-	ImGui::Spacing();
-
-	ImGui::PushTextWrapPos(80.0f);
-	ImGui::TextWrapped("3-fold rotations"); ImGui::SameLine(95);
-	ImGui::PopTextWrapPos();
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("333", !strncmp(tiling_.symmetry_group(), "333", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("333");
-	ImGui::SameLine(35); ImGui::Text("(p3)");
-	ImGui::EndGroup();                      ImGui::SameLine(215);
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("*333", !strncmp(tiling_.symmetry_group(), "*333", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*333");
-	ImGui::SameLine(45); ImGui::Text("(p3m1)");
-	if (ImGui::Selectable("3*3", !strncmp(tiling_.symmetry_group(), "3*3", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("3*3");
-	ImGui::SameLine(45); ImGui::Text("(p31m)");
-	ImGui::EndGroup();
-	ImGui::Spacing();
-	ImGui::Spacing();
-
-	ImGui::PushTextWrapPos(80.0f);
-	ImGui::TextWrapped("4-fold rotations"); ImGui::SameLine(95);
-	ImGui::PopTextWrapPos();
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("442", !strncmp(tiling_.symmetry_group(), "442", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("442");
-	ImGui::SameLine(35); ImGui::Text("(p4)");
-	ImGui::EndGroup();                      ImGui::SameLine(215);
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("*442", !strncmp(tiling_.symmetry_group(), "*442", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*442");
-	ImGui::SameLine(45); ImGui::Text("(p4m)");
-	if (ImGui::Selectable("4*2", !strncmp(tiling_.symmetry_group(), "4*2", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("4*2");
-	ImGui::SameLine(45); ImGui::Text("(p4g)");
-	ImGui::EndGroup();
-	ImGui::Spacing();
-	ImGui::Spacing();
-
-	ImGui::PushTextWrapPos(80.0f);
-	ImGui::TextWrapped("6-fold rotations"); ImGui::SameLine(95);
-	ImGui::PopTextWrapPos();
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("632", !strncmp(tiling_.symmetry_group(), "632", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("632");
-	ImGui::SameLine(35); ImGui::Text("(p6)");
-	ImGui::EndGroup();                      ImGui::SameLine(215);
-
-	ImGui::BeginGroup();
-	if (ImGui::Selectable("*632", !strncmp(tiling_.symmetry_group(), "*632", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*632");
-	ImGui::SameLine(45); ImGui::Text("(p6m)");
-	ImGui::EndGroup();
-}
-
-void App::show_view_settings(void)
-{
-	ImGui::Text("View settings");
-	ImGui::Separator();
-
-	ImGui::Text("Show result:"); ImGui::SameLine(130);
-	ImGui::Checkbox("##Show result", &show_result_);
-
-	ImGui::Text("Screen center:"); ImGui::SameLine(130);
-	ImGui::PushItemWidth(-65.0f);
-	ImGui::DragFloat2("##Screen center", screen_center_.data(), 0.01f);
-	ImGui::PopItemWidth();
-	ImGui::SameLine();
-	if(ImGui::Button("Reset##Reset screen center"))
-		screen_center_ = {0.5, 0.5};
-
-	// We need a float, not a double.
-	float pixels_per_unit = pixels_per_unit_;
-	ImGui::Text("Zoom level:"); ImGui::SameLine(130);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
-		pixels_per_unit_ = pixels_per_unit;
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset zoom level"))
-		pixels_per_unit_ = 500.0;
-
-	ImGui::Text("Background:"); ImGui::SameLine(130);
-	ImGui::PushItemWidth(-1.0f);
-	ImGui::ColorEdit3("##Background color", clear_color_.data());
-	ImGui::PopItemWidth();
-	ImGui::Dummy({0, 0}); ImGui::SameLine(130);
-	if (ImGui::Button("Reset##Reset background color"))
-		clear_color_ = {0.1, 0.1, 0.1};
-	ImGui::SameLine();
-	ImGui::Button("Pick color...");
-	if (ImGui::IsItemHovered())
-	{
-		ImGui::BeginTooltip();
-		ImGui::Text("Not implemented yet :)");
-		ImGui::EndTooltip();
-	}
-}
-
-void App::show_frame_settings(void)
-{
-	ImGui::Text("Frame settings");
-	ImGui::Separator();
-
-	ImGui::Text("Show frame:"); ImGui::SameLine(140);
-	ImGui::Checkbox("##Show frame", &show_symmetry_frame_);
-
-	auto frame_position = tiling_.center();
-	ImGui::Text("Frame position:"); ImGui::SameLine(140);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat2("##Frame position", frame_position.data(), 0.01f))
-		tiling_.set_center(frame_position);
-	ImGui::PopItemWidth();
-	ImGui::SameLine();
-	if (ImGui::Button("Reset##Reset frame position"))
-		tiling_.set_center({0.5, 0.5});
-
-	float frame_rotation = tiling_.rotation() / M_PI * 180.0f;
-	ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat("##Frame rotation", &frame_rotation, 0.5f))
-		tiling_.set_rotation(frame_rotation / 180.0 * M_PI);
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset frame rotation"))
-		tiling_.set_rotation(0.0);
-
-	float frame_scale = tiling_.scale();
-	ImGui::Text("Frame scale:"); ImGui::SameLine(140);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat("##Frame scale", &frame_scale, 0.01f, 0.001f, FLT_MAX))
-		tiling_.set_scale(frame_scale);
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset frame scale"))
-		tiling_.set_scale(1.0);
-
-	int num_domains = tiling_.num_lattice_domains();
-	bool domains_changed = false;
-	ImGui::Text("Domains:"); ImGui::SameLine(140);
-	domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
-	domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
-	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
-	if (domains_changed)
-		tiling_.set_num_lattice_domains(num_domains);
-}
-
-void App::show_export_settings(void)
-{
-	ImGui::Text("Export settings");
-	ImGui::Separator();
-
-	int resolution[] = {export_width_, export_height_};
-	ImGui::Text("Resolution:"); ImGui::SameLine(120);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragInt2("##Resolution", resolution, 1.0f, 512, 4096))
-	{
-		export_width_  = std::max(512, std::min(resolution[0], 4096));
-		export_height_ = std::max(512, std::min(resolution[1], 4096));
-	}
-	ImGui::PopItemWidth();
-	ImGui::SameLine();
-	if (ImGui::Button("Reset##Reset resolution"))
-	{
-		export_width_  = 1600;
-		export_height_ = 1200;
-	}
-	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
-	if (ImGui::Button("Fit to window"))
-	{
-		int width, height;
-		glfwGetFramebufferSize(window_, &width, &height);
-		export_width_  = width;
-		export_height_ = height;
-	}
-
-	char buffer[256] = {'\0'};
-	std::strncpy(buffer, export_filename_.c_str(), 255);
-	ImGui::Text("Export as:"); ImGui::SameLine(120);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::InputText("##Filename", buffer, 256, ImGuiInputTextFlags_CharsNoBlank))
-		export_filename_ = buffer;
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset filename"))
-		export_filename_ = export_base_name_ + '_' + tiling_.symmetry_group() + ".png";
-
-	bool ready_to_export = false;
-	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
-	if (ImGui::Button("Export"))
-	{
-		if (export_filename_.empty())
-			ImGui::OpenPopup("No filename");
-		else
-			ready_to_export = true;
-	}
-	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
-	if (ImGui::BeginPopupModal("No filename", NULL, modal_flags))
-	{
-		ImVec2 button_size = {140, 0.0f};
-		auto default_name = export_base_name_ + '_' + tiling_.symmetry_group() + ".png";
-
-		ImGui::Text("No filename set.");
-		ImGui::Text("Use the default name \"%s\"?", default_name.c_str());
-		if (ImGui::Button("OK##Export OK", button_size))
-		{
-			export_filename_ = default_name;
-			ready_to_export = true;
-			ImGui::CloseCurrentPopup();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Cancel##Export cancel", button_size))
-			ImGui::CloseCurrentPopup();
-
-		ImGui::EndPopup();
-	}
-	if (ready_to_export)
-		export_result();
-}
-
 void App::position_callback(double x, double y)
 {
 	// Don't do anything if ImGui is grabbing input.
@@ -965,15 +585,15 @@ void App::scroll_callback(double /* x_offset */, double y_offset)
 }
 
 // TODO: Add support to larger exports rendered in smaller tiles.
-void App::export_result(void)
+void App::export_result(int export_width, int export_height, const char* export_filename)
 {
 	printf("Exporting...\n");
 
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 
-	auto texture = GL::Texture::empty_2D(export_width_, export_height_);
-	auto depth   = GL::Texture::empty_2D_depth(export_width_, export_height_);
+	auto texture = GL::Texture::empty_2D(export_width, export_height);
+	auto depth   = GL::Texture::empty_2D_depth(export_width, export_height);
 	auto fbo     = GL::FBO::simple_C0D(texture, depth);
 
 	// We don't want transparency in the resulting PNG.
@@ -985,17 +605,17 @@ void App::export_result(void)
 
 	// We want to keep the zoom level irrespective of resolution chosen.
 	double ppu_old = pixels_per_unit_;
-	pixels_per_unit_ = std::max( export_width_ / (float)width, export_height_ / (float)height) * ppu_old;
+	pixels_per_unit_ = std::max( export_width / (float)width, export_height / (float)height) * ppu_old;
 
-	render_tiling_hq(export_width_, export_height_, fbo);
+	render_tiling_hq(export_width, export_height, fbo);
 
 	pixels_per_unit_ = ppu_old;
 
 	// Reset the blending function.
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	GL::tex_to_png(texture, export_filename_.c_str());
-	printf("Export finished (%s)\n", export_filename_.c_str());
+	GL::tex_to_png(texture, export_filename);
+	printf("Export finished (%s)\n", export_filename);
 }
 
 void App::print_screen(int /* scancode */, int action, int /* mods */)
