@@ -16,15 +16,15 @@ App::App(int /* argc */, char** /* argv */) :
 
 	clear_color_           (0.1, 0.1, 0.1),
 	screen_center_         (0.5, 0.5),
-	pixels_per_unit_       (500.0),
+	pixels_per_unit_       (300.0),
 	show_symmetry_frame_   (true),
-	show_result_           (false),
+	show_result_           (true),
 	show_settings_         (true),
+	show_export_settings_  (false),
 	export_width_          (1600),
 	export_height_         (1200),
 
-	zoom_factor_           (1.2),
-	show_export_frame_     (true)
+	zoom_factor_           (1.2)
 {
 	// Set GUI to track the relevant variables.
 	gui_.clear_color_track(clear_color_);
@@ -33,6 +33,7 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_.frame_visible_track(show_symmetry_frame_);
 	gui_.result_visible_track(show_result_);
 	gui_.settings_window_visible_track(show_settings_);
+	gui_.export_window_visible_track(show_export_settings_);
 	gui_.export_width_track(export_width_);
 	gui_.export_height_track(export_height_);
 
@@ -94,6 +95,7 @@ App::App(int /* argc */, char** /* argv */) :
 	tiling_.set_base_image(GL::Texture::from_png("res/kissa"));
 	tiling_.set_symmetry_group("333");
 	tiling_.set_center({0.5f, 0.5f});
+	tiling_.set_scale(2.0f);
 }
 
 void App::loop(void)
@@ -132,7 +134,7 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		if (show_symmetry_frame_)
 			render_symmetry_frame(width, height, framebuffer);
 
-		if (show_export_frame_)
+		if (show_export_settings_)
 			render_export_frame(width, height, framebuffer);
 	}
 	else

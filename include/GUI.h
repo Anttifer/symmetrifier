@@ -3,6 +3,7 @@
 
 #include "GLFWImGui.h"
 #include <Eigen/Geometry>
+#include <unordered_map>
 
 class Tiling;
 
@@ -26,6 +27,7 @@ public:
 	bool                   menu_bar_visible        (void) const { return *menu_bar_visible_; }
 	bool                   settings_window_visible (void) const { return *settings_window_visible_; }
 	bool                   usage_window_visible    (void) const { return *usage_window_visible_; }
+	bool                   export_window_visible   (void) const { return *export_window_visible_; }
 	int                    export_width            (void) const { return *export_width_; }
 	int                    export_height           (void) const { return *export_height_; }
 
@@ -38,6 +40,7 @@ public:
 	void set_menu_bar_visible        (bool i)                   { *menu_bar_visible_        = i; }
 	void set_settings_window_visible (bool i)                   { *settings_window_visible_ = i; }
 	void set_usage_window_visible    (bool i)                   { *usage_window_visible_    = i; }
+	void set_export_window_visible   (bool i)                   { *export_window_visible_   = i; }
 	void set_export_width            (int i)                    { *export_width_            = i; }
 	void set_export_height           (int i)                    { *export_height_           = i; }
 
@@ -57,6 +60,7 @@ public:
 	void menu_bar_visible_track        (bool& t)            { menu_bar_visible_        = &t; }
 	void settings_window_visible_track (bool& t)            { settings_window_visible_ = &t; }
 	void usage_window_visible_track    (bool& t)            { usage_window_visible_    = &t; }
+	void export_window_visible_track   (bool& t)            { export_window_visible_   = &t; }
 	void export_width_track            (int& t)             { export_width_            = &t; }
 	void export_height_track           (int& t)             { export_height_           = &t; }
 
@@ -68,6 +72,7 @@ public:
 	void menu_bar_visible_untrack        (void) { menu_bar_visible_        = &menu_bar_visible_internal_; }
 	void settings_window_visible_untrack (void) { settings_window_visible_ = &settings_window_visible_internal_; }
 	void usage_window_visible_untrack    (void) { usage_window_visible_    = &usage_window_visible_internal_; }
+	void export_window_visible_untrack   (void) { export_window_visible_   = &export_window_visible_internal_; }
 	void export_width_untrack            (void) { export_width_            = &export_width_internal_; }
 	void export_height_untrack           (void) { export_height_           = &export_height_internal_; }
 
@@ -76,13 +81,18 @@ private:
 	void draw_menu_bar          (void);
 	void draw_settings_window   (void);
 	void draw_usage_window      (void);
+	void draw_export_window     (void);
 
-	void draw_symmetry_settings (void);
-	void draw_view_settings     (void);
-	void draw_frame_settings    (void);
-	void draw_export_settings   (void);
+	void draw_symmetry_settings     (void);
+	void draw_symmetry_settings_alt (void);
+	void draw_symmetry_modal        (void);
+	void draw_view_settings         (void);
+	void draw_frame_settings        (void);
+	void draw_export_settings       (void);
 
-	GLFWImGui   implementation_;
+	void populate_thumbnail_map (void);
+
+	GLFWImGui implementation_;
 
 	MainWindow&      window_;
 	Tiling&          tiling_;
@@ -95,6 +105,7 @@ private:
 	bool            menu_bar_visible_internal_;
 	bool            settings_window_visible_internal_;
 	bool            usage_window_visible_internal_;
+	bool            export_window_visible_internal_;
 	int             export_width_internal_;
 	int             export_height_internal_;
 
@@ -106,17 +117,21 @@ private:
 	bool*            menu_bar_visible_;
 	bool*            settings_window_visible_;
 	bool*            usage_window_visible_;
+	bool*            export_window_visible_;
 	int*             export_width_;
 	int*             export_height_;
 
 	ExportCallback export_callback_;
 
+	std::unordered_map<std::string, GL::Texture> thumbnail_map_;
+
 	std::string export_base_name_;
 	std::string export_filename_;
 
 	// This is used for positioning windows
-	// depending on menu bar existence and size.
+	// depending on menu bar / usage window existence and size.
 	float menu_bar_height_;
+	float usage_window_height_;
 };
 
 #include "GUI.tcc"

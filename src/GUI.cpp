@@ -18,6 +18,7 @@ GUI::GUI(MainWindow& window, Tiling& tiling) :
 	menu_bar_visible_internal_        (true),
 	settings_window_visible_internal_ (true),
 	usage_window_visible_internal_    (false),
+	export_window_visible_internal_   (false),
 	export_width_internal_            (1600),
 	export_height_internal_           (1200),
 
@@ -29,6 +30,7 @@ GUI::GUI(MainWindow& window, Tiling& tiling) :
 	menu_bar_visible_        (&menu_bar_visible_internal_),
 	settings_window_visible_ (&settings_window_visible_internal_),
 	usage_window_visible_    (&usage_window_visible_internal_),
+	export_window_visible_   (&export_window_visible_internal_),
 	export_width_            (&export_width_internal_),
 	export_height_           (&export_height_internal_),
 
@@ -42,6 +44,8 @@ GUI::GUI(MainWindow& window, Tiling& tiling) :
 	io.Fonts->Clear();
 	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
 	implementation_.create_fonts_texture();
+
+	populate_thumbnail_map();
 }
 
 void GUI::render(int width, int height, GLuint framebuffer)
@@ -49,7 +53,8 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	implementation_.new_frame();
 
 	// Reset per-frame data.
-	menu_bar_height_ = 0.0f;
+	menu_bar_height_     = 0.0f;
+	usage_window_height_ = 0.0f;
 
 	if (*menu_bar_visible_)
 		draw_menu_bar();
@@ -60,6 +65,9 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	if (*usage_window_visible_)
 		draw_usage_window();
 
+	if (*export_window_visible_)
+		draw_export_window();
+
 	implementation_.render(width, height, framebuffer);
 }
 
@@ -69,24 +77,23 @@ void GUI::draw_menu_bar(void)
 	{
 		menu_bar_height_ = ImGui::GetWindowSize().y;
 
-		if (ImGui::BeginMenu("File"))
+		if (ImGui::BeginMenu("Menu"))
 		{
+			if (ImGui::MenuItem("Show settings", "Esc", *settings_window_visible_))
+				*settings_window_visible_ ^= true;
+
+			if (ImGui::MenuItem("Show usage", NULL, *usage_window_visible_))
+				*usage_window_visible_ ^= true;
+
+			if (ImGui::MenuItem("Show export settings", NULL, *export_window_visible_))
+				*export_window_visible_ ^= true;
+
 			if (ImGui::MenuItem("Quit", "Alt+F4"))
 				glfwSetWindowShouldClose(window_, GLFW_TRUE);
 
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("View"))
-		{
-			if (ImGui::MenuItem("Show usage", NULL, *usage_window_visible_))
-				*usage_window_visible_ ^= true;
-
-			if (ImGui::MenuItem("Show settings", "Esc", *settings_window_visible_))
-				*settings_window_visible_ ^= true;
-
-			ImGui::EndMenu();
-		}
 		ImGui::EndMainMenuBar();
 	}
 }
@@ -98,7 +105,7 @@ void GUI::draw_settings_window(void)
 	ImGui::SetNextWindowPos({0, menu_bar_height_}, ImGuiSetCond_Once);
 	if (ImGui::Begin("Settings", settings_window_visible_, flags))
 	{
-		draw_symmetry_settings();
+		draw_symmetry_settings_alt();
 
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -111,12 +118,6 @@ void GUI::draw_settings_window(void)
 		ImGui::Spacing();
 
 		draw_frame_settings();
-
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
-
-		draw_export_settings();
 
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -150,7 +151,21 @@ void GUI::draw_usage_window(void)
 		ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
 		ImGui::Bullet();
 		ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
+
+		usage_window_height_ = ImGui::GetWindowSize().y;
 	}
+	ImGui::End();
+}
+
+void GUI::draw_export_window(void)
+{
+	auto& io = ImGui::GetIO();
+
+	auto flags = ImGuiWindowFlags_ShowBorders;
+	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
+	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, usage_window_height_ + menu_bar_height_}, ImGuiSetCond_Appearing);
+	if (ImGui::Begin("Export settings", export_window_visible_, flags))
+		draw_export_settings();
 	ImGui::End();
 }
 
@@ -272,6 +287,95 @@ void GUI::draw_symmetry_settings(void)
 		tiling_.set_symmetry_group("*632");
 	ImGui::SameLine(45); ImGui::Text("(p6m)");
 	ImGui::EndGroup();
+}
+
+void GUI::draw_symmetry_settings_alt(void)
+{
+	ImGui::Text("Choose the symmetry group");
+	ImGui::Separator();
+
+	auto current_group = tiling_.symmetry_group();
+
+	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
+	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
+	ImGui::PushID("Group choice");
+	if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
+		ImGui::OpenPopup("Choose a symmetry group");
+
+	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
+	if (ImGui::BeginPopupModal("Choose a symmetry group", NULL, modal_flags))
+	{
+		draw_symmetry_modal();
+		ImGui::EndPopup();
+	}
+	ImGui::PopID();
+}
+
+void GUI::draw_symmetry_modal(void)
+{
+	bool modal_should_close = false;
+
+	auto create_button_group = [&](const char* symmetry_group, int label_offset = 60)
+	{
+		ImGui::BeginGroup();
+		ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
+		ImGui::Text(symmetry_group);
+		ImGui::PushID(symmetry_group);
+		if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[symmetry_group], {120, 120}, {0, 1}, {1, 0}, 10))
+		{
+			tiling_.set_symmetry_group(symmetry_group);
+			modal_should_close = true;
+		}
+		ImGui::PopID();
+		ImGui::EndGroup();
+	};
+
+	ImGui::PushID("modal buttons");
+
+	// No rotations.
+	create_button_group("o");
+	ImGui::SameLine();
+	create_button_group("xx");
+	ImGui::SameLine();
+	create_button_group("*x");
+	ImGui::SameLine();
+	create_button_group("**");
+
+	// 2-fold rotations.
+	create_button_group("2222", 45);
+	ImGui::SameLine();
+	create_button_group("22x", 45);
+	ImGui::SameLine();
+	create_button_group("22*", 45);
+	ImGui::SameLine();
+	create_button_group("2*22", 45);
+	ImGui::SameLine();
+	create_button_group("*2222", 45);
+
+	// 3-fold rotations.
+	create_button_group("333", 50);
+	ImGui::SameLine();
+	create_button_group("3*3", 50);
+	ImGui::SameLine();
+	create_button_group("*333", 50);
+
+	// 4-fold rotations.
+	create_button_group("442", 50);
+	ImGui::SameLine();
+	create_button_group("4*2", 50);
+	ImGui::SameLine();
+	create_button_group("*442", 50);
+
+	// 6-fold rotations.
+	create_button_group("632", 50);
+	ImGui::SameLine();
+	create_button_group("*632", 50);
+	ImGui::SameLine();
+
+	ImGui::PopID();
+
+	if (modal_should_close)
+		ImGui::CloseCurrentPopup();
 }
 
 void GUI::draw_view_settings(void)
@@ -437,4 +541,29 @@ void GUI::draw_export_settings(void)
 	}
 	if (should_export)
 		export_callback_(*export_width_, *export_height_, export_filename_.c_str());
+}
+
+void GUI::populate_thumbnail_map(void)
+{
+	thumbnail_map_["o"]     = GL::Texture::from_png("res/thumbnails/o");
+	thumbnail_map_["xx"]    = GL::Texture::from_png("res/thumbnails/xx");
+	thumbnail_map_["*x"]    = GL::Texture::from_png("res/thumbnails/_x");
+	thumbnail_map_["**"]    = GL::Texture::from_png("res/thumbnails/__");
+
+	thumbnail_map_["2222"]  = GL::Texture::from_png("res/thumbnails/2222");
+	thumbnail_map_["22x"]   = GL::Texture::from_png("res/thumbnails/22x");
+	thumbnail_map_["22*"]   = GL::Texture::from_png("res/thumbnails/22_");
+	thumbnail_map_["2*22"]  = GL::Texture::from_png("res/thumbnails/2_22");
+	thumbnail_map_["*2222"] = GL::Texture::from_png("res/thumbnails/_2222");
+
+	thumbnail_map_["333"]   = GL::Texture::from_png("res/thumbnails/333");
+	thumbnail_map_["3*3"]   = GL::Texture::from_png("res/thumbnails/3_3");
+	thumbnail_map_["*333"]  = GL::Texture::from_png("res/thumbnails/_333");
+
+	thumbnail_map_["442"]   = GL::Texture::from_png("res/thumbnails/442");
+	thumbnail_map_["4*2"]   = GL::Texture::from_png("res/thumbnails/4_2");
+	thumbnail_map_["*442"]  = GL::Texture::from_png("res/thumbnails/_442");
+
+	thumbnail_map_["632"]   = GL::Texture::from_png("res/thumbnails/632");
+	thumbnail_map_["*632"]  = GL::Texture::from_png("res/thumbnails/_632");
 }
