@@ -7,7 +7,6 @@ layout(location = 0) in vec3 aPosition;
 
 uniform int uNumInstances = 1;
 
-uniform float uAR;
 uniform vec2 uFramePos = vec2(0, 0);
 uniform vec2 uT1       = vec2(1, 0);
 uniform vec2 uT2       = vec2(0, 1);

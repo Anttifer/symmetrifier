@@ -122,6 +122,12 @@ void GUI::draw_settings_window(void)
 		ImGui::Spacing();
 		ImGui::Spacing();
 		ImGui::Spacing();
+
+		draw_image_settings();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
 	}
 	ImGui::End();
 }
@@ -468,6 +474,42 @@ void GUI::draw_frame_settings(void)
 	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
 	if (domains_changed)
 		tiling_.set_num_lattice_domains(num_domains);
+}
+
+void GUI::draw_image_settings(void)
+{
+	ImGui::Text("Image settings");
+	ImGui::Separator();
+
+	auto image_position = tiling_.image_center();
+	ImGui::Text("Image position:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
+		tiling_.set_image_center(image_position);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##Reset image position"))
+		tiling_.set_image_center({0.5f, 0.5f});
+
+	float image_rotation = tiling_.image_rotation() / M_PI * 180.0f;
+	ImGui::Text("Image rotation:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
+		tiling_.set_image_rotation(image_rotation / 180.0f * M_PI);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset image rotation"))
+		tiling_.set_image_rotation(0.0);
+
+	float image_scale = tiling_.image_scale();
+	ImGui::Text("Image scale:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
+		tiling_.set_image_scale(image_scale);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset image scale"))
+		tiling_.set_image_scale(1.0);
 }
 
 void GUI::draw_export_settings(void)

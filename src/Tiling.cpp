@@ -13,6 +13,9 @@ Tiling::Tiling(void) :
 	position_            (0.0f, 0.0f),
 	t1_                  (1.0f, 0.0f),
 
+	image_position_      (0.0f, 0.0f),
+	image_t1_            (1.0f, 0.0f),
+
 	line_color_          (1.0, 0.6, 0.1),
 	mirror_color_        (0.1, 0.6, 1.0),
 	rotation_color_      (0.1, 1.0, 0.6),
@@ -23,10 +26,12 @@ Tiling::Tiling(void) :
 	                     ),
 	uniforms_            {
 		                     glGetUniformLocation(symmetrify_shader_, "uNumInstances"),
-		                     glGetUniformLocation(symmetrify_shader_, "uAR"),
 		                     glGetUniformLocation(symmetrify_shader_, "uPos"),
 		                     glGetUniformLocation(symmetrify_shader_, "uT1"),
 		                     glGetUniformLocation(symmetrify_shader_, "uT2"),
+		                     glGetUniformLocation(symmetrify_shader_, "uImagePos"),
+		                     glGetUniformLocation(symmetrify_shader_, "uImageT1"),
+		                     glGetUniformLocation(symmetrify_shader_, "uImageT2"),
 		                     glGetUniformLocation(symmetrify_shader_, "uTextureSampler")
 	                     }
 {
@@ -48,7 +53,7 @@ Tiling::Tiling(void) :
 Eigen::Vector2f Tiling::center(void) const
 {
 	if (num_lattice_domains_ % 2)
-		return position_ + (t1_ + t2()) / 2.0;
+		return position_ + (t1_ + t2()) / 2.0f;
 	else
 		return position_;
 }
@@ -62,6 +67,24 @@ Eigen::Vector2f Tiling::t2(void) const
 double Tiling::rotation(void) const
 {
 	return std::atan2(t1_.y(), t1_.x());
+}
+
+Eigen::Vector2f Tiling::image_center(void) const
+{
+	return image_position_ + (image_t1_ + image_t2()) / 2.0f;
+}
+
+Eigen::Vector2f Tiling::image_t2(void) const
+{
+	Eigen::Vector2f orthogonal = { -image_t1_.y(), image_t1_.x() };
+	orthogonal *= base_image_.height_ / (float)base_image_.width_;
+
+	return orthogonal;
+}
+
+double Tiling::image_rotation(void) const
+{
+	return std::atan2(image_t1_.y(), image_t1_.x());
 }
 
 void Tiling::set_symmetry_group(const char* group)
@@ -196,7 +219,7 @@ void Tiling::set_center(const Eigen::Vector2f& center)
 
 	position_ = center;
 	if (num_lattice_domains_ % 2)
-		position_ -= (t1_ + t2()) / 2.0;
+		position_ -= (t1_ + t2()) / 2.0f;
 }
 
 void Tiling::set_t1(const Eigen::Vector2f& t1)
@@ -247,7 +270,7 @@ void Tiling::set_rotation(double r)
 	consistent_ = false;
 
 	auto center   = this->center();
-	double norm   = t1_.norm();
+	float norm    = t1_.norm();
 	auto rotation = Eigen::Rotation2D<float>(r);
 
 	t1_ = rotation * Eigen::Vector2f(norm, 0);
@@ -282,6 +305,70 @@ void Tiling::multiply_scale(double factor)
 	t1_ *= factor;
 
 	this->set_center(center);
+}
+
+void Tiling::set_image_center(const Eigen::Vector2f& center)
+{
+	consistent_ = false;
+
+	image_position_ = center - (image_t1_ + image_t2()) / 2.0f;
+}
+
+void Tiling::set_image_t1(const Eigen::Vector2f& t1)
+{
+	// Never scale to zero.
+	if (t1.x() == 0.0f && t1.y() == 0.0f)
+		return;
+
+	consistent_ = false;
+
+	auto image_center = this->image_center();
+
+	image_t1_ = t1;
+
+	this->set_image_center(image_center);
+}
+
+void Tiling::set_image_rotation(double r)
+{
+	consistent_ = false;
+
+	auto image_center = this->image_center();
+	float norm        = image_t1_.norm();
+	auto rotation     = Eigen::Rotation2D<float>(r);
+
+	image_t1_ = rotation * Eigen::Vector2f(norm, 0);
+
+	this->set_image_center(image_center);
+}
+
+void Tiling::set_image_scale(double scale)
+{
+	// Never scale to zero.
+	if (scale == 0.0)
+		return;
+
+	consistent_ = false;
+
+	auto image_center = this->image_center();
+	image_t1_.normalize();
+	image_t1_ *= scale;
+
+	this->set_image_center(image_center);
+}
+
+void Tiling::multiply_image_scale(double factor)
+{
+	// Never scale to zero.
+	if (factor == 0.0)
+		return;
+
+	consistent_ = false;
+
+	auto image_center = this->image_center();
+	image_t1_ *= factor;
+
+	this->set_image_center(image_center);
 }
 
 void Tiling::set_base_image(GL::Texture&& texture)
@@ -1132,7 +1219,6 @@ void Tiling::construct_mesh_texture(void)
 
 void Tiling::symmetrify(void)
 {
-	auto AR        = base_image_.width_ / (float)base_image_.height_;
 	auto dimension = std::max({base_image_.width_, base_image_.height_, 512u});
 
 	// Set up the symmetrified texture.
@@ -1155,10 +1241,12 @@ void Tiling::symmetrify(void)
 	glUseProgram(symmetrify_shader_);
 
 	glUniform1i  (uniforms_.num_instances, num_lattice_domains_);
-	glUniform1f  (uniforms_.aspect_ratio, AR);
 	glUniform2fv (uniforms_.position, 1, position_.data());
 	glUniform2fv (uniforms_.t1, 1, t1_.data());
 	glUniform2fv (uniforms_.t2, 1, t2().data());
+	glUniform2fv (uniforms_.image_position, 1, image_position().data());
+	glUniform2fv (uniforms_.image_t1, 1, image_t1_.data());
+	glUniform2fv (uniforms_.image_t2, 1, image_t2().data());
 	glUniform1i  (uniforms_.sampler, 1);
 
 	glBindVertexArray(symmetry_mesh_.vao_);

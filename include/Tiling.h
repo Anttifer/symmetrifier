@@ -37,6 +37,16 @@ public:
 	double                 rotation (void) const;
 	double                 scale    (void) const { return t1_.norm(); }
 
+	// Base image transformations.
+	const Eigen::Vector2f& image_position (void) const { return image_position_; }
+	Eigen::Vector2f        image_center   (void) const;
+
+	const Eigen::Vector2f& image_t1       (void) const { return image_t1_; }
+	Eigen::Vector2f        image_t2       (void) const;
+
+	double                 image_rotation (void) const;
+	double                 image_scale    (void) const { return image_t1_.norm(); }
+
 	// Meshes.
 	const Mesh&            mesh  (void) const { return mesh_; }
 	const Mesh&            frame (void) const { return frame_mesh_; }
@@ -64,6 +74,15 @@ public:
 	void set_scale      (double);
 	void multiply_scale (double factor);
 
+	// Set base image transformations.
+	void set_image_position (const Eigen::Vector2f& p) { consistent_ = false; image_position_ = p; }
+	void set_image_center   (const Eigen::Vector2f&);
+
+	void set_image_t1       (const Eigen::Vector2f&);
+
+	void set_image_rotation   (double);
+	void set_image_scale      (double);
+	void multiply_image_scale (double factor);
 
 	void set_base_image (GL::Texture&&);
 
@@ -125,6 +144,11 @@ private:
 	Eigen::Vector2f t2_relative_;
 
 
+	// Image transformations.
+	Eigen::Vector2f image_position_;
+	Eigen::Vector2f image_t1_;
+
+
 	// Meshes.
 
 	// The mesh representation of one lattice domain. Triangles are defined clockwise
@@ -170,10 +194,12 @@ private:
 	struct Uniforms
 	{
 		GLint num_instances;
-		GLint aspect_ratio;
 		GLint position;
 		GLint t1;
 		GLint t2;
+		GLint image_position;
+		GLint image_t1;
+		GLint image_t2;
 		GLint sampler;
 	}
 	uniforms_;

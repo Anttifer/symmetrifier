@@ -73,6 +73,8 @@ private:
 	Eigen::Vector2f press_position_;
 	Eigen::Vector2f screen_center_static_position_;
 	Eigen::Vector2f tiling_static_position_;
+	Eigen::Vector2f base_image_static_position_;
 	double          tiling_static_rotation_;
+	double          base_image_static_rotation_;
 };
 #endif // APP_H

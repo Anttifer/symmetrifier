@@ -88,6 +88,7 @@ private:
 	void draw_symmetry_modal        (void);
 	void draw_view_settings         (void);
 	void draw_frame_settings        (void);
+	void draw_image_settings        (void);
 	void draw_export_settings       (void);
 
 	void populate_thumbnail_map (void);
