@@ -92,7 +92,6 @@ App::App(int /* argc */, char** /* argv */) :
 	// This probably doesn't work, but worth asking anyway. :)
 	glEnable(GL_LINE_SMOOTH);
 
-	tiling_.set_base_image(GL::Texture::from_png("res/kissa"));
 	tiling_.set_symmetry_group("333");
 	tiling_.set_center({0.5f, 0.5f});
 	tiling_.set_scale(2.0f);

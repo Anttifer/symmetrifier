@@ -75,10 +75,10 @@ public:
 	void multiply_scale (double factor);
 
 	// Set base image transformations.
-	void set_image_position (const Eigen::Vector2f& p) { consistent_ = false; image_position_ = p; }
-	void set_image_center   (const Eigen::Vector2f&);
+	void set_image_position   (const Eigen::Vector2f& p) { consistent_ = false; image_position_ = p; }
+	void set_image_center     (const Eigen::Vector2f&);
 
-	void set_image_t1       (const Eigen::Vector2f&);
+	void set_image_t1         (const Eigen::Vector2f&);
 
 	void set_image_rotation   (double);
 	void set_image_scale      (double);

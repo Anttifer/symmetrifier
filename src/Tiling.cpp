@@ -36,6 +36,7 @@ Tiling::Tiling(void) :
 	                     }
 {
 	set_symmetry_group("o");
+	set_base_image(GL::Texture::from_png("res/kissa"));
 
 	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
 	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
