@@ -128,24 +128,24 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		// Don't symmetrify if already consistent.
 		if (!tiling_.consistent())
 			tiling_.symmetrify();
-		render_tiling(width, height, framebuffer);
+		render_tiling(tiling_, width, height, framebuffer);
 
 		if (show_symmetry_frame_)
-			render_symmetry_frame(width, height, framebuffer);
+			render_symmetry_frame(tiling_, width, height, framebuffer);
 
 		if (show_export_settings_)
 			render_export_frame(width, height, framebuffer);
 	}
 	else
 	{
-		render_image(tiling_.base_image(), width, height, framebuffer);
+		render_base_image(tiling_, width, height, framebuffer);
 
 		// Always render frame when not showing the result.
-		render_symmetry_frame(width, height, framebuffer);
+		render_symmetry_frame(tiling_, width, height, framebuffer);
 	}
 }
 
-void App::render_image(const GL::Texture& image, int width, int height, GLuint framebuffer)
+void App::render_base_image(const Tiling& tiling, int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/image_vert.glsl",
@@ -177,7 +177,7 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, image);
+	glBindTexture(GL_TEXTURE_2D, tiling.base_image());
 
 	glViewport(0, 0, width, height);
 
@@ -186,9 +186,9 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
-	glUniform2fv (image_position_uniform, 1, tiling_.image_position().data());
-	glUniform2fv (image_t1_uniform, 1, tiling_.image_t1().data());
-	glUniform2fv (image_t2_uniform, 1, tiling_.image_t2().data());
+	glUniform2fv (image_position_uniform, 1, tiling.image_position().data());
+	glUniform2fv (image_t1_uniform, 1, tiling.image_t1().data());
+	glUniform2fv (image_t2_uniform, 1, tiling.image_t2().data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
 
@@ -205,7 +205,7 @@ void App::render_image(const GL::Texture& image, int width, int height, GLuint f
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_tiling(int width, int height, GLuint framebuffer)
+void App::render_tiling(const Tiling& tiling, int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_vert.glsl",
@@ -241,7 +241,7 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, tiling_.domain_texture());
+	glBindTexture(GL_TEXTURE_2D, tiling.domain_texture());
 
 	glViewport(0, 0, width, height);
 
@@ -252,16 +252,16 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	glUseProgram(shader);
 
 	glUniform1i  (instance_num_uniform, num_instances);
-	glUniform2fv (position_uniform, 1, tiling_.position().data());
-	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
-	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
+	glUniform2fv (position_uniform, 1, tiling.position().data());
+	glUniform2fv (t1_uniform, 1, tiling.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling.t2().data());
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
-	glUniform2fv (texture_coordinate_uniform, 6, tiling_.domain_coordinates()[0].data());
+	glUniform2fv (texture_coordinate_uniform, 6, tiling.domain_coordinates()[0].data());
 	glUniform1i  (texture_sampler_uniform, 1);
 
-	const auto& mesh = tiling_.mesh();
+	const auto& mesh = tiling.mesh();
 
 	glBindVertexArray(mesh.vao_);
 	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
@@ -276,7 +276,7 @@ void App::render_tiling(int width, int height, GLuint framebuffer)
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_tiling_hq(int width, int height, GLuint framebuffer)
+void App::render_tiling_hq(const Tiling& tiling, int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_hq_vert.glsl",
@@ -320,10 +320,10 @@ void App::render_tiling_hq(int width, int height, GLuint framebuffer)
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, tiling_.base_image());
+	glBindTexture(GL_TEXTURE_2D, tiling.base_image());
 
 	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_BUFFER, tiling_.mesh_texture());
+	glBindTexture(GL_TEXTURE_BUFFER, tiling.mesh_texture());
 	glActiveTexture(GL_TEXTURE1);
 
 	glViewport(0, 0, width, height);
@@ -334,19 +334,19 @@ void App::render_tiling_hq(int width, int height, GLuint framebuffer)
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
-	const auto& mesh = tiling_.mesh();
+	const auto& mesh = tiling.mesh();
 
 	glUniform1i  (num_instances_uniform, num_instances);
-	glUniform2fv (frame_position_uniform, 1, tiling_.position().data());
-	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
-	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
+	glUniform2fv (frame_position_uniform, 1, tiling.position().data());
+	glUniform2fv (t1_uniform, 1, tiling.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling.t2().data());
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
-	glUniform2fv (image_position_uniform, 1, tiling_.image_position().data());
-	glUniform2fv (image_t1_uniform, 1, tiling_.image_t1().data());
-	glUniform2fv (image_t2_uniform, 1, tiling_.image_t2().data());
+	glUniform2fv (image_position_uniform, 1, tiling.image_position().data());
+	glUniform2fv (image_t1_uniform, 1, tiling.image_t1().data());
+	glUniform2fv (image_t2_uniform, 1, tiling.image_t2().data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
-	glUniform1i  (num_domains_uniform, tiling_.num_symmetry_domains());
+	glUniform1i  (num_domains_uniform, tiling.num_symmetry_domains());
 	glUniform1i  (texture_sampler_uniform, 1);
 	glUniform1i  (mesh_sampler_uniform, 2);
 
@@ -363,7 +363,7 @@ void App::render_tiling_hq(int width, int height, GLuint framebuffer)
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_symmetry_frame(int width, int height, GLuint framebuffer)
+void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/frame_vert.glsl",
@@ -410,30 +410,30 @@ void App::render_symmetry_frame(int width, int height, GLuint framebuffer)
 	glViewport(0, 0, width, height);
 
 	const auto plane_side_length = 10;
-	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling_.num_lattice_domains();
+	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling.num_lattice_domains();
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
 	glUniform1i  (instance_num_uniform, num_instances);
-	glUniform2fv (position_uniform, 1, tiling_.position().data());
-	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
-	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
+	glUniform2fv (position_uniform, 1, tiling.position().data());
+	glUniform2fv (t1_uniform, 1, tiling.t1().data());
+	glUniform2fv (t2_uniform, 1, tiling.t2().data());
 	glUniform2i  (screen_size_uniform, width, height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (render_overlay_uniform, GL_FALSE);
 
-	const auto& frame = tiling_.frame();
+	const auto& frame = tiling.frame();
 
 	glBindVertexArray(frame.vao_);
 	glDrawArraysInstanced(GL_LINES, 0, frame.num_vertices_, num_instances);
 
-	glUniform1i  (instance_num_uniform, tiling_.num_lattice_domains());
+	glUniform1i  (instance_num_uniform, tiling.num_lattice_domains());
 	glUniform1i  (render_overlay_uniform, GL_TRUE);
 
 	glBindVertexArray(overlay.vao_);
-	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling_.num_lattice_domains());
+	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling.num_lattice_domains());
 
 	// Clean up.
 	glBindVertexArray(0);
@@ -617,7 +617,7 @@ void App::export_result(int export_width, int export_height, const char* export_
 	double ppu_old = pixels_per_unit_;
 	pixels_per_unit_ = std::max( export_width / (float)width, export_height / (float)height) * ppu_old;
 
-	render_tiling_hq(export_width, export_height, fbo);
+	render_tiling_hq(tiling_, export_width, export_height, fbo);
 
 	pixels_per_unit_ = ppu_old;
 

@@ -24,13 +24,11 @@ private:
 	// Renders everything but the GUI.
 	void render_scene (int width, int height, GLuint framebuffer = 0);
 
-	// Renders the chosen image in world coordinates (0,0) - (1, y).
-	void render_image (const GL::Texture& image, int width, int height, GLuint framebuffer = 0);
-
-	void render_tiling    (int width, int height, GLuint framebuffer = 0);
-	void render_tiling_hq (int width, int height, GLuint framebuffer = 0);
-
-	void render_symmetry_frame  (int width, int height, GLuint framebuffer = 0);
+	// TODO: A rendering system (as a Renderer class perhaps)?
+	void render_base_image      (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
+	void render_tiling          (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
+	void render_tiling_hq       (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
+	void render_symmetry_frame  (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
 
 	// Export cropping frame.
 	void render_export_frame    (int width, int height, GLuint framebuffer = 0);
