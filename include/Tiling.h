@@ -8,7 +8,8 @@
 class Tiling
 {
 public:
-	Tiling (void);
+	Tiling          (void);
+	explicit Tiling (float symmetry_scale);
 
 	// Lattice types.
 	enum class Lattice
@@ -48,8 +49,9 @@ public:
 	double                 image_scale    (void) const { return image_t1_.norm(); }
 
 	// Meshes.
-	const Mesh&            mesh  (void) const { return mesh_; }
-	const Mesh&            frame (void) const { return frame_mesh_; }
+	const Mesh& mesh          (void) const { return mesh_; }
+	const Mesh& frame         (void) const { return frame_mesh_; }
+	const Mesh& symmetry_mesh (void) const { return symmetry_mesh_; }
 
 	// Textures & coordinates.
 	const GL::Texture& base_image         (void) const { return base_image_; }
@@ -167,7 +169,8 @@ private:
 	// In this mesh, each triangle is rescaled with respect to its centroid.
 	// This is reflected in the domain_coordinates_ for proper sampling.
 	// This is necessary in order to avoid ugly seams when rendering.
-	Mesh symmetry_mesh_;
+	float symmetry_scale_;
+	Mesh  symmetry_mesh_;
 
 
 	// Textures & coordinates.
@@ -183,6 +186,7 @@ private:
 
 	// We only need texture coordinates for two triangles, so no need to define them
 	// in the mesh for every vertex separately.
+	// TODO: We don't need a duplicate of these in every tiling - same as the shader below.
 	std::vector<Eigen::Vector2f> domain_coordinates_;
 
 
@@ -190,6 +194,7 @@ private:
 	// It practically superimposes samples of the user-supplied texture in
 	// such a way that the resulting fundamental domain conforms to the chosen
 	// symmetry group.
+	// TODO: We really don't need a copy of this shader for every tiling - do something.
 	GL::ShaderProgram symmetrify_shader_;
 	struct Uniforms
 	{

@@ -6,7 +6,9 @@
 
 #define SCALE 0.98f
 
-Tiling::Tiling(void) :
+Tiling::Tiling(void) : Tiling(SCALE) {}
+
+Tiling::Tiling(float symmetry_scale) :
 	num_lattice_domains_ (1),
 	consistent_          (false),
 
@@ -19,6 +21,8 @@ Tiling::Tiling(void) :
 	line_color_          (1.0, 0.6, 0.1),
 	mirror_color_        (0.1, 0.6, 1.0),
 	rotation_color_      (0.1, 1.0, 0.6),
+
+	symmetry_scale_      (symmetry_scale),
 
 	symmetrify_shader_   (GL::ShaderProgram::from_files(
 		                     "shaders/symmetrify_vert.glsl",
@@ -41,13 +45,13 @@ Tiling::Tiling(void) :
 	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
 	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
 	domain_coordinates_ = {
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+		bottom_centroid - symmetry_scale_ * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
+		bottom_centroid - symmetry_scale_ * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
+		bottom_centroid - symmetry_scale_ * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
 
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
+		top_centroid - symmetry_scale_ * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+		top_centroid - symmetry_scale_ * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
+		top_centroid - symmetry_scale_ * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
 	};
 }
 
@@ -1185,9 +1189,9 @@ void Tiling::construct_symmetry_mesh(void)
 		const Eigen::Vector3f& c        = mesh_.positions_[i+2];
 		const Eigen::Vector3f  centroid = (a + b + c) / 3.0f;
 
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (a - centroid));
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (b - centroid));
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (c - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (a - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (b - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (c - centroid));
 	}
 
 	symmetry_mesh_.update_buffers();
