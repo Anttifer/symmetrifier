@@ -1,13 +1,13 @@
 #include "GUI.h"
 
 #include "Window.h"
-#include "Tiling.h"
+#include "Layering.h"
 #include "imgui.h"
 
-GUI::GUI(MainWindow& window, Tiling& tiling) :
+GUI::GUI(MainWindow& window, Layering& layering) :
 	implementation_ (window),
 	window_         (window),
-	tiling_         (tiling),
+	layering_       (layering),
 
 	// Sensible defaults.
 	clear_color_internal_             (0.1f, 0.1f, 0.1f),
@@ -105,7 +105,7 @@ void GUI::draw_settings_window(void)
 	ImGui::SetNextWindowPos({0, menu_bar_height_}, ImGuiSetCond_Once);
 	if (ImGui::Begin("Settings", settings_window_visible_, flags))
 	{
-		draw_symmetry_settings_alt();
+		draw_symmetry_settings();
 
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -175,8 +175,12 @@ void GUI::draw_export_window(void)
 	ImGui::End();
 }
 
-void GUI::draw_symmetry_settings(void)
+[[deprecated]]
+void GUI::draw_symmetry_settings_old(void)
 {
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
 	ImGui::Text("Symmetry groups");
 	ImGui::Separator();
 
@@ -190,20 +194,20 @@ void GUI::draw_symmetry_settings(void)
 	ImGui::PopTextWrapPos();
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("o", !strncmp(tiling_.symmetry_group(), "o", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("o");
+	if (ImGui::Selectable("o", !strncmp(ctiling.symmetry_group(), "o", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("o");
 	ImGui::SameLine(25); ImGui::Text("(p1)");
-	if (ImGui::Selectable("xx", !strncmp(tiling_.symmetry_group(), "xx", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("xx");
+	if (ImGui::Selectable("xx", !strncmp(ctiling.symmetry_group(), "xx", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("xx");
 	ImGui::SameLine(25); ImGui::Text("(pg)");
 	ImGui::EndGroup();                      ImGui::SameLine(215);
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("**", !strncmp(tiling_.symmetry_group(), "**", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("**");
+	if (ImGui::Selectable("**", !strncmp(ctiling.symmetry_group(), "**", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("**");
 	ImGui::SameLine(25); ImGui::Text("(pm)");
-	if (ImGui::Selectable("*x", !strncmp(tiling_.symmetry_group(), "*x", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*x");
+	if (ImGui::Selectable("*x", !strncmp(ctiling.symmetry_group(), "*x", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*x");
 	ImGui::SameLine(25); ImGui::Text("(cm)");
 	ImGui::EndGroup();
 	ImGui::Spacing();
@@ -214,23 +218,23 @@ void GUI::draw_symmetry_settings(void)
 	ImGui::PopTextWrapPos();
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("2222", !strncmp(tiling_.symmetry_group(), "2222", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("2222");
+	if (ImGui::Selectable("2222", !strncmp(ctiling.symmetry_group(), "2222", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("2222");
 	ImGui::SameLine(45); ImGui::Text("(p2)");
-	if (ImGui::Selectable("22x", !strncmp(tiling_.symmetry_group(), "22x", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("22x");
+	if (ImGui::Selectable("22x", !strncmp(ctiling.symmetry_group(), "22x", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("22x");
 	ImGui::SameLine(45); ImGui::Text("(pgg)");
 	ImGui::EndGroup();                      ImGui::SameLine(215);
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("*2222", !strncmp(tiling_.symmetry_group(), "*2222", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*2222");
+	if (ImGui::Selectable("*2222", !strncmp(ctiling.symmetry_group(), "*2222", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*2222");
 	ImGui::SameLine(55); ImGui::Text("(pmm)");
-	if (ImGui::Selectable("2*22", !strncmp(tiling_.symmetry_group(), "2*22", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("2*22");
+	if (ImGui::Selectable("2*22", !strncmp(ctiling.symmetry_group(), "2*22", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("2*22");
 	ImGui::SameLine(55); ImGui::Text("(cmm)");
-	if (ImGui::Selectable("22*", !strncmp(tiling_.symmetry_group(), "22*", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("22*");
+	if (ImGui::Selectable("22*", !strncmp(ctiling.symmetry_group(), "22*", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("22*");
 	ImGui::SameLine(55); ImGui::Text("(pmg)");
 	ImGui::EndGroup();
 	ImGui::Spacing();
@@ -241,17 +245,17 @@ void GUI::draw_symmetry_settings(void)
 	ImGui::PopTextWrapPos();
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("333", !strncmp(tiling_.symmetry_group(), "333", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("333");
+	if (ImGui::Selectable("333", !strncmp(ctiling.symmetry_group(), "333", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("333");
 	ImGui::SameLine(35); ImGui::Text("(p3)");
 	ImGui::EndGroup();                      ImGui::SameLine(215);
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("*333", !strncmp(tiling_.symmetry_group(), "*333", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*333");
+	if (ImGui::Selectable("*333", !strncmp(ctiling.symmetry_group(), "*333", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*333");
 	ImGui::SameLine(45); ImGui::Text("(p3m1)");
-	if (ImGui::Selectable("3*3", !strncmp(tiling_.symmetry_group(), "3*3", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("3*3");
+	if (ImGui::Selectable("3*3", !strncmp(ctiling.symmetry_group(), "3*3", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("3*3");
 	ImGui::SameLine(45); ImGui::Text("(p31m)");
 	ImGui::EndGroup();
 	ImGui::Spacing();
@@ -262,17 +266,17 @@ void GUI::draw_symmetry_settings(void)
 	ImGui::PopTextWrapPos();
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("442", !strncmp(tiling_.symmetry_group(), "442", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("442");
+	if (ImGui::Selectable("442", !strncmp(ctiling.symmetry_group(), "442", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("442");
 	ImGui::SameLine(35); ImGui::Text("(p4)");
 	ImGui::EndGroup();                      ImGui::SameLine(215);
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("*442", !strncmp(tiling_.symmetry_group(), "*442", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*442");
+	if (ImGui::Selectable("*442", !strncmp(ctiling.symmetry_group(), "*442", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*442");
 	ImGui::SameLine(45); ImGui::Text("(p4m)");
-	if (ImGui::Selectable("4*2", !strncmp(tiling_.symmetry_group(), "4*2", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("4*2");
+	if (ImGui::Selectable("4*2", !strncmp(ctiling.symmetry_group(), "4*2", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("4*2");
 	ImGui::SameLine(45); ImGui::Text("(p4g)");
 	ImGui::EndGroup();
 	ImGui::Spacing();
@@ -283,24 +287,27 @@ void GUI::draw_symmetry_settings(void)
 	ImGui::PopTextWrapPos();
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("632", !strncmp(tiling_.symmetry_group(), "632", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("632");
+	if (ImGui::Selectable("632", !strncmp(ctiling.symmetry_group(), "632", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("632");
 	ImGui::SameLine(35); ImGui::Text("(p6)");
 	ImGui::EndGroup();                      ImGui::SameLine(215);
 
 	ImGui::BeginGroup();
-	if (ImGui::Selectable("*632", !strncmp(tiling_.symmetry_group(), "*632", 8), 0, {110, 0}))
-		tiling_.set_symmetry_group("*632");
+	if (ImGui::Selectable("*632", !strncmp(ctiling.symmetry_group(), "*632", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*632");
 	ImGui::SameLine(45); ImGui::Text("(p6m)");
 	ImGui::EndGroup();
 }
 
-void GUI::draw_symmetry_settings_alt(void)
+void GUI::draw_symmetry_settings(void)
 {
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
 	ImGui::Text("Choose the symmetry group");
 	ImGui::Separator();
 
-	auto current_group = tiling_.symmetry_group();
+	auto current_group = ctiling.symmetry_group();
 
 	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
 	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
@@ -319,6 +326,8 @@ void GUI::draw_symmetry_settings_alt(void)
 
 void GUI::draw_symmetry_modal(void)
 {
+	auto& layer = layering_.current_layer();
+
 	bool modal_should_close = false;
 
 	auto create_button_group = [&](const char* symmetry_group, int label_offset = 60)
@@ -329,7 +338,7 @@ void GUI::draw_symmetry_modal(void)
 		ImGui::PushID(symmetry_group);
 		if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[symmetry_group], {120, 120}, {0, 1}, {1, 0}, 10))
 		{
-			tiling_.set_symmetry_group(symmetry_group);
+			layer.tiling().set_symmetry_group(symmetry_group);
 			modal_should_close = true;
 		}
 		ImGui::PopID();
@@ -430,90 +439,100 @@ void GUI::draw_view_settings(void)
 
 void GUI::draw_frame_settings(void)
 {
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
 	ImGui::Text("Frame settings");
 	ImGui::Separator();
 
 	ImGui::Text("Show frame:"); ImGui::SameLine(140);
 	ImGui::Checkbox("##Show frame", frame_visible_);
 
-	auto frame_position = tiling_.center();
+	auto frame_position = ctiling.center();
 	ImGui::Text("Frame position:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat2("##Frame position", frame_position.data(), 0.01f))
-		tiling_.set_center(frame_position);
+		layer.tiling().set_center(frame_position);
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset frame position"))
-		tiling_.set_center({0.5, 0.5});
+		layer.tiling().set_center({0.5, 0.5});
 
-	float frame_rotation = tiling_.rotation() / M_PI * 180.0f;
+	float frame_rotation = ctiling.rotation() / M_PI * 180.0f;
 	ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat("##Frame rotation", &frame_rotation, 0.5f))
-		tiling_.set_rotation(frame_rotation / 180.0 * M_PI);
+		layer.tiling().set_rotation(frame_rotation / 180.0 * M_PI);
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset frame rotation"))
-		tiling_.set_rotation(0.0);
+		layer.tiling().set_rotation(0.0);
 
-	float frame_scale = tiling_.scale();
+	float frame_scale = ctiling.scale();
 	ImGui::Text("Frame scale:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat("##Frame scale", &frame_scale, 0.01f, 0.001f, FLT_MAX))
-		tiling_.set_scale(frame_scale);
+		layer.tiling().set_scale(frame_scale);
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset frame scale"))
-		tiling_.set_scale(1.0);
+		layer.tiling().set_scale(1.0);
 
-	int num_domains = tiling_.num_lattice_domains();
+	int num_domains = ctiling.num_lattice_domains();
 	bool domains_changed = false;
 	ImGui::Text("Domains:"); ImGui::SameLine(140);
 	domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
 	domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
 	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
 	if (domains_changed)
-		tiling_.set_num_lattice_domains(num_domains);
+		layer.tiling().set_num_lattice_domains(num_domains);
 }
 
+// TODO: Layer support.
 void GUI::draw_image_settings(void)
 {
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
 	ImGui::Text("Image settings");
 	ImGui::Separator();
 
-	auto image_position = tiling_.image_center();
+	auto image_position = ctiling.image_center();
 	ImGui::Text("Image position:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
-		tiling_.set_image_center(image_position);
+		layer.tiling().set_image_center(image_position);
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset image position"))
-		tiling_.set_image_center({0.5f, 0.5f});
+		layer.tiling().set_image_center({0.5f, 0.5f});
 
-	float image_rotation = tiling_.image_rotation() / M_PI * 180.0f;
+	float image_rotation = ctiling.image_rotation() / M_PI * 180.0f;
 	ImGui::Text("Image rotation:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
-		tiling_.set_image_rotation(image_rotation / 180.0f * M_PI);
+		layer.tiling().set_image_rotation(image_rotation / 180.0f * M_PI);
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset image rotation"))
-		tiling_.set_image_rotation(0.0);
+		layer.tiling().set_image_rotation(0.0);
 
-	float image_scale = tiling_.image_scale();
+	float image_scale = ctiling.image_scale();
 	ImGui::Text("Image scale:"); ImGui::SameLine(140);
 	ImGui::PushItemWidth(-65.0f);
 	if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
-		tiling_.set_image_scale(image_scale);
+		layer.tiling().set_image_scale(image_scale);
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset image scale"))
-		tiling_.set_image_scale(1.0);
+		layer.tiling().set_image_scale(1.0);
 }
 
 void GUI::draw_export_settings(void)
 {
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
 	ImGui::Text("Export settings");
 	ImGui::Separator();
 
@@ -550,7 +569,7 @@ void GUI::draw_export_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset filename"))
-		export_filename_ = export_base_name_ + '_' + tiling_.symmetry_group() + ".png";
+		export_filename_ = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
 
 	bool should_export = false;
 	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
@@ -565,7 +584,7 @@ void GUI::draw_export_settings(void)
 	if (ImGui::BeginPopupModal("No filename", NULL, modal_flags))
 	{
 		ImVec2 button_size = {140, 0.0f};
-		auto default_name = export_base_name_ + '_' + tiling_.symmetry_group() + ".png";
+		auto default_name = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
 
 		ImGui::Text("No filename set.");
 		ImGui::Text("Use the default name \"%s\"?", default_name.c_str());

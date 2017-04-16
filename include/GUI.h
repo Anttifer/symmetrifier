@@ -5,15 +5,12 @@
 #include <Eigen/Geometry>
 #include <unordered_map>
 
-class Tiling;
+class Layering;
 
 class GUI
 {
 public:
-	GUI (MainWindow&, Tiling&);
-	GUI (const GUI&) = delete;
-
-	GUI& operator= (const GUI&) = delete;
+	GUI (MainWindow&, Layering&);
 
 	void render(int width, int height, GLuint framebuffer = 0);
 
@@ -84,7 +81,7 @@ private:
 	void draw_export_window     (void);
 
 	void draw_symmetry_settings     (void);
-	void draw_symmetry_settings_alt (void);
+	void draw_symmetry_settings_old (void);
 	void draw_symmetry_modal        (void);
 	void draw_view_settings         (void);
 	void draw_frame_settings        (void);
@@ -96,7 +93,7 @@ private:
 	GLFWImGui implementation_;
 
 	MainWindow&      window_;
-	Tiling&          tiling_;
+	Layering&        layering_;
 
 	Eigen::Vector3f clear_color_internal_;
 	Eigen::Vector2f screen_center_internal_;

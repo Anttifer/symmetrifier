@@ -13,7 +13,7 @@ App::App(int /* argc */, char** /* argv */) :
 	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	tiling_                (layering_.current_layer().tiling()),
-	gui_                   (window_, tiling_),
+	gui_                   (window_, layering_),
 
 	clear_color_           (0.1, 0.1, 0.1),
 	screen_center_         (0.5, 0.5),
@@ -27,6 +27,8 @@ App::App(int /* argc */, char** /* argv */) :
 
 	zoom_factor_           (1.2)
 {
+	layering_.add_layer(GL::Texture::from_png("res/kissa"));
+
 	// Set GUI to track the relevant variables.
 	gui_.clear_color_track(clear_color_);
 	gui_.screen_center_track(screen_center_);
@@ -93,9 +95,10 @@ App::App(int /* argc */, char** /* argv */) :
 	// This probably doesn't work, but worth asking anyway. :)
 	glEnable(GL_LINE_SMOOTH);
 
-	tiling_.set_symmetry_group("333");
-	tiling_.set_center({0.5f, 0.5f});
-	tiling_.set_scale(2.0f);
+	auto& layer = layering_.current_layer();
+	layer.tiling().set_symmetry_group("333");
+	layer.tiling().set_center({0.5f, 0.5f});
+	layer.tiling().set_scale(2.0f);
 }
 
 void App::loop(void)
@@ -111,7 +114,7 @@ void App::loop(void)
 		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		render_scene(width, height);
+		render_layered_scene(width, height);
 		gui_.render(width, height);
 
 		// Show the result on screen.
@@ -771,6 +774,9 @@ void App::layered_left_click_callback(int action, int /* mods */)
 {
 	if (action == GLFW_PRESS)
 	{
+		auto& layer = layering_.current_layer();
+		const auto& ctiling = layer.as_const().tiling();
+
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
 
@@ -780,10 +786,9 @@ void App::layered_left_click_callback(int action, int /* mods */)
 		press_position_ = {x / width * 2 - 1, 1 - y / height * 2};
 
 		screen_center_static_position_ = screen_center_;
-		tiling_static_position_        = tiling_.position();
+		tiling_static_position_        = ctiling.position();
 
-		const auto& layer = layering_.current_layer();
-		tiling_.set_deform_origin(layer.from_world(screen_center_ + screen_to_world(press_position_)));
+		layer.tiling().set_deform_origin(layer.from_world(screen_center_ + screen_to_world(press_position_)));
 	}
 }
 
@@ -806,9 +811,22 @@ void App::left_click_callback(int action, int /* mods */)
 	}
 }
 
-void App::layered_right_click_callback(int action, int mods)
+void App::layered_right_click_callback(int action, int /* mods */)
 {
-	right_click_callback(action, mods);
+	if (action == GLFW_PRESS)
+	{
+		auto& layer = layering_.current_layer();
+		const auto& ctiling = layer.as_const().tiling();
+
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+
+		double x, y;
+		glfwGetCursorPos(window_, &x, &y);
+
+		press_position_ = {x / width * 2 - 1, 1 - y / height * 2};
+		tiling_static_rotation_ = ctiling.rotation();
+	}
 }
 
 void App::right_click_callback(int action, int /* mods */)
@@ -831,12 +849,15 @@ void App::layered_scroll_callback(double /* x_offset */, double y_offset)
 	if (ImGui::GetIO().WantCaptureMouse)
 		return;
 
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
 	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 	{
 		if (y_offset < 0)
-			layering_.current_layer().tiling().multiply_scale(zoom_factor_);
-		else if (y_offset > 0 && tiling_.scale() > 0.001)
-			layering_.current_layer().tiling().multiply_scale(1 / zoom_factor_);
+			layer.tiling().multiply_scale(zoom_factor_);
+		else if (y_offset > 0 && ctiling.scale() > 0.001)
+			layer.tiling().multiply_scale(1 / zoom_factor_);
 	}
 	else
 	{
