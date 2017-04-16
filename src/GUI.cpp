@@ -34,6 +34,7 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	export_width_            (&export_width_internal_),
 	export_height_           (&export_height_internal_),
 
+	// Lambda that accepts anything and does nothing.
 	export_callback_ ([](...){}),
 
 	export_base_name_     ("image"),
@@ -488,8 +489,56 @@ void GUI::draw_frame_settings(void)
 		layer.tiling().set_num_lattice_domains(num_domains);
 }
 
-// TODO: Layer support.
 void GUI::draw_image_settings(void)
+{
+	auto& layer = layering_.current_layer();
+
+	// TODO: Improve.
+	for (size_t idx = 0; idx < layer.size(); ++idx)
+	{
+		ImGui::PushID(idx);
+
+		const auto& cimage = layer.as_const().image(idx);
+
+		ImGui::Text("Image settings");
+		ImGui::Separator();
+
+		auto image_position = cimage.center();
+		ImGui::Text("Image position:"); ImGui::SameLine(140);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
+			layer.image(idx).set_center(image_position);
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##Reset image position"))
+			layer.image(idx).set_center({0.5f, 0.5f});
+
+		float image_rotation = cimage.rotation() / M_PI * 180.0f;
+		ImGui::Text("Image rotation:"); ImGui::SameLine(140);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
+			layer.image(idx).set_rotation(image_rotation / 180.0f * M_PI);
+		ImGui::PopItemWidth();
+		ImGui::SameLine(0, 12);
+		if (ImGui::Button("Reset##Reset image rotation"))
+			layer.image(idx).set_rotation(0.0);
+
+		float image_scale = cimage.scale();
+		ImGui::Text("Image scale:"); ImGui::SameLine(140);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
+			layer.image(idx).set_scale(image_scale);
+		ImGui::PopItemWidth();
+		ImGui::SameLine(0, 12);
+		if (ImGui::Button("Reset##Reset image scale"))
+			layer.image(idx).set_scale(1.0);
+
+		ImGui::PopID();
+	}
+}
+
+[[deprecated]]
+void GUI::draw_image_settings_old(void)
 {
 	auto& layer = layering_.current_layer();
 	const auto& ctiling = layer.as_const().tiling();

@@ -27,7 +27,7 @@ App::App(int /* argc */, char** /* argv */) :
 
 	zoom_factor_           (1.2)
 {
-	layering_.add_layer(GL::Texture::from_png("res/kissa"));
+	layering_.current_layer().add_image(GL::Texture::from_png("res/kissa"));
 
 	// Set GUI to track the relevant variables.
 	gui_.clear_color_track(clear_color_);
