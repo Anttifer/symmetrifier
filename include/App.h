@@ -5,6 +5,7 @@
 #include "GUI.h"
 #include "ShaderCanvas.h"
 #include "Mesh.h"
+#include "Layering.h"
 #include "Tiling.h"
 #include "GLObjects.h"
 
@@ -21,8 +22,15 @@ public:
 	void loop (void);
 
 private:
+	// Renders everything but the GUI, layered.
+	void render_layered_scene (int width, int height, GLuint framebuffer = 0);
+
+	void render_layer        (const Layer& layer, int width, int height, GLuint framebuffer = 0);
+	void render_layer_images (const Layer& layer, int width, int height, GLuint framebuffer = 0);
+
+
 	// Renders everything but the GUI.
-	void render_scene (int width, int height, GLuint framebuffer = 0);
+	void render_scene         (int width, int height, GLuint framebuffer = 0);
 
 	// TODO: A rendering system (as a Renderer class perhaps)?
 	void render_base_image      (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
@@ -32,6 +40,12 @@ private:
 
 	// Export cropping frame.
 	void render_export_frame    (int width, int height, GLuint framebuffer = 0);
+
+	// Layered mouse callbacks.
+	void layered_position_callback    (double, double);
+	void layered_left_click_callback  (int, int);
+	void layered_right_click_callback (int, int);
+	void layered_scroll_callback      (double, double);
 
 	// Mouse callbacks.
 	void position_callback    (double, double);
@@ -50,7 +64,8 @@ private:
 	MainWindow    window_;
 	double        time_;
 	ShaderCanvas  canvas_;
-	Tiling        tiling_;
+	Layering      layering_;
+	Tiling&       tiling_;
 	GUI           gui_;
 
 	// Parameters and options.

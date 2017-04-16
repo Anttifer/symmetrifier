@@ -12,6 +12,7 @@
 App::App(int /* argc */, char** /* argv */) :
 	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
+	tiling_                (layering_.current_layer().tiling()),
 	gui_                   (window_, tiling_),
 
 	clear_color_           (0.1, 0.1, 0.1),
@@ -41,10 +42,10 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_.set_export_callback(&App::export_result, this);
 
 	// Mouse callbacks.
-	window_.add_mouse_pos_callback(&App::position_callback, this);
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::left_click_callback, this);
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_RIGHT, &App::right_click_callback, this);
-	window_.add_scroll_callback(&App::scroll_callback, this);
+	window_.add_mouse_pos_callback(&App::layered_position_callback, this);
+	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::layered_left_click_callback, this);
+	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_RIGHT, &App::layered_right_click_callback, this);
+	window_.add_scroll_callback(&App::layered_scroll_callback, this);
 
 	// Key callbacks.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
@@ -119,6 +120,184 @@ void App::loop(void)
 		// Poll events. Minimum FPS = 15.
 		glfwWaitEventsTimeout(1 / 15.0);
 	}
+}
+
+void App::render_layered_scene(int width, int height, GLuint framebuffer)
+{
+	const auto& current_layer = layering_.current_layer();
+
+	if (show_result_)
+	{
+		for (const auto& layer : layering_)
+		{
+			if (layer.visible())
+				render_layer(layer, width, height, framebuffer);
+		}
+
+		if (show_symmetry_frame_)
+			render_symmetry_frame(current_layer.tiling(), width, height, framebuffer);
+
+		if (show_export_settings_)
+			render_export_frame(width, height, framebuffer);
+	}
+	else
+	{
+		for (const auto& layer : layering_)
+		{
+			if (layer.visible() || &layer == &current_layer)
+				render_layer_images(layer, width, height, framebuffer);
+		}
+
+		// Always render frame when not showing the result.
+		render_symmetry_frame(current_layer.tiling(), width, height, framebuffer);
+	}
+}
+
+void App::render_layer(const Layer& layer, int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/tiling_vert.glsl",
+		"shaders/tiling_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint instance_num_uniform;
+	static GLuint position_uniform;
+	static GLuint t1_uniform;
+	static GLuint t2_uniform;
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint texture_coordinate_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		instance_num_uniform       = glGetUniformLocation(shader, "uNumInstances");
+		position_uniform           = glGetUniformLocation(shader, "uPos");
+		t1_uniform                 = glGetUniformLocation(shader, "uT1");
+		t2_uniform                 = glGetUniformLocation(shader, "uT2");
+		screen_size_uniform        = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform      = glGetUniformLocation(shader, "uScreenCenter");
+		pixels_per_unit_uniform    = glGetUniformLocation(shader, "uPixelsPerUnit");
+		texture_coordinate_uniform = glGetUniformLocation(shader, "uTexCoords");
+		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+	(void)init; // Suppress unused variable warning.
+
+	const auto& domain_texture = layer.domain_texture();
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+	glBindTexture(GL_TEXTURE_2D, domain_texture);
+
+	glViewport(0, 0, width, height);
+
+	const auto plane_side_length = 10;
+	const auto num_instances = plane_side_length * plane_side_length;
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	const auto& tiling = layer.tiling();
+
+	const auto& tiling_position = layer.to_world(tiling.position());
+	const auto& tiling_t1       = layer.to_world_direction(tiling.t1());
+	const auto& tiling_t2       = layer.to_world_direction(tiling.t2());
+
+	glUniform1i  (instance_num_uniform, num_instances);
+	glUniform2fv (position_uniform, 1, tiling_position.data());
+	glUniform2fv (t1_uniform, 1, tiling_t1.data());
+	glUniform2fv (t2_uniform, 1, tiling_t2.data());
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform2fv (texture_coordinate_uniform, 6, layer.domain_coordinates()[0].data());
+	glUniform1i  (texture_sampler_uniform, 1);
+
+	const auto& mesh = tiling.mesh();
+
+	glBindVertexArray(mesh.vao_);
+	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
+
+	// Clean up.
+	glBindVertexArray(0);
+
+	glUseProgram(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_layer_images(const Layer& layer, int width, int height, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/image_vert.glsl",
+		"shaders/image_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint screen_size_uniform;
+	static GLuint screen_center_uniform;
+	static GLuint image_position_uniform;
+	static GLuint image_t1_uniform;
+	static GLuint image_t2_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
+		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		image_position_uniform  = glGetUniformLocation(shader, "uImagePos");
+		image_t1_uniform        = glGetUniformLocation(shader, "uImageT1");
+		image_t2_uniform        = glGetUniformLocation(shader, "uImageT2");
+		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
+		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+	(void)init; // Suppress unused variable warning.
+
+	// Save previous state.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+
+	glViewport(0, 0, width, height);
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+	glBindVertexArray(canvas_.vao_);
+
+	glUniform2i  (screen_size_uniform, width, height);
+	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (texture_sampler_uniform, 1);
+
+	for (const auto& image : layer)
+	{
+		const auto& image_position = layer.to_world(image.position());
+		const auto& image_t1       = layer.to_world_direction(image.t1());
+		const auto& image_t2       = layer.to_world_direction(image.t2());
+
+		glBindTexture(GL_TEXTURE_2D, image.texture());
+
+		glUniform2fv (image_position_uniform, 1, image_position.data());
+		glUniform2fv (image_t1_uniform, 1, image_t1.data());
+		glUniform2fv (image_t2_uniform, 1, image_t2.data());
+
+		glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
+	}
+
+	// Clean up.
+	glBindVertexArray(0);
+	glUseProgram(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::render_scene(int width, int height, GLuint framebuffer)
@@ -494,6 +673,56 @@ void App::render_export_frame(int width, int height, GLuint framebuffer)
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
+void App::layered_position_callback(double x, double y)
+{
+	if (ImGui::GetIO().WantCaptureMouse)
+		return;
+
+	auto& current_layer = layering_.current_layer();
+
+	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+		const auto& drag_position = position - press_position_;
+		const auto& layer_drag = current_layer.from_world_direction(screen_to_world(drag_position));
+
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			current_layer.tiling().set_position(tiling_static_position_ + layer_drag);
+		else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+			current_layer.tiling().deform(layer_drag);
+		else
+			screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
+	}
+	else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	{
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		{
+			int width, height;
+			glfwGetFramebufferSize(window_, &width, &height);
+			Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+
+			Eigen::Vector2f world_press_position = screen_center_ + screen_to_world(press_position_);
+			Eigen::Vector2f world_position       = screen_center_ + screen_to_world(position);
+
+			const auto& layer_press_position = current_layer.from_world(world_press_position);
+			const auto& layer_position       = current_layer.from_world(world_position);
+			auto& tiling                     = current_layer.tiling();
+
+			// This doesn't change during rotation - could be cached if deemed necessary.
+			Eigen::Vector2f press_wrt_center    = layer_press_position - tiling.center();
+			Eigen::Vector2f position_wrt_center = layer_position       - tiling.center();
+
+			double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+			double dot = press_wrt_center.dot(position_wrt_center);
+			double drag_rotation = std::atan2(det, dot);
+
+			tiling.set_rotation(tiling_static_rotation_ + drag_rotation);
+		}
+	}
+}
+
 void App::position_callback(double x, double y)
 {
 	// Don't do anything if ImGui is grabbing input.
@@ -538,6 +767,26 @@ void App::position_callback(double x, double y)
 	}
 }
 
+void App::layered_left_click_callback(int action, int /* mods */)
+{
+	if (action == GLFW_PRESS)
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+
+		double x, y;
+		glfwGetCursorPos(window_, &x, &y);
+
+		press_position_ = {x / width * 2 - 1, 1 - y / height * 2};
+
+		screen_center_static_position_ = screen_center_;
+		tiling_static_position_        = tiling_.position();
+
+		const auto& layer = layering_.current_layer();
+		tiling_.set_deform_origin(layer.from_world(screen_center_ + screen_to_world(press_position_)));
+	}
+}
+
 void App::left_click_callback(int action, int /* mods */)
 {
 	if (action == GLFW_PRESS)
@@ -557,6 +806,11 @@ void App::left_click_callback(int action, int /* mods */)
 	}
 }
 
+void App::layered_right_click_callback(int action, int mods)
+{
+	right_click_callback(action, mods);
+}
+
 void App::right_click_callback(int action, int /* mods */)
 {
 	if (action == GLFW_PRESS)
@@ -569,6 +823,27 @@ void App::right_click_callback(int action, int /* mods */)
 
 		press_position_ = {x / width * 2 - 1, 1 - y / height * 2};
 		tiling_static_rotation_ = tiling_.rotation();
+	}
+}
+
+void App::layered_scroll_callback(double /* x_offset */, double y_offset)
+{
+	if (ImGui::GetIO().WantCaptureMouse)
+		return;
+
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	{
+		if (y_offset < 0)
+			layering_.current_layer().tiling().multiply_scale(zoom_factor_);
+		else if (y_offset > 0 && tiling_.scale() > 0.001)
+			layering_.current_layer().tiling().multiply_scale(1 / zoom_factor_);
+	}
+	else
+	{
+		if (y_offset > 0)
+			pixels_per_unit_ *=  zoom_factor_;
+		else if (y_offset < 0)
+			pixels_per_unit_ /=  zoom_factor_;
 	}
 }
 
