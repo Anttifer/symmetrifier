@@ -72,6 +72,16 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	implementation_.render(width, height, framebuffer);
 }
 
+bool GUI::capturing_mouse(void) const
+{
+	return ImGui::GetIO().WantCaptureMouse;
+}
+
+bool GUI::capturing_keyboard(void) const
+{
+	return ImGui::GetIO().WantCaptureKeyboard;
+}
+
 void GUI::draw_menu_bar(void)
 {
 	if (ImGui::BeginMainMenuBar())

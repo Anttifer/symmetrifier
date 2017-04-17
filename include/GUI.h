@@ -14,6 +14,9 @@ public:
 
 	void render(int width, int height, GLuint framebuffer = 0);
 
+	bool capturing_mouse    (void) const;
+	bool capturing_keyboard (void) const;
+
 	// Getters for the values held by the GUI at the moment.
 	// These are either the internal variables or the variables the GUI is set to track.
 	const Eigen::Vector3f& clear_color             (void) const { return *clear_color_; }
@@ -75,10 +78,10 @@ public:
 
 private:
 	// Helper functions.
-	void draw_menu_bar          (void);
-	void draw_settings_window   (void);
-	void draw_usage_window      (void);
-	void draw_export_window     (void);
+	void draw_menu_bar              (void);
+	void draw_settings_window       (void);
+	void draw_usage_window          (void);
+	void draw_export_window         (void);
 
 	void draw_symmetry_settings     (void);
 	void draw_symmetry_settings_old (void);

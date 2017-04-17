@@ -3,7 +3,6 @@
 #include "GLFunctions.h"
 #include "GLUtils.h"
 #include "Examples.h"
-#include "imgui.h"
 #include <cstdio>
 #include <cstdint>
 
@@ -52,7 +51,7 @@ App::App(int /* argc */, char** /* argv */) :
 	// Key callbacks.
 	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
 	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
-		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
 		{
 			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 				this->show_symmetry_frame_ ^= true;
@@ -61,19 +60,19 @@ App::App(int /* argc */, char** /* argv */) :
 		}
 	});
 	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
-		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
 			this->show_settings_ ^= true;
 	});
 	window_.add_key_callback(GLFW_KEY_1, [this](int, int action, int){
-		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
 			this->tiling_.set_num_lattice_domains(1);
 	});
 	window_.add_key_callback(GLFW_KEY_2, [this](int, int action, int){
-		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
 			this->tiling_.set_num_lattice_domains(4);
 	});
 	window_.add_key_callback(GLFW_KEY_3, [this](int, int action, int){
-		if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
 			this->tiling_.set_num_lattice_domains(9);
 	});
 
@@ -678,7 +677,7 @@ void App::render_export_frame(int width, int height, GLuint framebuffer)
 
 void App::layered_position_callback(double x, double y)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (gui_.capturing_mouse())
 		return;
 
 	auto& current_layer = layering_.current_layer();
@@ -729,7 +728,7 @@ void App::layered_position_callback(double x, double y)
 void App::position_callback(double x, double y)
 {
 	// Don't do anything if ImGui is grabbing input.
-	if (!ImGui::GetIO().WantCaptureMouse)
+	if (!gui_.capturing_mouse())
 	{
 		if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 		{
@@ -846,7 +845,7 @@ void App::right_click_callback(int action, int /* mods */)
 
 void App::layered_scroll_callback(double /* x_offset */, double y_offset)
 {
-	if (ImGui::GetIO().WantCaptureMouse)
+	if (gui_.capturing_mouse())
 		return;
 
 	auto& layer = layering_.current_layer();
@@ -871,7 +870,7 @@ void App::layered_scroll_callback(double /* x_offset */, double y_offset)
 void App::scroll_callback(double /* x_offset */, double y_offset)
 {
 	// Don't do anything if ImGui is grabbing input.
-	if (!ImGui::GetIO().WantCaptureMouse)
+	if (!gui_.capturing_mouse())
 	{
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		{
@@ -926,7 +925,7 @@ void App::export_result(int export_width, int export_height, const char* export_
 
 void App::print_screen(int /* scancode */, int action, int /* mods */)
 {
-	if (action == GLFW_PRESS && !ImGui::GetIO().WantCaptureKeyboard)
+	if (action == GLFW_PRESS && !gui_.capturing_keyboard())
 	{
 		printf("Taking screenshot...\n");
 
