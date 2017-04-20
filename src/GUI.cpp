@@ -1,278 +1,689 @@
 #include "GUI.h"
 
 #include "Window.h"
+#include "Layering.h"
 #include "imgui.h"
 
-#define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
+GUI::GUI(MainWindow& window, Layering& layering) :
+	implementation_ (window),
+	window_         (window),
+	layering_       (layering),
 
+	// Sensible defaults.
+	clear_color_internal_             (0.1f, 0.1f, 0.1f),
+	screen_center_internal_           (0.5f, 0.5f),
+	pixels_per_unit_internal_         (500.0),
+	frame_visible_internal_           (true),
+	result_visible_internal_          (true),
+	menu_bar_visible_internal_        (true),
+	settings_window_visible_internal_ (true),
+	usage_window_visible_internal_    (false),
+	export_window_visible_internal_   (false),
+	export_width_internal_            (1600),
+	export_height_internal_           (1200),
 
-GUI::GUI(MainWindow& window)
-:	window_                  (window),
-	shader_                  (GL::ShaderProgram::from_files(
-		                          "shaders/gui_vert.glsl",
-		                          "shaders/gui_frag.glsl")),
-	display_size_uniform_    (glGetUniformLocation(shader_, "uDisplaySize")),
-	texture_sampler_uniform_ (glGetUniformLocation(shader_, "uTextureSampler")),
-	time_                    (glfwGetTime()),
-	left_clicked_            (false),
-	right_clicked_           (false),
-	middle_clicked_          (false),
-	mouse_wheel_             (0.0)
+	clear_color_             (&clear_color_internal_),
+	screen_center_           (&screen_center_internal_),
+	pixels_per_unit_         (&pixels_per_unit_internal_),
+	frame_visible_           (&frame_visible_internal_),
+	result_visible_          (&result_visible_internal_),
+	menu_bar_visible_        (&menu_bar_visible_internal_),
+	settings_window_visible_ (&settings_window_visible_internal_),
+	usage_window_visible_    (&usage_window_visible_internal_),
+	export_window_visible_   (&export_window_visible_internal_),
+	export_width_            (&export_width_internal_),
+	export_height_           (&export_height_internal_),
+
+	// Lambda that accepts anything and does nothing.
+	export_callback_ ([](...){}),
+
+	export_base_name_     ("image"),
+	export_filename_      (export_base_name_ + ".png")
 {
+	// Set default GUI font.
 	auto& io = ImGui::GetIO();
+	io.Fonts->Clear();
+	io.Fonts->AddFontFromFileTTF("res/DroidSans.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+	implementation_.create_fonts_texture();
 
-	io.KeyMap[ImGuiKey_Tab]        = GLFW_KEY_TAB;
-	io.KeyMap[ImGuiKey_LeftArrow]  = GLFW_KEY_LEFT;
-	io.KeyMap[ImGuiKey_RightArrow] = GLFW_KEY_RIGHT;
-	io.KeyMap[ImGuiKey_UpArrow]    = GLFW_KEY_UP;
-	io.KeyMap[ImGuiKey_DownArrow]  = GLFW_KEY_DOWN;
-	io.KeyMap[ImGuiKey_PageUp]     = GLFW_KEY_PAGE_UP;
-	io.KeyMap[ImGuiKey_PageDown]   = GLFW_KEY_PAGE_DOWN;
-	io.KeyMap[ImGuiKey_Home]       = GLFW_KEY_HOME;
-	io.KeyMap[ImGuiKey_End]        = GLFW_KEY_END;
-	io.KeyMap[ImGuiKey_Delete]     = GLFW_KEY_DELETE;
-	io.KeyMap[ImGuiKey_Backspace]  = GLFW_KEY_BACKSPACE;
-	io.KeyMap[ImGuiKey_Enter]      = GLFW_KEY_ENTER;
-	io.KeyMap[ImGuiKey_Escape]     = GLFW_KEY_ESCAPE;
-	io.KeyMap[ImGuiKey_A]          = GLFW_KEY_A;
-	io.KeyMap[ImGuiKey_C]          = GLFW_KEY_C;
-	io.KeyMap[ImGuiKey_V]          = GLFW_KEY_V;
-	io.KeyMap[ImGuiKey_X]          = GLFW_KEY_X;
-	io.KeyMap[ImGuiKey_Y]          = GLFW_KEY_Y;
-	io.KeyMap[ImGuiKey_Z]          = GLFW_KEY_Z;
-
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, [this](int action, int){
-		if (action == GLFW_PRESS)
-			this->left_clicked_ = true;
-	});
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_RIGHT, [this](int action, int){
-		if (action == GLFW_PRESS)
-			this->right_clicked_ = true;
-	});
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_MIDDLE, [this](int action, int){
-		if (action == GLFW_PRESS)
-			this->middle_clicked_ = true;
-	});
-
-	window_.add_scroll_callback([this](double /* x_offset */, double y_offset){
-		this->mouse_wheel_ += (float)y_offset;
-	});
-
-	window_.add_key_callback(&GUI::key_callback, this);
-	window_.add_char_callback(&GUI::char_callback, this);
-
-	create_fonts_texture();
-
-	io.RenderDrawListsFn = NULL;
-	io.SetClipboardTextFn = &GUI::set_clipboard_text;
-	io.GetClipboardTextFn = &GUI::get_clipboard_text;
-	io.ClipboardUserData = (GLFWwindow*)window_;
-
-	glBindVertexArray(vao_);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));
-	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
-
-GUI::~GUI(void)
-{
-	ImGui::GetIO().Fonts->TexID = 0;
-	ImGui::Shutdown();
-}
-
-void GUI::new_frame(void)
-{
-	auto& io = ImGui::GetIO();
-
-	int win_width, win_height;
-	int fb_width, fb_height;
-	glfwGetWindowSize(window_, &win_width, &win_height);
-	glfwGetFramebufferSize(window_, &fb_width, &fb_height);
-
-	float scale_width  = win_width  > 0 ? fb_width  / (float)win_width  : 0;
-	float scale_height = win_height > 0 ? fb_height / (float)win_height : 0;
-
-	io.DisplaySize             = {(float)win_width, (float)win_height};
-	io.DisplayFramebufferScale = {scale_width, scale_height};
-
-	auto current_time = glfwGetTime();
-	io.DeltaTime      = (float)(current_time - time_);
-	time_             = current_time;
-
-	if (glfwGetWindowAttrib(window_, GLFW_FOCUSED))
-	{
-		double mouse_x, mouse_y;
-		glfwGetCursorPos(window_, &mouse_x, &mouse_y);
-		io.MousePos = {(float)mouse_x, (float)mouse_y};
-	}
-	else
-		io.MousePos = {-1, -1};
-
-	io.MouseDown[GLFW_MOUSE_BUTTON_LEFT]   = left_clicked_   || glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT);
-	io.MouseDown[GLFW_MOUSE_BUTTON_RIGHT]  = right_clicked_  || glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT);
-	io.MouseDown[GLFW_MOUSE_BUTTON_MIDDLE] = middle_clicked_ || glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_MIDDLE);
-	left_clicked_ = right_clicked_ = middle_clicked_ = false;
-
-	io.MouseWheel = mouse_wheel_;
-	mouse_wheel_ = 0.0;
-
-	glfwSetInputMode(window_, GLFW_CURSOR, io.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
-
-	ImGui::NewFrame();
+	populate_thumbnail_map();
 }
 
 void GUI::render(int width, int height, GLuint framebuffer)
 {
+	implementation_.new_frame();
+
+	// Reset per-frame data.
+	menu_bar_height_     = 0.0f;
+	usage_window_height_ = 0.0f;
+
+	if (*menu_bar_visible_)
+		draw_menu_bar();
+
+	if (*settings_window_visible_)
+		draw_settings_window();
+
+	if (*usage_window_visible_)
+		draw_usage_window();
+
+	if (*export_window_visible_)
+		draw_export_window();
+
+	implementation_.render(width, height, framebuffer);
+}
+
+bool GUI::capturing_mouse(void) const
+{
+	return ImGui::GetIO().WantCaptureMouse;
+}
+
+bool GUI::capturing_keyboard(void) const
+{
+	return ImGui::GetIO().WantCaptureKeyboard;
+}
+
+void GUI::draw_menu_bar(void)
+{
+	if (ImGui::BeginMainMenuBar())
+	{
+		menu_bar_height_ = ImGui::GetWindowSize().y;
+
+		if (ImGui::BeginMenu("Menu"))
+		{
+			if (ImGui::MenuItem("Show settings", "Esc", *settings_window_visible_))
+				*settings_window_visible_ ^= true;
+
+			if (ImGui::MenuItem("Show usage", NULL, *usage_window_visible_))
+				*usage_window_visible_ ^= true;
+
+			if (ImGui::MenuItem("Show export settings", NULL, *export_window_visible_))
+				*export_window_visible_ ^= true;
+
+			if (ImGui::MenuItem("Quit", "Alt+F4"))
+				glfwSetWindowShouldClose(window_, GLFW_TRUE);
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+}
+
+void GUI::draw_settings_window(void)
+{
+	auto flags = 0;
+	ImGui::SetNextWindowSize({335, 0}, ImGuiSetCond_Once);
+	ImGui::SetNextWindowPos({0, menu_bar_height_}, ImGuiSetCond_Once);
+	if (ImGui::Begin("Settings", settings_window_visible_, flags))
+	{
+		draw_symmetry_settings();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		draw_view_settings();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		draw_frame_settings();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		draw_image_settings();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+	}
+	ImGui::End();
+}
+
+void GUI::draw_usage_window(void)
+{
 	auto& io = ImGui::GetIO();
 
-	int fb_width  = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
-	int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-	if (fb_width == 0 || fb_height == 0)
-		return;
-
-	ImGui::Render();
-	auto draw_data = ImGui::GetDrawData();
-
-	draw_data->ScaleClipRects(io.DisplayFramebufferScale);
-
-	// Save previous state.
-	GLint     old_fbo;                   glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	GLint     old_active;                glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	GLint     old_tex;
-	GLboolean old_blend_enabled        = glIsEnabled(GL_BLEND);
-	GLint     old_blend_eq_rgb;          glGetIntegerv(GL_BLEND_EQUATION_RGB, &old_blend_eq_rgb);
-	GLint     old_blend_eq_alpha;        glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &old_blend_eq_alpha);
-	GLint     old_blend_func_src;        glGetIntegerv(GL_BLEND_SRC, &old_blend_func_src);
-	GLint     old_blend_func_dst;        glGetIntegerv(GL_BLEND_DST, &old_blend_func_dst);
-	GLboolean old_cull_face_enabled    = glIsEnabled(GL_CULL_FACE);
-	GLboolean old_depth_test_enabled   = glIsEnabled(GL_DEPTH_TEST);
-	GLboolean old_scissor_test_enabled = glIsEnabled(GL_SCISSOR_TEST);
-	GLint     old_scissor_box[4];        glGetIntegerv(GL_SCISSOR_BOX, old_scissor_box);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	glActiveTexture(GL_TEXTURE0);
-
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-
-	glEnable(GL_BLEND);
-	glBlendEquation(GL_FUNC_ADD);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_SCISSOR_TEST);
-
-	if (framebuffer != 0)
-		glViewport(0, 0, width, height);
-	else
-		glViewport(0, 0, fb_width, fb_height);
-
-	glUseProgram(shader_);
-
-	glUniform2f(display_size_uniform_, io.DisplaySize.x, io.DisplaySize.y);
-	glUniform1i(texture_sampler_uniform_, 0);
-
-	glBindVertexArray(vao_);
-
-	for (int n = 0; n < draw_data->CmdListsCount; ++n)
+	auto flags = ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
+	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, menu_bar_height_}, ImGuiSetCond_Appearing);
+	if (ImGui::Begin("Usage", usage_window_visible_, flags))
 	{
-		const auto       cmd_list          = draw_data->CmdLists[n];
-		const ImDrawIdx* idx_buffer_offset = 0;
+		ImGui::Bullet();
+		ImGui::TextWrapped("Drag and drop the PNG image to symmetrify in this window.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Click and drag to move around.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Control + drag to move the symmetrification frame.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Control + right drag to rotate the symmetrification frame.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Scroll to zoom.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
+		ImGui::Bullet();
+		ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(ImDrawVert) * cmd_list->VtxBuffer.Size, cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
+		usage_window_height_ = ImGui::GetWindowSize().y;
+	}
+	ImGui::End();
+}
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ImDrawIdx) * cmd_list->IdxBuffer.Size, cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+void GUI::draw_export_window(void)
+{
+	auto& io = ImGui::GetIO();
 
-		for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; ++cmd_i)
+	auto flags = ImGuiWindowFlags_ShowBorders;
+	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
+	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, usage_window_height_ + menu_bar_height_}, ImGuiSetCond_Appearing);
+	if (ImGui::Begin("Export settings", export_window_visible_, flags))
+		draw_export_settings();
+	ImGui::End();
+}
+
+[[deprecated]]
+void GUI::draw_symmetry_settings_old(void)
+{
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
+	ImGui::Text("Symmetry groups");
+	ImGui::Separator();
+
+	ImGui::Dummy({0, 0});                   ImGui::SameLine(95);
+	ImGui::Text("No reflections");          ImGui::SameLine(215);
+	ImGui::Text("Reflections");
+	ImGui::Spacing();
+
+	ImGui::PushTextWrapPos(80.0f);
+	ImGui::TextWrapped("No rotations");     ImGui::SameLine(95);
+	ImGui::PopTextWrapPos();
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("o", !strncmp(ctiling.symmetry_group(), "o", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("o");
+	ImGui::SameLine(25); ImGui::Text("(p1)");
+	if (ImGui::Selectable("xx", !strncmp(ctiling.symmetry_group(), "xx", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("xx");
+	ImGui::SameLine(25); ImGui::Text("(pg)");
+	ImGui::EndGroup();                      ImGui::SameLine(215);
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("**", !strncmp(ctiling.symmetry_group(), "**", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("**");
+	ImGui::SameLine(25); ImGui::Text("(pm)");
+	if (ImGui::Selectable("*x", !strncmp(ctiling.symmetry_group(), "*x", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*x");
+	ImGui::SameLine(25); ImGui::Text("(cm)");
+	ImGui::EndGroup();
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	ImGui::PushTextWrapPos(80.0f);
+	ImGui::TextWrapped("2-fold rotations"); ImGui::SameLine(95);
+	ImGui::PopTextWrapPos();
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("2222", !strncmp(ctiling.symmetry_group(), "2222", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("2222");
+	ImGui::SameLine(45); ImGui::Text("(p2)");
+	if (ImGui::Selectable("22x", !strncmp(ctiling.symmetry_group(), "22x", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("22x");
+	ImGui::SameLine(45); ImGui::Text("(pgg)");
+	ImGui::EndGroup();                      ImGui::SameLine(215);
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("*2222", !strncmp(ctiling.symmetry_group(), "*2222", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*2222");
+	ImGui::SameLine(55); ImGui::Text("(pmm)");
+	if (ImGui::Selectable("2*22", !strncmp(ctiling.symmetry_group(), "2*22", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("2*22");
+	ImGui::SameLine(55); ImGui::Text("(cmm)");
+	if (ImGui::Selectable("22*", !strncmp(ctiling.symmetry_group(), "22*", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("22*");
+	ImGui::SameLine(55); ImGui::Text("(pmg)");
+	ImGui::EndGroup();
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	ImGui::PushTextWrapPos(80.0f);
+	ImGui::TextWrapped("3-fold rotations"); ImGui::SameLine(95);
+	ImGui::PopTextWrapPos();
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("333", !strncmp(ctiling.symmetry_group(), "333", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("333");
+	ImGui::SameLine(35); ImGui::Text("(p3)");
+	ImGui::EndGroup();                      ImGui::SameLine(215);
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("*333", !strncmp(ctiling.symmetry_group(), "*333", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*333");
+	ImGui::SameLine(45); ImGui::Text("(p3m1)");
+	if (ImGui::Selectable("3*3", !strncmp(ctiling.symmetry_group(), "3*3", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("3*3");
+	ImGui::SameLine(45); ImGui::Text("(p31m)");
+	ImGui::EndGroup();
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	ImGui::PushTextWrapPos(80.0f);
+	ImGui::TextWrapped("4-fold rotations"); ImGui::SameLine(95);
+	ImGui::PopTextWrapPos();
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("442", !strncmp(ctiling.symmetry_group(), "442", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("442");
+	ImGui::SameLine(35); ImGui::Text("(p4)");
+	ImGui::EndGroup();                      ImGui::SameLine(215);
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("*442", !strncmp(ctiling.symmetry_group(), "*442", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*442");
+	ImGui::SameLine(45); ImGui::Text("(p4m)");
+	if (ImGui::Selectable("4*2", !strncmp(ctiling.symmetry_group(), "4*2", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("4*2");
+	ImGui::SameLine(45); ImGui::Text("(p4g)");
+	ImGui::EndGroup();
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	ImGui::PushTextWrapPos(80.0f);
+	ImGui::TextWrapped("6-fold rotations"); ImGui::SameLine(95);
+	ImGui::PopTextWrapPos();
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("632", !strncmp(ctiling.symmetry_group(), "632", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("632");
+	ImGui::SameLine(35); ImGui::Text("(p6)");
+	ImGui::EndGroup();                      ImGui::SameLine(215);
+
+	ImGui::BeginGroup();
+	if (ImGui::Selectable("*632", !strncmp(ctiling.symmetry_group(), "*632", 8), 0, {110, 0}))
+		layer.tiling().set_symmetry_group("*632");
+	ImGui::SameLine(45); ImGui::Text("(p6m)");
+	ImGui::EndGroup();
+}
+
+void GUI::draw_symmetry_settings(void)
+{
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
+	ImGui::Text("Choose the symmetry group");
+	ImGui::Separator();
+
+	auto current_group = ctiling.symmetry_group();
+
+	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
+	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
+	ImGui::PushID("Group choice");
+	if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
+		ImGui::OpenPopup("Choose a symmetry group");
+
+	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
+	if (ImGui::BeginPopupModal("Choose a symmetry group", NULL, modal_flags))
+	{
+		draw_symmetry_modal();
+		ImGui::EndPopup();
+	}
+	ImGui::PopID();
+}
+
+void GUI::draw_symmetry_modal(void)
+{
+	auto& layer = layering_.current_layer();
+
+	bool modal_should_close = false;
+
+	auto create_button_group = [&](const char* symmetry_group, int label_offset = 60)
+	{
+		ImGui::BeginGroup();
+		ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
+		ImGui::Text(symmetry_group);
+		ImGui::PushID(symmetry_group);
+		if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[symmetry_group], {120, 120}, {0, 1}, {1, 0}, 10))
 		{
-			const auto pcmd = &cmd_list->CmdBuffer[cmd_i];
-			if (pcmd->UserCallback)
-				pcmd->UserCallback(cmd_list, pcmd);
-			else
-			{
-				glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
-				glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
-				glDrawElements(GL_TRIANGLES, pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
-			}
-			idx_buffer_offset += pcmd->ElemCount;
+			layer.tiling().set_symmetry_group(symmetry_group);
+			modal_should_close = true;
 		}
+		ImGui::PopID();
+		ImGui::EndGroup();
+	};
+
+	ImGui::PushID("modal buttons");
+
+	// No rotations.
+	create_button_group("o");
+	ImGui::SameLine();
+	create_button_group("xx");
+	ImGui::SameLine();
+	create_button_group("*x");
+	ImGui::SameLine();
+	create_button_group("**");
+
+	// 2-fold rotations.
+	create_button_group("2222", 45);
+	ImGui::SameLine();
+	create_button_group("22x", 45);
+	ImGui::SameLine();
+	create_button_group("22*", 45);
+	ImGui::SameLine();
+	create_button_group("2*22", 45);
+	ImGui::SameLine();
+	create_button_group("*2222", 45);
+
+	// 3-fold rotations.
+	create_button_group("333", 50);
+	ImGui::SameLine();
+	create_button_group("3*3", 50);
+	ImGui::SameLine();
+	create_button_group("*333", 50);
+
+	// 4-fold rotations.
+	create_button_group("442", 50);
+	ImGui::SameLine();
+	create_button_group("4*2", 50);
+	ImGui::SameLine();
+	create_button_group("*442", 50);
+
+	// 6-fold rotations.
+	create_button_group("632", 50);
+	ImGui::SameLine();
+	create_button_group("*632", 50);
+	ImGui::SameLine();
+
+	ImGui::PopID();
+
+	if (modal_should_close)
+		ImGui::CloseCurrentPopup();
+}
+
+void GUI::draw_view_settings(void)
+{
+	ImGui::Text("View settings");
+	ImGui::Separator();
+
+	ImGui::Text("Show result:"); ImGui::SameLine(130);
+	ImGui::Checkbox("##Show result", result_visible_);
+
+	ImGui::Text("Screen center:"); ImGui::SameLine(130);
+	ImGui::PushItemWidth(-65.0f);
+	ImGui::DragFloat2("##Screen center", screen_center_->data(), 0.01f);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if(ImGui::Button("Reset##Reset screen center"))
+		*screen_center_ = {0.5, 0.5};
+
+	// We need a float, not a double.
+	float pixels_per_unit = *pixels_per_unit_;
+	ImGui::Text("Zoom level:"); ImGui::SameLine(130);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
+		*pixels_per_unit_ = pixels_per_unit;
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset zoom level"))
+		*pixels_per_unit_ = 500.0;
+
+	ImGui::Text("Background:"); ImGui::SameLine(130);
+	ImGui::PushItemWidth(-1.0f);
+	ImGui::ColorEdit3("##Background color", clear_color_->data());
+	ImGui::PopItemWidth();
+	ImGui::Dummy({0, 0}); ImGui::SameLine(130);
+	if (ImGui::Button("Reset##Reset background color"))
+		*clear_color_ = {0.1, 0.1, 0.1};
+	ImGui::SameLine();
+	ImGui::Button("Pick color...");
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::Text("Not implemented yet :)");
+		ImGui::EndTooltip();
+	}
+}
+
+void GUI::draw_frame_settings(void)
+{
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
+	ImGui::Text("Frame settings");
+	ImGui::Separator();
+
+	ImGui::Text("Show frame:"); ImGui::SameLine(140);
+	ImGui::Checkbox("##Show frame", frame_visible_);
+
+	auto frame_position = ctiling.center();
+	ImGui::Text("Frame position:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat2("##Frame position", frame_position.data(), 0.01f))
+		layer.tiling().set_center(frame_position);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##Reset frame position"))
+		layer.tiling().set_center({0.5, 0.5});
+
+	float frame_rotation = ctiling.rotation() / M_PI * 180.0f;
+	ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Frame rotation", &frame_rotation, 0.5f))
+		layer.tiling().set_rotation(frame_rotation / 180.0 * M_PI);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset frame rotation"))
+		layer.tiling().set_rotation(0.0);
+
+	float frame_scale = ctiling.scale();
+	ImGui::Text("Frame scale:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Frame scale", &frame_scale, 0.01f, 0.001f, FLT_MAX))
+		layer.tiling().set_scale(frame_scale);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset frame scale"))
+		layer.tiling().set_scale(1.0);
+
+	int num_domains = ctiling.num_lattice_domains();
+	bool domains_changed = false;
+	ImGui::Text("Domains:"); ImGui::SameLine(140);
+	domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
+	domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
+	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
+	if (domains_changed)
+		layer.tiling().set_num_lattice_domains(num_domains);
+}
+
+void GUI::draw_image_settings(void)
+{
+	auto& layer = layering_.current_layer();
+
+	// TODO: Improve.
+	for (size_t idx = 0; idx < layer.size(); ++idx)
+	{
+		ImGui::PushID(idx);
+
+		const auto& cimage = layer.as_const().image(idx);
+
+		ImGui::Text("Image settings");
+		ImGui::Separator();
+
+		auto image_position = cimage.center();
+		ImGui::Text("Image position:"); ImGui::SameLine(140);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
+			layer.image(idx).set_center(image_position);
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##Reset image position"))
+			layer.image(idx).set_center({0.5f, 0.5f});
+
+		float image_rotation = cimage.rotation() / M_PI * 180.0f;
+		ImGui::Text("Image rotation:"); ImGui::SameLine(140);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
+			layer.image(idx).set_rotation(image_rotation / 180.0f * M_PI);
+		ImGui::PopItemWidth();
+		ImGui::SameLine(0, 12);
+		if (ImGui::Button("Reset##Reset image rotation"))
+			layer.image(idx).set_rotation(0.0);
+
+		float image_scale = cimage.scale();
+		ImGui::Text("Image scale:"); ImGui::SameLine(140);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
+			layer.image(idx).set_scale(image_scale);
+		ImGui::PopItemWidth();
+		ImGui::SameLine(0, 12);
+		if (ImGui::Button("Reset##Reset image scale"))
+			layer.image(idx).set_scale(1.0);
+
+		ImGui::PopID();
+	}
+}
+
+[[deprecated]]
+void GUI::draw_image_settings_old(void)
+{
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
+	ImGui::Text("Image settings");
+	ImGui::Separator();
+
+	auto image_position = ctiling.image_center();
+	ImGui::Text("Image position:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
+		layer.tiling().set_image_center(image_position);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##Reset image position"))
+		layer.tiling().set_image_center({0.5f, 0.5f});
+
+	float image_rotation = ctiling.image_rotation() / M_PI * 180.0f;
+	ImGui::Text("Image rotation:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
+		layer.tiling().set_image_rotation(image_rotation / 180.0f * M_PI);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset image rotation"))
+		layer.tiling().set_image_rotation(0.0);
+
+	float image_scale = ctiling.image_scale();
+	ImGui::Text("Image scale:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
+		layer.tiling().set_image_scale(image_scale);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset image scale"))
+		layer.tiling().set_image_scale(1.0);
+}
+
+void GUI::draw_export_settings(void)
+{
+	auto& layer = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
+	ImGui::Text("Export settings");
+	ImGui::Separator();
+
+	int resolution[] = {*export_width_, *export_height_};
+	ImGui::Text("Resolution:"); ImGui::SameLine(120);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragInt2("##Resolution", resolution, 1.0f, 512, 4096))
+	{
+		*export_width_  = std::max(512, std::min(resolution[0], 4096));
+		*export_height_ = std::max(512, std::min(resolution[1], 4096));
+	}
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##Reset resolution"))
+	{
+		*export_width_  = 1600;
+		*export_height_ = 1200;
+	}
+	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
+	if (ImGui::Button("Fit to window"))
+	{
+		int width, height;
+		glfwGetFramebufferSize(window_, &width, &height);
+		*export_width_  = width;
+		*export_height_ = height;
 	}
 
-	// Clean up.
-	glBindVertexArray(0);
-	glUseProgram(0);
+	char buffer[256] = {'\0'};
+	std::strncpy(buffer, export_filename_.c_str(), 255);
+	ImGui::Text("Export as:"); ImGui::SameLine(120);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::InputText("##Filename", buffer, 256, ImGuiInputTextFlags_CharsNoBlank))
+		export_filename_ = buffer;
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset filename"))
+		export_filename_ = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
 
-	glScissor(old_scissor_box[0], old_scissor_box[1], old_scissor_box[2], old_scissor_box[3]);
-    if (old_scissor_test_enabled) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
-    if (old_depth_test_enabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
-    if (old_cull_face_enabled) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-	glBlendFunc(old_blend_func_src, old_blend_func_dst);
-	glBlendEquationSeparate(old_blend_eq_rgb, old_blend_eq_alpha);
-	if (old_blend_enabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+	bool should_export = false;
+	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
+	if (ImGui::Button("Export"))
+	{
+		if (export_filename_.empty())
+			ImGui::OpenPopup("No filename");
+		else
+			should_export = true;
+	}
+	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
+	if (ImGui::BeginPopupModal("No filename", NULL, modal_flags))
+	{
+		ImVec2 button_size = {140, 0.0f};
+		auto default_name = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
+
+		ImGui::Text("No filename set.");
+		ImGui::Text("Use the default name \"%s\"?", default_name.c_str());
+		if (ImGui::Button("OK##Export OK", button_size))
+		{
+			export_filename_ = default_name;
+			should_export = true;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel##Export cancel", button_size))
+			ImGui::CloseCurrentPopup();
+
+		ImGui::EndPopup();
+	}
+	if (should_export)
+		export_callback_(*export_width_, *export_height_, export_filename_.c_str());
 }
 
-void GUI::create_fonts_texture(void)
+void GUI::populate_thumbnail_map(void)
 {
-	auto& io = ImGui::GetIO();
-	unsigned char* pixels;
-	int width, height;
+	thumbnail_map_["o"]     = GL::Texture::from_png("res/thumbnails/o");
+	thumbnail_map_["xx"]    = GL::Texture::from_png("res/thumbnails/xx");
+	thumbnail_map_["*x"]    = GL::Texture::from_png("res/thumbnails/_x");
+	thumbnail_map_["**"]    = GL::Texture::from_png("res/thumbnails/__");
 
-	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+	thumbnail_map_["2222"]  = GL::Texture::from_png("res/thumbnails/2222");
+	thumbnail_map_["22x"]   = GL::Texture::from_png("res/thumbnails/22x");
+	thumbnail_map_["22*"]   = GL::Texture::from_png("res/thumbnails/22_");
+	thumbnail_map_["2*22"]  = GL::Texture::from_png("res/thumbnails/2_22");
+	thumbnail_map_["*2222"] = GL::Texture::from_png("res/thumbnails/_2222");
 
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, fonts_texture_);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, old_tex);
+	thumbnail_map_["333"]   = GL::Texture::from_png("res/thumbnails/333");
+	thumbnail_map_["3*3"]   = GL::Texture::from_png("res/thumbnails/3_3");
+	thumbnail_map_["*333"]  = GL::Texture::from_png("res/thumbnails/_333");
 
-	fonts_texture_.width_  = width;
-	fonts_texture_.height_ = height;
+	thumbnail_map_["442"]   = GL::Texture::from_png("res/thumbnails/442");
+	thumbnail_map_["4*2"]   = GL::Texture::from_png("res/thumbnails/4_2");
+	thumbnail_map_["*442"]  = GL::Texture::from_png("res/thumbnails/_442");
 
-	io.Fonts->TexID = (void*)(intptr_t)(GLuint)fonts_texture_;
-}
-
-void GUI::key_callback(int key, int /* scancode */, int action, int mods)
-{
-	auto& io = ImGui::GetIO();
-	if (action == GLFW_PRESS)
-		io.KeysDown[key] = true;
-	if (action == GLFW_RELEASE)
-		io.KeysDown[key] = false;
-
-	(void)mods; // I heard mods aren't reliable across systems.
-	io.KeyCtrl  = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
-    io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT]   || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
-    io.KeyAlt   = io.KeysDown[GLFW_KEY_LEFT_ALT]     || io.KeysDown[GLFW_KEY_RIGHT_ALT];
-    io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER]   || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
-}
-
-void GUI::char_callback(unsigned int c)
-{
-	auto& io = ImGui::GetIO();
-	if (c > 0 && c < 0x10000)
-		io.AddInputCharacter((unsigned short)c);
-}
-
-const char* GUI::get_clipboard_text(void* user_data)
-{
-	return glfwGetClipboardString((GLFWwindow*)user_data);
-}
-
-void  GUI::set_clipboard_text(void* user_data, const char* text)
-{
-	glfwSetClipboardString((GLFWwindow*)user_data, text);
+	thumbnail_map_["632"]   = GL::Texture::from_png("res/thumbnails/632");
+	thumbnail_map_["*632"]  = GL::Texture::from_png("res/thumbnails/_632");
 }

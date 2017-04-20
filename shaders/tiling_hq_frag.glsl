@@ -4,10 +4,12 @@
 
 in vec4 vInfluence;
 
-uniform float uAR;
 uniform vec2 uFramePos = vec2(0, 0);
 uniform vec2 uT1       = vec2(1, 0);
 uniform vec2 uT2       = vec2(0, 1);
+uniform vec2 uImagePos = vec2(0, 0);
+uniform vec2 uImageT1  = vec2(1, 0);
+uniform vec2 uImageT2  = vec2(0, 1);
 
 uniform int uNumSymmetryDomains;
 uniform samplerBuffer uMeshSampler;
@@ -31,7 +33,7 @@ void main() {
 		vec2 coord = (mat3(v1, v2, v3) * vInfluence.xyz).xy;
 
 		coord = uFramePos + uT1 * coord.x + uT2 * coord.y;
-		coord.y *= uAR;
+		coord = inverse(mat2(uImageT1, uImageT2)) * (coord - uImagePos);
 
 		vec4 sample = texture(uTextureSampler, coord);
 

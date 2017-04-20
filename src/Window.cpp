@@ -6,8 +6,8 @@ MainWindow::PointerMap MainWindow::window_by_pointer__;
 
 //--------------------
 
-MainWindow::MainWindow(int width, int height, const char* title)
-:	window_p_(nullptr)
+MainWindow::MainWindow(int width, int height, const char* title) :
+	window_p_(nullptr)
 {
 	glfwSetErrorCallback(&master_error_callback);
 	if (!glfwInit())
