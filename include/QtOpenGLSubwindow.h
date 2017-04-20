@@ -2,14 +2,14 @@
 #define QTOPENGLSUBWINDOW_H
 
 #include <QOpenGLWindow>
-class QtSymmetryCanvas;
+class QtOpenGLCanvas;
 
 class QtOpenGLSubwindow : public QOpenGLWindow
 {
 	Q_OBJECT
 
 public:
-	explicit QtOpenGLSubwindow (QtSymmetryCanvas* enclosing_widget, QWindow* parent = 0);
+	explicit QtOpenGLSubwindow (QtOpenGLCanvas* canvas, QWindow* parent = 0);
 
 protected:
 	void initializeGL (void)     override;
@@ -19,10 +19,10 @@ protected:
 	void mouseMoveEvent    (QMouseEvent*) override;
 	void mousePressEvent   (QMouseEvent*) override;
 	void mouseReleaseEvent (QMouseEvent*) override;
+	void wheelEvent        (QWheelEvent*) override;
 
 private:
-	// TODO: Write a QtOpenGLCanvas widget to generalize this.
-	QtSymmetryCanvas* enclosing_widget_;
+	QtOpenGLCanvas* m_pCanvas;
 };
 
 #endif // QTOPENGLSUBWINDOW_H

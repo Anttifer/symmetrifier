@@ -1,17 +1,16 @@
 #ifndef QTSYMMETRYCANVAS_H
 #define QTSYMMETRYCANVAS_H
 
-#include <QWidget>
+#include "QtOpenGLCanvas.h"
 #include <memory>
 #include <Eigen/Geometry>
 #include "GLInclude.h"
 
-class QtOpenGLSubwindow;
 class Tiling;
 class ShaderCanvas;
 namespace GL { class Texture; }
 
-class QtSymmetryCanvas : public QWidget
+class QtSymmetryCanvas : public QtOpenGLCanvas
 {
 	Q_OBJECT
 
@@ -19,14 +18,14 @@ public:
 	explicit QtSymmetryCanvas (QWidget* parent = 0);
 	virtual ~QtSymmetryCanvas (void);
 
-	void initializeGL (void);
-	void paintGL      (void);
-	void resizeGL     (int, int);
-
 protected:
+	void initializeGL (void) override;
+	void paintGL      (void) override;
+
 	void mousePressEvent   (QMouseEvent*) override;
 	void mouseReleaseEvent (QMouseEvent*) override;
 	void mouseMoveEvent    (QMouseEvent*) override;
+	void wheelEvent        (QWheelEvent*) override;
 
 private:
 	void render_image(const GL::Texture& image, int fb_width, int fb_height, GLuint fbo);
@@ -44,17 +43,11 @@ private:
 	Eigen::Vector3f clear_color_;
 	Eigen::Vector2f screen_center_;
 	double          pixels_per_unit_;
+	double          zoom_factor_;
 
 	bool mouse_down_;
 	Eigen::Vector2f press_pos_;
 	Eigen::Vector2f press_screen_center_;
-
-	// OpenGL subwindow handling.
-	QtOpenGLSubwindow* subwindow_;
-	friend class QtOpenGLSubwindow;
-	void   subwindow_setup          (void);
-	void   subwindow_update         (void);
-	GLuint defaultFramebufferObject (void);
 };
 
 #endif // QTSYMMETRYCANVAS_H

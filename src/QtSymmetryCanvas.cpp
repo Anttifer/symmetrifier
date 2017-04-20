@@ -2,36 +2,28 @@
 #include "QtSymmetryCanvas.h"
 
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <iostream>
+#include <cmath>
 #include "GLObjects.h"
 #include "Tiling.h"
 #include "ShaderCanvas.h"
 
 QtSymmetryCanvas::QtSymmetryCanvas(QWidget* parent) :
-	QWidget          (parent),
+	QtOpenGLCanvas   (parent),
 
 	clear_color_     (0.1f, 0.1f, 0.1f),
 	screen_center_   (0.5f, 0.5f),
 	pixels_per_unit_ (500),
+	zoom_factor_     (1.2),
 
 	mouse_down_      (false)
-{
-	subwindow_setup();
-}
+{}
 
 QtSymmetryCanvas::~QtSymmetryCanvas(void) {}
 
 void QtSymmetryCanvas::initializeGL(void)
 {
-	glewExperimental = GL_TRUE;
-	GLenum status    = glewInit();
-
-	if (status != GLEW_OK)
-	{
-		std::cerr << "Error " << glewGetErrorString(status) << std::endl;
-		throw std::runtime_error("Failed to initialize GLEW for QtSymmetryCanvas.");
-	}
-
 	// "Enable" depth testing and alpha blending.
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_ALWAYS);
@@ -70,11 +62,6 @@ void QtSymmetryCanvas::paintGL(void)
 	// render_scene(width(), height(), fbo);
 }
 
-void QtSymmetryCanvas::resizeGL(int width, int height)
-{
-	glViewport(0, 0, width, height);
-}
-
 void QtSymmetryCanvas::mousePressEvent(QMouseEvent* event)
 {
 	press_pos_ = { event->x() / (float)width() * 2.0f - 1.0f,
@@ -99,8 +86,16 @@ void QtSymmetryCanvas::mouseMoveEvent(QMouseEvent* event)
 
 		screen_center_ = press_screen_center_ - screen_to_world(diff);
 
-		subwindow_update();
+		updateSubwindow();
 	}
+}
+
+void QtSymmetryCanvas::wheelEvent(QWheelEvent* event)
+{
+	float delta = event->angleDelta().y() / 256.0f;
+	pixels_per_unit_ *= std::pow(zoom_factor_, delta);
+
+	updateSubwindow();
 }
 
 void QtSymmetryCanvas::render_image(const GL::Texture& image, int fb_width, int fb_height, GLuint fbo)

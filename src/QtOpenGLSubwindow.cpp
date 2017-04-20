@@ -1,10 +1,10 @@
 #include "QtOpenGLSubwindow.h"
 
-#include "QtSymmetryCanvas.h"
+#include "QtOpenGLCanvas.h"
 
-QtOpenGLSubwindow::QtOpenGLSubwindow(QtSymmetryCanvas* enclosing_widget, QWindow* parent) :
-	QOpenGLWindow           (NoPartialUpdate, parent),
-	enclosing_widget_       (enclosing_widget)
+QtOpenGLSubwindow::QtOpenGLSubwindow(QtOpenGLCanvas* canvas, QWindow* parent) :
+	QOpenGLWindow  (NoPartialUpdate, parent),
+	m_pCanvas      (canvas)
 {
 	QSurfaceFormat fmt;
 	fmt.setVersion(3, 3);
@@ -15,30 +15,37 @@ QtOpenGLSubwindow::QtOpenGLSubwindow(QtSymmetryCanvas* enclosing_widget, QWindow
 
 void QtOpenGLSubwindow::initializeGL(void)
 {
-	enclosing_widget_->initializeGL();
+	m_pCanvas->initializeGLEW();
+	m_pCanvas->initializeGL();
 }
 
 void QtOpenGLSubwindow::paintGL(void)
 {
-	enclosing_widget_->paintGL();
+	m_pCanvas->paintGL();
 }
 
 void QtOpenGLSubwindow::resizeGL(int width, int height)
 {
-	enclosing_widget_->resizeGL(width, height);
+	m_pCanvas->resizeViewport(width, height);
+	m_pCanvas->resizeGL(width, height);
 }
 
 void QtOpenGLSubwindow::mouseMoveEvent(QMouseEvent* event)
 {
-	enclosing_widget_->mouseMoveEvent(event);
+	m_pCanvas->mouseMoveEvent(event);
 }
 
 void QtOpenGLSubwindow::mousePressEvent(QMouseEvent* event)
 {
-	enclosing_widget_->mousePressEvent(event);
+	m_pCanvas->mousePressEvent(event);
 }
 
 void QtOpenGLSubwindow::mouseReleaseEvent(QMouseEvent* event)
 {
-	enclosing_widget_->mouseReleaseEvent(event);
+	m_pCanvas->mouseReleaseEvent(event);
+}
+
+void QtOpenGLSubwindow::wheelEvent(QWheelEvent* event)
+{
+	m_pCanvas->wheelEvent(event);
 }
