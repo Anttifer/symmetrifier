@@ -105,20 +105,28 @@ void QtSymmetryCanvas::render_image(const GL::Texture& image, int fb_width, int 
 		"shaders/image_frag.glsl");
 
 	// Find uniform locations once.
-	static GLuint aspect_ratio_uniform;
 	static GLuint screen_size_uniform;
 	static GLuint screen_center_uniform;
+	static GLuint image_position_uniform;
+	static GLuint image_t1_uniform;
+	static GLuint image_t2_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_sampler_uniform;
 	static bool init = [&](){
-		aspect_ratio_uniform    = glGetUniformLocation(shader, "uAR");
 		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
 		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		image_position_uniform  = glGetUniformLocation(shader, "uImagePos");
+		image_t1_uniform        = glGetUniformLocation(shader, "uImageT1");
+		image_t2_uniform        = glGetUniformLocation(shader, "uImageT2");
 		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
 		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
+
+	const Eigen::Vector2f image_position = {0.0f, 0.0f};
+	const Eigen::Vector2f image_t1       = {1.0f, 0.0f};
+	const Eigen::Vector2f image_t2       = {0.0f, image.height_ / (float)image.width_};
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -128,14 +136,14 @@ void QtSymmetryCanvas::render_image(const GL::Texture& image, int fb_width, int 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, image);
 
-	auto AR = image.width_ / (float)image.height_;
-
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 
-	glUniform1f  (aspect_ratio_uniform, AR);
 	glUniform2i  (screen_size_uniform, fb_width, fb_height);
 	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform2fv (image_position_uniform, 1, image_position.data());
+	glUniform2fv (image_t1_uniform, 1, image_t1.data());
+	glUniform2fv (image_t2_uniform, 1, image_t2.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
 
