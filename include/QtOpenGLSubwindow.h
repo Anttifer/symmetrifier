@@ -9,7 +9,7 @@ class QtOpenGLSubwindow : public QOpenGLWindow
 	Q_OBJECT
 
 public:
-	explicit QtOpenGLSubwindow (QtOpenGLCanvas* canvas, QWindow* parent = 0);
+	QtOpenGLSubwindow (QOpenGLContext* context, QtOpenGLCanvas* canvas, QWindow* parent = 0);
 
 protected:
 	void initializeGL (void)     override;

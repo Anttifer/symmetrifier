@@ -1,21 +1,21 @@
 #include "QtOpenGLSubwindow.h"
 
+#include <QOpenGLContext>
 #include "QtOpenGLCanvas.h"
 
-QtOpenGLSubwindow::QtOpenGLSubwindow(QtOpenGLCanvas* canvas, QWindow* parent) :
-	QOpenGLWindow  (NoPartialUpdate, parent),
+QtOpenGLSubwindow::QtOpenGLSubwindow(QOpenGLContext* context,
+                                     QtOpenGLCanvas* canvas,
+                                     QWindow*        parent) :
+	QOpenGLWindow  (context, NoPartialUpdate, parent),
 	m_pCanvas      (canvas)
 {
-	QSurfaceFormat fmt;
-	fmt.setVersion(3, 3);
-	fmt.setProfile(QSurfaceFormat::CoreProfile);
-	fmt.setSwapInterval(0);
-	setFormat(fmt);
+	create();
+	context->makeCurrent(this);
+	m_pCanvas->initializeGLEW();
 }
 
 void QtOpenGLSubwindow::initializeGL(void)
 {
-	m_pCanvas->initializeGLEW();
 	m_pCanvas->initializeGL();
 }
 

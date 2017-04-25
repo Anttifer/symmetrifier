@@ -9,8 +9,8 @@
 #include "Tiling.h"
 #include "ShaderCanvas.h"
 
-QtSymmetryCanvas::QtSymmetryCanvas(QWidget* parent) :
-	QtOpenGLCanvas   (parent),
+QtSymmetryCanvas::QtSymmetryCanvas(QOpenGLContext* context, QWidget* parent) :
+	QtOpenGLCanvas   (context, parent),
 
 	clear_color_     (0.1f, 0.1f, 0.1f),
 	screen_center_   (0.5f, 0.5f),

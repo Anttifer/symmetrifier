@@ -15,7 +15,7 @@ class QtSymmetryCanvas : public QtOpenGLCanvas
 	Q_OBJECT
 
 public:
-	explicit QtSymmetryCanvas (QWidget* parent = 0);
+	explicit QtSymmetryCanvas (QOpenGLContext* context, QWidget* parent = 0);
 	virtual ~QtSymmetryCanvas (void);
 
 protected:

@@ -2,6 +2,8 @@
 #include "QtSymmetryCanvas.h"
 #include <QtWidgets>
 
+extern QOpenGLContext* g_pContext;
+
 QtWindow::QtWindow(QWidget* parent) :
 	QMainWindow(parent)
 {
@@ -15,7 +17,7 @@ QtWindow::QtWindow(QWidget* parent) :
 	setCentralWidget(central_area_);
 
 	auto layout      = new QHBoxLayout;
-	symmetry_canvas_ = new QtSymmetryCanvas;
+	symmetry_canvas_ = new QtSymmetryCanvas(g_pContext);
 	left_button_     = new QPushButton("Kek!");
 
 	layout->addWidget(left_button_);

@@ -3,14 +3,14 @@
 #include "QtOpenGLSubwindow.h"
 #include <QBoxLayout>
 
-QtOpenGLCanvas::QtOpenGLCanvas(QWidget* parent) :
+QtOpenGLCanvas::QtOpenGLCanvas(QOpenGLContext* context, QWidget* parent) :
 	QWidget (parent)
 {
 	auto layout = new QHBoxLayout;
 	setLayout(layout);
 	layout->setContentsMargins(0, 0, 0, 0);
 
-	m_pSubwindow = new QtOpenGLSubwindow(this);
+	m_pSubwindow = new QtOpenGLSubwindow(context, this);
 	layout->addWidget(createWindowContainer(m_pSubwindow, this));
 }
 
