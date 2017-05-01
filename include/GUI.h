@@ -4,6 +4,7 @@
 #include "GLFWImGui.h"
 #include <Eigen/Geometry>
 #include <unordered_map>
+#include "Rectangle.h"
 
 class Layering;
 
@@ -14,8 +15,10 @@ public:
 
 	void render(int width, int height, GLuint framebuffer = 0);
 
-	bool capturing_mouse    (void) const;
-	bool capturing_keyboard (void) const;
+	const Rectangle<int>& graphics_area           (void) const { return graphics_area_; }
+
+	bool                  capturing_mouse         (void) const;
+	bool                  capturing_keyboard      (void) const;
 
 	// Getters for the values held by the GUI at the moment.
 	// These are either the internal variables or the variables the GUI is set to track.
@@ -130,9 +133,17 @@ private:
 	std::string export_base_name_;
 	std::string export_filename_;
 
-	// This is used for positioning windows
-	// depending on menu bar / usage window existence and size.
-	float menu_bar_height_;
+	Rectangle<int> graphics_area_;
+
+	// These are used for positioning windows and the graphics area.
+	float top_margin_;
+	float bottom_margin_;
+	float left_margin_;
+	float right_margin_;
+
+	float settings_width_;
+
+	// TODO: Get rid of this.
 	float usage_window_height_;
 };
 

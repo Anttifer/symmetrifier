@@ -8,6 +8,7 @@
 #include "Layering.h"
 #include "Tiling.h"
 #include "GLObjects.h"
+#include "Rectangle.h"
 
 //--------------------
 
@@ -23,10 +24,10 @@ public:
 
 private:
 	// Renders everything but the GUI, layered.
-	void render_layered_scene (int width, int height, GLuint framebuffer = 0);
+	void render_layered_scene (const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
-	void render_layer        (const Layer& layer, int width, int height, GLuint framebuffer = 0);
-	void render_layer_images (const Layer& layer, int width, int height, GLuint framebuffer = 0);
+	void render_layer        (const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer = 0);
+	void render_layer_images (const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
 
 	// Renders everything but the GUI.
@@ -36,10 +37,10 @@ private:
 	void render_base_image      (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
 	void render_tiling          (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
 	void render_tiling_hq       (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
-	void render_symmetry_frame  (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
+	void render_symmetry_frame  (const Tiling& tiling, const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
 	// Export cropping frame.
-	void render_export_frame    (int width, int height, GLuint framebuffer = 0);
+	void render_export_frame    (const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
 	// Layered mouse callbacks.
 	void layered_position_callback    (double, double);

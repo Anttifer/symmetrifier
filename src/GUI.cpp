@@ -37,8 +37,11 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	// Lambda that accepts anything and does nothing.
 	export_callback_ ([](...){}),
 
-	export_base_name_     ("image"),
-	export_filename_      (export_base_name_ + ".png")
+	export_base_name_ ("image"),
+	export_filename_  (export_base_name_ + ".png"),
+
+	graphics_area_    ({0, 0, 0, 0}),
+	settings_width_   (335)
 {
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
@@ -54,8 +57,9 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	implementation_.new_frame();
 
 	// Reset per-frame data.
-	menu_bar_height_     = 0.0f;
-	usage_window_height_ = 0.0f;
+	top_margin_ = bottom_margin_ = left_margin_ = right_margin_ = 0.0f;
+
+	usage_window_height_   = 0.0f;
 
 	if (*menu_bar_visible_)
 		draw_menu_bar();
@@ -68,6 +72,15 @@ void GUI::render(int width, int height, GLuint framebuffer)
 
 	if (*export_window_visible_)
 		draw_export_window();
+
+	auto horizontal_margin = left_margin_   + right_margin_;
+	auto vertical_margin   = bottom_margin_ + top_margin_;
+
+	graphics_area_ = { left_margin_, bottom_margin_,
+	                   width - horizontal_margin, height - vertical_margin };
+
+	bool kek = true;
+	ImGui::ShowTestWindow(&kek);
 
 	implementation_.render(width, height, framebuffer);
 }
@@ -86,7 +99,7 @@ void GUI::draw_menu_bar(void)
 {
 	if (ImGui::BeginMainMenuBar())
 	{
-		menu_bar_height_ = ImGui::GetWindowSize().y;
+		top_margin_ += ImGui::GetWindowSize().y;
 
 		if (ImGui::BeginMenu("Menu"))
 		{
@@ -111,11 +124,23 @@ void GUI::draw_menu_bar(void)
 
 void GUI::draw_settings_window(void)
 {
+	// TODO: Use render viewport size instead.
+	int width, height;
+	glfwGetFramebufferSize(window_, &width, &height);
+	auto vertical_margin = top_margin_ + bottom_margin_;
+
 	auto flags = 0;
-	ImGui::SetNextWindowSize({335, 0}, ImGuiSetCond_Once);
-	ImGui::SetNextWindowPos({0, menu_bar_height_}, ImGuiSetCond_Once);
+	flags |= ImGuiWindowFlags_NoTitleBar;
+	flags |= ImGuiWindowFlags_NoMove;
+
+	ImGui::SetNextWindowSize({settings_width_, height - vertical_margin}, ImGuiSetCond_Always);
+	ImGui::SetNextWindowSizeConstraints({0, -1}, {FLT_MAX, FLT_MAX});
+	ImGui::SetNextWindowPos({0, top_margin_}, ImGuiSetCond_Always);
 	if (ImGui::Begin("Settings", settings_window_visible_, flags))
 	{
+		settings_width_ =  ImGui::GetWindowWidth();
+		left_margin_    += ImGui::GetWindowWidth();
+
 		draw_symmetry_settings();
 
 		ImGui::Spacing();
@@ -149,7 +174,7 @@ void GUI::draw_usage_window(void)
 
 	auto flags = ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
 	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
-	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, menu_bar_height_}, ImGuiSetCond_Appearing);
+	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, top_margin_}, ImGuiSetCond_Appearing);
 	if (ImGui::Begin("Usage", usage_window_visible_, flags))
 	{
 		ImGui::Bullet();
@@ -180,7 +205,7 @@ void GUI::draw_export_window(void)
 
 	auto flags = ImGuiWindowFlags_ShowBorders;
 	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
-	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, usage_window_height_ + menu_bar_height_}, ImGuiSetCond_Appearing);
+	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, usage_window_height_ + top_margin_}, ImGuiSetCond_Appearing);
 	if (ImGui::Begin("Export settings", export_window_visible_, flags))
 		draw_export_settings();
 	ImGui::End();

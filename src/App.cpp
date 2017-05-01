@@ -2,7 +2,6 @@
 
 #include "GLFunctions.h"
 #include "GLUtils.h"
-#include "Examples.h"
 #include <cstdio>
 #include <cstdint>
 
@@ -113,7 +112,7 @@ void App::loop(void)
 		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		render_layered_scene(width, height);
+		render_layered_scene(gui_.graphics_area());
 		gui_.render(width, height);
 
 		// Show the result on screen.
@@ -124,7 +123,7 @@ void App::loop(void)
 	}
 }
 
-void App::render_layered_scene(int width, int height, GLuint framebuffer)
+void App::render_layered_scene(const Rectangle<int>& viewport, GLuint framebuffer)
 {
 	const auto& current_layer = layering_.current_layer();
 
@@ -133,29 +132,29 @@ void App::render_layered_scene(int width, int height, GLuint framebuffer)
 		for (const auto& layer : layering_)
 		{
 			if (layer.visible())
-				render_layer(layer, width, height, framebuffer);
+				render_layer(layer, viewport, framebuffer);
 		}
 
 		if (show_symmetry_frame_)
-			render_symmetry_frame(current_layer.tiling(), width, height, framebuffer);
+			render_symmetry_frame(current_layer.tiling(), viewport, framebuffer);
 
 		if (show_export_settings_)
-			render_export_frame(width, height, framebuffer);
+			render_export_frame(viewport, framebuffer);
 	}
 	else
 	{
 		for (const auto& layer : layering_)
 		{
 			if (layer.visible() || &layer == &current_layer)
-				render_layer_images(layer, width, height, framebuffer);
+				render_layer_images(layer, viewport, framebuffer);
 		}
 
 		// Always render frame when not showing the result.
-		render_symmetry_frame(current_layer.tiling(), width, height, framebuffer);
+		render_symmetry_frame(current_layer.tiling(), viewport, framebuffer);
 	}
 }
 
-void App::render_layer(const Layer& layer, int width, int height, GLuint framebuffer)
+void App::render_layer(const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/tiling_vert.glsl",
@@ -166,8 +165,8 @@ void App::render_layer(const Layer& layer, int width, int height, GLuint framebu
 	static GLuint position_uniform;
 	static GLuint t1_uniform;
 	static GLuint t2_uniform;
-	static GLuint screen_size_uniform;
-	static GLuint screen_center_uniform;
+	static GLuint viewport_size_uniform;
+	static GLuint view_center_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_coordinate_uniform;
 	static GLuint texture_sampler_uniform;
@@ -176,8 +175,8 @@ void App::render_layer(const Layer& layer, int width, int height, GLuint framebu
 		position_uniform           = glGetUniformLocation(shader, "uPos");
 		t1_uniform                 = glGetUniformLocation(shader, "uT1");
 		t2_uniform                 = glGetUniformLocation(shader, "uT2");
-		screen_size_uniform        = glGetUniformLocation(shader, "uScreenSize");
-		screen_center_uniform      = glGetUniformLocation(shader, "uScreenCenter");
+		viewport_size_uniform      = glGetUniformLocation(shader, "uScreenSize");
+		view_center_uniform        = glGetUniformLocation(shader, "uScreenCenter");
 		pixels_per_unit_uniform    = glGetUniformLocation(shader, "uPixelsPerUnit");
 		texture_coordinate_uniform = glGetUniformLocation(shader, "uTexCoords");
 		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
@@ -195,7 +194,7 @@ void App::render_layer(const Layer& layer, int width, int height, GLuint framebu
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, domain_texture);
 
-	glViewport(0, 0, width, height);
+	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
 	const auto plane_side_length = 10;
 	const auto num_instances = plane_side_length * plane_side_length;
@@ -213,8 +212,8 @@ void App::render_layer(const Layer& layer, int width, int height, GLuint framebu
 	glUniform2fv (position_uniform, 1, tiling_position.data());
 	glUniform2fv (t1_uniform, 1, tiling_t1.data());
 	glUniform2fv (t2_uniform, 1, tiling_t2.data());
-	glUniform2i  (screen_size_uniform, width, height);
-	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform2i  (viewport_size_uniform, viewport.width, viewport.height);
+	glUniform2fv (view_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform2fv (texture_coordinate_uniform, 6, layer.domain_coordinates()[0].data());
 	glUniform1i  (texture_sampler_uniform, 1);
@@ -234,23 +233,23 @@ void App::render_layer(const Layer& layer, int width, int height, GLuint framebu
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_layer_images(const Layer& layer, int width, int height, GLuint framebuffer)
+void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/image_vert.glsl",
 		"shaders/image_frag.glsl");
 
 	// Find uniform locations once.
-	static GLuint screen_size_uniform;
-	static GLuint screen_center_uniform;
+	static GLuint viewport_size_uniform;
+	static GLuint view_center_uniform;
 	static GLuint image_position_uniform;
 	static GLuint image_t1_uniform;
 	static GLuint image_t2_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_sampler_uniform;
 	static bool init = [&](){
-		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
-		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		viewport_size_uniform   = glGetUniformLocation(shader, "uScreenSize");
+		view_center_uniform     = glGetUniformLocation(shader, "uScreenCenter");
 		image_position_uniform  = glGetUniformLocation(shader, "uImagePos");
 		image_t1_uniform        = glGetUniformLocation(shader, "uImageT1");
 		image_t2_uniform        = glGetUniformLocation(shader, "uImageT2");
@@ -267,14 +266,14 @@ void App::render_layer_images(const Layer& layer, int width, int height, GLuint 
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 
-	glViewport(0, 0, width, height);
+	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
 	// Set the shader program and uniforms, and draw.
 	glUseProgram(shader);
 	glBindVertexArray(canvas_.vao_);
 
-	glUniform2i  (screen_size_uniform, width, height);
-	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform2i  (viewport_size_uniform, viewport.width, viewport.height);
+	glUniform2fv (view_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (texture_sampler_uniform, 1);
 
@@ -312,17 +311,17 @@ void App::render_scene(int width, int height, GLuint framebuffer)
 		render_tiling(tiling_, width, height, framebuffer);
 
 		if (show_symmetry_frame_)
-			render_symmetry_frame(tiling_, width, height, framebuffer);
+			render_symmetry_frame(tiling_, {0, 0, width, height}, framebuffer);
 
 		if (show_export_settings_)
-			render_export_frame(width, height, framebuffer);
+			render_export_frame({0, 0, width, height}, framebuffer);
 	}
 	else
 	{
 		render_base_image(tiling_, width, height, framebuffer);
 
 		// Always render frame when not showing the result.
-		render_symmetry_frame(tiling_, width, height, framebuffer);
+		render_symmetry_frame(tiling_, {0, 0, width, height}, framebuffer);
 	}
 }
 
@@ -544,7 +543,7 @@ void App::render_tiling_hq(const Tiling& tiling, int width, int height, GLuint f
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLuint framebuffer)
+void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& viewport, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram::from_files(
 		"shaders/frame_vert.glsl",
@@ -555,8 +554,8 @@ void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLu
 	static GLuint position_uniform;
 	static GLuint t1_uniform;
 	static GLuint t2_uniform;
-	static GLuint screen_size_uniform;
-	static GLuint screen_center_uniform;
+	static GLuint viewport_size_uniform;
+	static GLuint view_center_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint render_overlay_uniform;
 	static bool init = [&](){
@@ -564,8 +563,8 @@ void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLu
 		position_uniform        = glGetUniformLocation(shader, "uPos");
 		t1_uniform              = glGetUniformLocation(shader, "uT1");
 		t2_uniform              = glGetUniformLocation(shader, "uT2");
-		screen_size_uniform     = glGetUniformLocation(shader, "uScreenSize");
-		screen_center_uniform   = glGetUniformLocation(shader, "uScreenCenter");
+		viewport_size_uniform   = glGetUniformLocation(shader, "uScreenSize");
+		view_center_uniform     = glGetUniformLocation(shader, "uScreenCenter");
 		pixels_per_unit_uniform = glGetUniformLocation(shader, "uPixelsPerUnit");
 		render_overlay_uniform  = glGetUniformLocation(shader, "uRenderOverlay");
 		return true;
@@ -588,7 +587,7 @@ void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLu
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-	glViewport(0, 0, width, height);
+	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
 	const auto plane_side_length = 10;
 	const auto num_instances = show_result_ ? plane_side_length * plane_side_length : tiling.num_lattice_domains();
@@ -600,8 +599,8 @@ void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLu
 	glUniform2fv (position_uniform, 1, tiling.position().data());
 	glUniform2fv (t1_uniform, 1, tiling.t1().data());
 	glUniform2fv (t2_uniform, 1, tiling.t2().data());
-	glUniform2i  (screen_size_uniform, width, height);
-	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
+	glUniform2i  (viewport_size_uniform, viewport.width, viewport.height);
+	glUniform2fv (view_center_uniform, 1, screen_center_.data());
 	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
 	glUniform1i  (render_overlay_uniform, GL_FALSE);
 
@@ -624,7 +623,7 @@ void App::render_symmetry_frame(const Tiling& tiling, int width, int height, GLu
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
-void App::render_export_frame(int width, int height, GLuint framebuffer)
+void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer)
 {
 	static auto shader = GL::ShaderProgram(
 		GL::ShaderObject::vertex_passthrough(),
@@ -632,37 +631,37 @@ void App::render_export_frame(int width, int height, GLuint framebuffer)
 	);
 
 	// Find uniform locations once.
-	static GLuint screen_size_uniform;
+	static GLuint viewport_size_uniform;
 	static GLuint stripe_size_uniform;
 	static GLuint vertical_crop_uniform;
 	static bool init = [&](){
-		screen_size_uniform   = glGetUniformLocation(shader, "uScreenSize");
-		stripe_size_uniform   = glGetUniformLocation(shader, "uStripeSize");
-		vertical_crop_uniform = glGetUniformLocation(shader, "uVerticalCrop");
+		viewport_size_uniform   = glGetUniformLocation(shader, "uScreenSize");
+		stripe_size_uniform     = glGetUniformLocation(shader, "uStripeSize");
+		vertical_crop_uniform   = glGetUniformLocation(shader, "uVerticalCrop");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
 
-	float AR = width / (float)height;
+	float AR = viewport.width / (float)viewport.height;
 	float crop_AR = export_width_ / (float)export_height_;
 
 	// stripe_size is the width or height of the visible region.
 	// In the other direction the region extends through the entire window.
 	float stripe_size;
 	if (crop_AR > AR)
-		stripe_size = width / crop_AR;
+		stripe_size = viewport.width / crop_AR;
 	else
-		stripe_size = height * crop_AR;
+		stripe_size = viewport.height * crop_AR;
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-	glViewport(0, 0, width, height);
+	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
 	glUseProgram(shader);
 
-	glUniform2i (screen_size_uniform, width, height);
+	glUniform2i (viewport_size_uniform, viewport.width, viewport.height);
 	glUniform1f (stripe_size_uniform, stripe_size);
 	glUniform1i (vertical_crop_uniform, crop_AR > AR);
 
