@@ -5,12 +5,13 @@
 #define SCALE 0.98f
 
 Layer::Layer(void) :
-	tiling_      (SCALE),
-	position_    (0.0f, 0.0f),
-	t1_          (1.0f, 0.0f),
-	visible_     (true),
-	consistent_  (false),
-	error_image_ (GL::Texture::from_png("NONEXISTENT_FILE_ERROR"))
+	current_index_ (0),
+	tiling_        (SCALE),
+	position_      (0.0f, 0.0f),
+	t1_            (1.0f, 0.0f),
+	visible_       (true),
+	consistent_    (false),
+	error_image_   (GL::Texture::from_png("NONEXISTENT_FILE_ERROR"))
 {
 	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
 	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
@@ -39,10 +40,8 @@ Tiling& Layer::tiling(void)
 
 const LayerImage& Layer::image(size_t index) const
 {
-	if (size() == 0)
+	if (index >= size())
 		return error_image_;
-	else if (index >= size())
-		return images_.back();
 	else
 		return images_[index];
 }
@@ -94,19 +93,34 @@ Eigen::Vector2f Layer::from_world_direction(const Eigen::Vector2f& v) const
 	return basis.inverse() * v;
 }
 
+void Layer::set_current_image(const LayerImage& image)
+{
+	auto predicate = [&image](const LayerImage& i){ return &image == &i; };
+	auto it = std::find_if(std::begin(images_), std::end(images_), predicate);
+
+	current_index_ = std::distance(std::begin(images_), it);
+}
+
+void Layer::set_current_image(size_t index)
+{
+	set_current_image(image(index));
+}
+
 void Layer::remove_image(LayerImage&& image)
 {
-	auto predicate = [this, &image](const LayerImage& i){ 
-		if (&image == &i)
-		{
-			this->consistent_ = false;
-			return true;
-		}
-		else
-			return false;
-	};
+	auto predicate = [&image](const LayerImage& i){ return &image == &i; };
+	auto it        = std::find_if(std::begin(images_), std::end(images_), predicate);
 
-	std::remove_if(std::begin(images_), std::end(images_), predicate);
+	if (it == std::end(images_))
+		return;
+
+	consistent_ = false;
+
+	size_t index = std::distance(std::begin(images_), it);
+	if (current_index_ != 0 && current_index_ >= index)
+		--current_index_;
+
+	images_.erase(it);
 }
 
 void Layer::remove_image(size_t index)

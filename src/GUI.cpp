@@ -41,7 +41,12 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	export_filename_  (export_base_name_ + ".png"),
 
 	graphics_area_    ({0, 0, 0, 0}),
-	settings_width_   (335)
+	settings_width_   (335),
+
+	layer_swap_scheduled_     (false),
+	image_transfer_scheduled_ (false),
+	layer_deletion_scheduled_ (false),
+	image_deletion_scheduled_ (false)
 {
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
@@ -142,6 +147,12 @@ void GUI::draw_settings_window(void)
 		left_margin_    += ImGui::GetWindowWidth();
 
 		draw_symmetry_settings();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		draw_layer_settings();
 
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -333,6 +344,198 @@ void GUI::draw_symmetry_settings_old(void)
 		layer.tiling().set_symmetry_group("*632");
 	ImGui::SameLine(45); ImGui::Text("(p6m)");
 	ImGui::EndGroup();
+}
+
+void GUI::draw_layer_settings(void)
+{
+	using namespace std::string_literals;
+
+	auto avail_width = ImGui::GetContentRegionMax().x;
+	ImGui::Text("Layers"); ImGui::SameLine(avail_width - 42);
+	if (ImGui::SmallButton("New"))
+		layering_.add_layer();
+	ImGui::Separator();
+
+	auto current_layer_idx = layering_.current_layer_index();
+
+	// Reverse order to reflect rendering order.
+	for (auto layer_idx = layering_.size(); layer_idx --> 0;)
+	{
+		ImGui::PushID(layer_idx);
+
+		const auto& layer             = layering_.layer(layer_idx);
+		auto        current_image_idx = layer.current_image_index();
+
+		bool        layer_selected    = (layer_idx == current_layer_idx);
+		bool        no_image_selected = !layer.has_current_image();
+
+		const auto& symmetry_group    = layer.tiling().symmetry_group();
+		auto        layer_label       = "Layer - ("s + symmetry_group + ")";
+
+		// Layer selection.
+		if (ImGui::Selectable(layer_label.c_str(), layer_selected && no_image_selected, 0, {110, 0}))
+		{
+			layering_.set_current_layer(layer);
+			layering_.current_layer().unset_current_image();
+		}
+		if (layer_selected && no_image_selected)
+			draw_layer_order_buttons(layer_idx);
+
+		ImGui::TreePush("images");
+		for (size_t image_idx = layer.size(); image_idx --> 0;)
+		{
+			ImGui::PushID(image_idx);
+
+			bool image_selected = (image_idx == current_image_idx);
+			auto image_label    = "Image "s + std::to_string(image_idx);
+
+			ImGui::AlignFirstTextHeightToWidgets();
+
+			// Image selection.
+			if (ImGui::Selectable(image_label.c_str(), image_selected && layer_selected, 0, {89, 0}))
+			{
+				layering_.set_current_layer(layer);
+				layering_.current_layer().set_current_image(image_idx);
+			}
+			if (image_selected && layer_selected)
+				draw_image_order_buttons(layer_idx, image_idx);
+
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+
+		ImGui::PopID();
+	}
+
+	do_scheduled_operation();
+}
+
+void GUI::draw_layer_order_buttons(size_t layer_idx)
+{
+	auto avail_width = ImGui::GetContentRegionMax().x;
+
+	if (layer_idx < layering_.size() - 1)
+	{
+		ImGui::SameLine(avail_width - 135);
+		if (ImGui::SmallButton("Up"))
+			schedule_layer_swap(layer_idx, layer_idx + 1);
+	}
+
+	if (layer_idx > 0)
+	{
+		ImGui::SameLine(avail_width - 105);
+		if (ImGui::SmallButton("Down"))
+			schedule_layer_swap(layer_idx, layer_idx - 1);
+	}
+
+	if (layering_.size() > 1)
+	{
+		ImGui::SameLine(avail_width - 55);
+		if (ImGui::SmallButton("Delete"))
+			schedule_layer_deletion(layer_idx);
+	}
+}
+
+void GUI::draw_image_order_buttons(size_t layer_idx, size_t image_idx)
+{
+	auto avail_width = ImGui::GetContentRegionMax().x;
+	const auto& layer = layering_.layer(layer_idx);
+
+	// Can't move up if first (in reverse ordering).
+	if (image_idx < layer.size() - 1 || layer_idx < layering_.size() - 1)
+	{
+		ImGui::SameLine(avail_width - 135);
+		if (ImGui::SmallButton("Up"))
+		{
+			if (image_idx < layer.size() - 1)
+				schedule_image_transfer(layer_idx, image_idx, image_idx + 1);
+			else
+				schedule_image_transfer(layer_idx, layer_idx + 1);
+		}
+	}
+
+	// Can't move down if last (in reverse ordering).
+	if (image_idx > 0 || layer_idx > 0)
+	{
+		ImGui::SameLine(avail_width - 105);
+		if (ImGui::SmallButton("Down"))
+		{
+			if (image_idx > 0)
+				schedule_image_transfer(layer_idx, image_idx, image_idx - 1);
+			else
+				schedule_image_transfer(layer_idx, layer_idx - 1);
+		}
+	}
+
+	ImGui::SameLine(avail_width - 55);
+	if (ImGui::SmallButton("Delete"))
+		schedule_image_deletion(layer_idx, image_idx);
+}
+
+void GUI::schedule_layer_swap(size_t src, size_t dst)
+{
+	layer_swap_scheduled_   = true;
+	layer_swap_source_      = src;
+	layer_swap_destination_ = dst;
+}
+
+void GUI::schedule_image_transfer(size_t layer, size_t src, size_t dst)
+{
+	image_transfer_scheduled_          = true;
+	transfer_between_layers_           = false;
+	image_transfer_source_layer_       = layer;
+	image_transfer_source_             = src;
+	image_transfer_destination_        = dst;
+}
+
+void GUI::schedule_image_transfer(size_t src_layer, size_t dst_layer)
+{
+	image_transfer_scheduled_         = true;
+	transfer_between_layers_          = true;
+	image_transfer_source_layer_      = src_layer;
+	image_transfer_destination_layer_ = dst_layer;
+}
+
+void GUI::schedule_layer_deletion(size_t layer)
+{
+	layer_deletion_scheduled_ = true;
+	deletion_layer_           = layer;
+}
+
+void GUI::schedule_image_deletion(size_t layer, size_t image)
+{
+	image_deletion_scheduled_ = true;
+	deletion_layer_           = layer;
+	deletion_image_           = image;
+}
+
+void GUI::do_scheduled_operation(void)
+{
+	if (layer_swap_scheduled_)
+	{
+		auto& src = layering_.layer(layer_swap_source_);
+		auto& dst = layering_.layer(layer_swap_destination_);
+
+		std::swap(src, dst);
+		layering_.set_current_layer(dst);
+		layering_.current_layer().unset_current_image();
+	}
+	else if (image_transfer_scheduled_)
+	{
+		if (transfer_between_layers_)
+			layering_.transfer_image(image_transfer_source_layer_,
+			                         image_transfer_destination_layer_);
+		else
+			layering_.transfer_image(image_transfer_source_layer_,
+			                         image_transfer_source_, image_transfer_destination_);
+	}
+	else if (layer_deletion_scheduled_)
+		layering_.remove_layer(deletion_layer_);
+	else if (image_deletion_scheduled_)
+		layering_.layer(deletion_layer_).remove_image(deletion_image_);
+
+	layer_swap_scheduled_     = image_transfer_scheduled_ =
+	layer_deletion_scheduled_ = image_deletion_scheduled_ = false;
 }
 
 void GUI::draw_symmetry_settings(void)

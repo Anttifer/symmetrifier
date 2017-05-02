@@ -86,9 +86,24 @@ private:
 	void draw_usage_window          (void);
 	void draw_export_window         (void);
 
+	void draw_layer_settings        (void);
+	void draw_layer_order_buttons   (size_t layer_index);
+	void draw_image_order_buttons   (size_t layer_index, size_t image_index);
+
+	// We can't alter the layering while iterating it, so we need these.
+	void schedule_layer_swap        (size_t source, size_t destination);
+	void schedule_image_transfer    (size_t layer, size_t source, size_t destination);
+	void schedule_image_transfer    (size_t source_layer, size_t destination_layer);
+	void schedule_layer_deletion    (size_t layer);
+	void schedule_image_deletion    (size_t layer, size_t image);
+
+	// Only one operation can be scheduled per frame.
+	void do_scheduled_operation     (void);
+
 	void draw_symmetry_settings     (void);
 	void draw_symmetry_settings_old (void);
 	void draw_symmetry_modal        (void);
+
 	void draw_view_settings         (void);
 	void draw_frame_settings        (void);
 	void draw_image_settings        (void);
@@ -142,6 +157,24 @@ private:
 	float right_margin_;
 
 	float settings_width_;
+
+	// These are used for scheduling layer operations.
+	bool layer_swap_scheduled_;
+	bool image_transfer_scheduled_;
+	bool layer_deletion_scheduled_;
+	bool image_deletion_scheduled_;
+	bool transfer_between_layers_;
+
+	size_t layer_swap_source_;
+	size_t layer_swap_destination_;
+
+	size_t image_transfer_source_;
+	size_t image_transfer_destination_;
+	size_t image_transfer_source_layer_;
+	size_t image_transfer_destination_layer_;
+
+	size_t deletion_layer_;
+	size_t deletion_image_;
 
 	// TODO: Get rid of this.
 	float usage_window_height_;

@@ -10,26 +10,32 @@ public:
 	Layer          (void);
 	explicit Layer (GL::Texture&&);
 
-	const Layer&           as_const           (void)         const { return *this; }
+	const Layer&           as_const            (void)         const { return *this; }
 
-	const Eigen::Vector2f& position           (void)         const { return position_; }
-	float                  rotation           (void)         const;
-	const Eigen::Vector2f& t1                 (void)         const { return t1_; }
-	Eigen::Vector2f        t2                 (void)         const { return {-t1_.y(), t1_.x()}; }
+	const Eigen::Vector2f& position            (void)         const { return position_; }
+	float                  rotation            (void)         const;
+	const Eigen::Vector2f& t1                  (void)         const { return t1_; }
+	Eigen::Vector2f        t2                  (void)         const { return {-t1_.y(), t1_.x()}; }
 
-	size_t                 size               (void)         const { return images_.size(); }
-	bool                   visible            (void)         const { return visible_; }
-	bool                   consistent         (void)         const { return consistent_; }
+	size_t                 size                (void)         const { return images_.size(); }
+	bool                   visible             (void)         const { return visible_; }
+	bool                   consistent          (void)         const { return consistent_; }
 
-	const Tiling&          tiling             (void)         const { return tiling_; }
-	Tiling&                tiling             (void);
+	const Tiling&          tiling              (void)         const { return tiling_; }
+	Tiling&                tiling              (void);
 
-	const LayerImage&      image              (size_t index) const;
-	LayerImage&            image              (size_t index);
+	// Returns an error texture if index is invalid. Never fails.
+	const LayerImage&      image               (size_t index) const;
+	LayerImage&            image               (size_t index);
 
-	const GL::Texture&     domain_texture     (void)         const;
+	bool                   has_current_image   (void)         const { return current_index_ < size(); }
+	size_t                 current_image_index (void)         const { return current_index_; }
+	const LayerImage&      current_image       (void)         const { return image(current_index_); }
+	LayerImage&            current_image       (void)               { return image(current_index_); }
+
+	const GL::Texture&     domain_texture      (void)         const;
 	const std::vector<Eigen::Vector2f>&
-	                       domain_coordinates (void)         const { return domain_coordinates_; }
+	                       domain_coordinates  (void)         const { return domain_coordinates_; }
 
 	Eigen::Vector2f to_world             (const Eigen::Vector2f&) const;
 	Eigen::Vector2f from_world           (const Eigen::Vector2f&) const;
@@ -45,8 +51,15 @@ public:
 	void set_invisible    (void)   { set_visibility(false); }
 	void set_inconsistent (void)   { consistent_ = false; }
 
+	void set_current_image   (const LayerImage&);
+	void set_current_image   (size_t index);
+	void unset_current_image (void) { current_index_ = size(); }
+
 	template <typename... Args>
 	void add_image (Args&&...);
+
+	template <typename... Args>
+	void insert_image (size_t index, Args&&...);
 
 	void remove_image (LayerImage&&);
 	void remove_image (size_t index);
@@ -61,6 +74,8 @@ private:
 	void symmetrify (void) const;
 
 	std::vector<LayerImage>      images_;
+	size_t                       current_index_;
+
 	Tiling                       tiling_;
 
 	Eigen::Vector2f              position_;
