@@ -25,7 +25,7 @@ App::App(int /* argc */, char** /* argv */) :
 
 	zoom_factor_           (1.2)
 {
-	layering_.current_layer().add_image(GL::Texture::from_png("res/kissa"));
+	load_layer_image("res/kissa");
 
 	// Set GUI to track the relevant variables.
 	gui_.clear_color_track(clear_color_);
@@ -886,6 +886,27 @@ void App::scroll_callback(double /* x_offset */, double y_offset)
 				pixels_per_unit_ /=  zoom_factor_;
 		}
 	}
+}
+
+void App::load_layer_image(const char* filename)
+{
+	std::string path = filename;
+	std::string basename;
+
+	auto dir_end = path.find_last_of("\\/");
+	if (dir_end >= path.size() - 1)
+		basename = path;// Basename is entire path if no directory delimiters present.
+	else
+		basename = path.substr(dir_end + 1);
+
+	bool successful = false;
+	auto texture = GL::Texture::from_png(path.c_str(), successful);
+
+	if (!successful)
+		basename = "ERROR";
+
+	// Even in case of error - just to draw attention.
+	layering_.current_layer().add_image(basename, std::move(texture));
 }
 
 // TODO: Add support to larger exports rendered in smaller tiles.

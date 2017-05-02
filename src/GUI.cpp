@@ -81,9 +81,10 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	auto horizontal_margin = left_margin_   + right_margin_;
 	auto vertical_margin   = bottom_margin_ + top_margin_;
 
-	graphics_area_ = { left_margin_, bottom_margin_,
-	                   width - horizontal_margin, height - vertical_margin };
+	graphics_area_ = { (int)left_margin_, (int)bottom_margin_,
+	                   (int)(width - horizontal_margin), (int)(height - vertical_margin) };
 
+	// Development.
 	bool kek = true;
 	ImGui::ShowTestWindow(&kek);
 
@@ -386,8 +387,8 @@ void GUI::draw_layer_settings(void)
 		{
 			ImGui::PushID(image_idx);
 
-			bool image_selected = (image_idx == current_image_idx);
-			auto image_label    = "Image "s + std::to_string(image_idx);
+			bool image_selected     = (image_idx == current_image_idx);
+			const auto& image_label = layer.image(image_idx).name();
 
 			ImGui::AlignFirstTextHeightToWidgets();
 

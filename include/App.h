@@ -58,8 +58,9 @@ private:
 	void print_screen  (int, int, int);
 
 	// Utilities.
-	void            export_result   (int, int, const char*);
-	Eigen::Vector2f screen_to_world (const Eigen::Vector2f&);
+	void            load_layer_image (const char* filename);
+	void            export_result    (int, int, const char*);
+	Eigen::Vector2f screen_to_world  (const Eigen::Vector2f&);
 
 	// Framework objects.
 	MainWindow    window_;

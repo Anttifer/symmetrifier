@@ -7,8 +7,8 @@
 class Layer
 {
 public:
-	Layer          (void);
-	explicit Layer (GL::Texture&&);
+	Layer (void);
+	Layer (const std::string& image_name, GL::Texture&&);
 
 	const Layer&           as_const            (void)         const { return *this; }
 

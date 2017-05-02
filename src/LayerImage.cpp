@@ -1,8 +1,9 @@
 #include "LayerImage.h"
 
-LayerImage::LayerImage(GL::Texture&& texture) :
+LayerImage::LayerImage(const std::string& name, GL::Texture&& texture) :
 	position_ (0.0f, 0.0f),
-	t1_       (1.0f, 0.0f)
+	t1_       (1.0f, 0.0f),
+	name_     (name)
 {
 	set_texture(std::move(texture));
 }

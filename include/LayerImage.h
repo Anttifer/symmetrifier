@@ -3,11 +3,12 @@
 
 #include "GLObjects.h"
 #include <Eigen/Geometry>
+#include <string>
 
 class LayerImage
 {
 public:
-	explicit LayerImage (GL::Texture&&);
+	LayerImage (const std::string& name, GL::Texture&&);
 
 	const GL::Texture&     texture  (void) const { return texture_; }
 
@@ -20,6 +21,8 @@ public:
 	float                  rotation (void) const;
 	float                  scale    (void) const { return t1_.norm(); }
 
+	const std::string&     name     (void) const { return name_; }
+
 	void set_texture (GL::Texture&&);
 
 	void set_position   (const Eigen::Vector2f& p) { position_ = p; }
@@ -31,10 +34,13 @@ public:
 	void set_scale      (float);
 	void multiply_scale (float factor);
 
+	void set_name       (const std::string& n)     { name_ = n; }
+
 private:
 	GL::Texture     texture_;
 	Eigen::Vector2f position_;
 	Eigen::Vector2f t1_;
+	std::string     name_;
 };
 
 #endif // LAYERIMAGE_H

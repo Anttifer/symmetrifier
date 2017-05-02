@@ -11,7 +11,7 @@ Layer::Layer(void) :
 	t1_            (1.0f, 0.0f),
 	visible_       (true),
 	consistent_    (false),
-	error_image_   (GL::Texture::from_png("NONEXISTENT_FILE_ERROR"))
+	error_image_   ("ERROR", GL::Texture::from_png("NONEXISTENT_FILE_ERROR"))
 {
 	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
 	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
@@ -26,10 +26,10 @@ Layer::Layer(void) :
 	};
 }
 
-Layer::Layer(GL::Texture&& texture) :
+Layer::Layer(const std::string& image_name, GL::Texture&& texture) :
 	Layer()
 {
-	add_image(std::move(texture));
+	add_image(image_name, std::move(texture));
 }
 
 Tiling& Layer::tiling(void)
