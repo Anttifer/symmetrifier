@@ -776,46 +776,6 @@ void GUI::draw_image_settings(void)
 	}
 }
 
-[[deprecated]]
-void GUI::draw_image_settings_old(void)
-{
-	auto& layer = layering_.current_layer();
-	const auto& ctiling = layer.as_const().tiling();
-
-	ImGui::Text("Image settings");
-	ImGui::Separator();
-
-	auto image_position = ctiling.image_center();
-	ImGui::Text("Image position:"); ImGui::SameLine(140);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
-		layer.tiling().set_image_center(image_position);
-	ImGui::PopItemWidth();
-	ImGui::SameLine();
-	if (ImGui::Button("Reset##Reset image position"))
-		layer.tiling().set_image_center({0.5f, 0.5f});
-
-	float image_rotation = ctiling.image_rotation() / M_PI * 180.0f;
-	ImGui::Text("Image rotation:"); ImGui::SameLine(140);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
-		layer.tiling().set_image_rotation(image_rotation / 180.0f * M_PI);
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset image rotation"))
-		layer.tiling().set_image_rotation(0.0);
-
-	float image_scale = ctiling.image_scale();
-	ImGui::Text("Image scale:"); ImGui::SameLine(140);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
-		layer.tiling().set_image_scale(image_scale);
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset image scale"))
-		layer.tiling().set_image_scale(1.0);
-}
-
 void GUI::draw_export_settings(void)
 {
 	auto& layer = layering_.current_layer();
