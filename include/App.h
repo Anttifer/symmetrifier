@@ -31,9 +31,6 @@ private:
 	void render_layer_images    (const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer = 0);
 	void render_symmetry_frame  (const Tiling& tiling, const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
-	void render_tiling_hq       (const Tiling& tiling, int width, int height, GLuint framebuffer = 0);
-
-	// Export cropping frame.
 	void render_export_frame    (const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
 	// Input handling.
@@ -55,7 +52,6 @@ private:
 	double        time_;
 	ShaderCanvas  canvas_;
 	Layering      layering_;
-	Tiling&       tiling_;
 	GUI           gui_;
 
 	// Parameters and options.

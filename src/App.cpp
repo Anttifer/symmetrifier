@@ -10,7 +10,6 @@
 App::App(int /* argc */, char** /* argv */) :
 	window_                (1440, 900, "supersymmetry"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
-	tiling_                (layering_.current_layer().tiling()),
 	gui_                   (window_, layering_),
 
 	clear_color_           (0.1, 0.1, 0.1),
@@ -368,94 +367,6 @@ void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
 			glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
 		}
 	}
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
-}
-
-[[deprecated]]
-void App::render_tiling_hq(const Tiling& tiling, int width, int height, GLuint framebuffer)
-{
-	static auto shader = GL::ShaderProgram::from_files(
-		"shaders/tiling_hq_vert.glsl",
-		"shaders/tiling_hq_frag.glsl");
-
-	// Find uniform locations once.
-	static GLuint num_instances_uniform;
-	static GLuint frame_position_uniform;
-	static GLuint t1_uniform;
-	static GLuint t2_uniform;
-	static GLuint screen_size_uniform;
-	static GLuint screen_center_uniform;
-	static GLuint image_position_uniform;
-	static GLuint image_t1_uniform;
-	static GLuint image_t2_uniform;
-	static GLuint pixels_per_unit_uniform;
-	static GLuint num_domains_uniform;
-	static GLuint mesh_sampler_uniform;
-	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
-		num_instances_uniform      = glGetUniformLocation(shader, "uNumInstances");
-		frame_position_uniform     = glGetUniformLocation(shader, "uFramePos");
-		t1_uniform                 = glGetUniformLocation(shader, "uT1");
-		t2_uniform                 = glGetUniformLocation(shader, "uT2");
-		screen_size_uniform        = glGetUniformLocation(shader, "uScreenSize");
-		screen_center_uniform      = glGetUniformLocation(shader, "uScreenCenter");
-		image_position_uniform     = glGetUniformLocation(shader, "uImagePos");
-		image_t1_uniform           = glGetUniformLocation(shader, "uImageT1");
-		image_t2_uniform           = glGetUniformLocation(shader, "uImageT2");
-		pixels_per_unit_uniform    = glGetUniformLocation(shader, "uPixelsPerUnit");
-		num_domains_uniform        = glGetUniformLocation(shader, "uNumSymmetryDomains");
-		mesh_sampler_uniform       = glGetUniformLocation(shader, "uMeshSampler");
-		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
-		return true;
-	}();
-	(void)init; // Suppress unused variable warning.
-
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-	glBindTexture(GL_TEXTURE_2D, tiling.base_image());
-
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_BUFFER, tiling.mesh_texture());
-	glActiveTexture(GL_TEXTURE1);
-
-	glViewport(0, 0, width, height);
-
-	const auto plane_side_length = 10;
-	const auto num_instances = plane_side_length * plane_side_length;
-
-	// Set the shader program and uniforms, and draw.
-	glUseProgram(shader);
-
-	const auto& mesh = tiling.mesh();
-
-	glUniform1i  (num_instances_uniform, num_instances);
-	glUniform2fv (frame_position_uniform, 1, tiling.position().data());
-	glUniform2fv (t1_uniform, 1, tiling.t1().data());
-	glUniform2fv (t2_uniform, 1, tiling.t2().data());
-	glUniform2i  (screen_size_uniform, width, height);
-	glUniform2fv (screen_center_uniform, 1, screen_center_.data());
-	glUniform2fv (image_position_uniform, 1, tiling.image_position().data());
-	glUniform2fv (image_t1_uniform, 1, tiling.image_t1().data());
-	glUniform2fv (image_t2_uniform, 1, tiling.image_t2().data());
-	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
-	glUniform1i  (num_domains_uniform, tiling.num_symmetry_domains());
-	glUniform1i  (texture_sampler_uniform, 1);
-	glUniform1i  (mesh_sampler_uniform, 2);
-
-	glBindVertexArray(mesh.vao_);
-	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
 
 	// Clean up.
 	glBindVertexArray(0);
