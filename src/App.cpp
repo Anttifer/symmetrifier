@@ -448,22 +448,22 @@ void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer
 	);
 
 	// Find uniform locations once.
-	static GLuint viewport_size_uniform;
+	static GLuint viewport_uniform;
 	static GLuint stripe_size_uniform;
 	static GLuint vertical_crop_uniform;
 	static bool init = [&](){
-		viewport_size_uniform   = glGetUniformLocation(shader, "uScreenSize");
+		viewport_uniform        = glGetUniformLocation(shader, "uViewport");
 		stripe_size_uniform     = glGetUniformLocation(shader, "uStripeSize");
 		vertical_crop_uniform   = glGetUniformLocation(shader, "uVerticalCrop");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
 
-	float AR = viewport.width / (float)viewport.height;
+	float AR      = viewport.width / (float)viewport.height;
 	float crop_AR = export_width_ / (float)export_height_;
 
 	// stripe_size is the width or height of the visible region.
-	// In the other direction the region extends through the entire window.
+	// In the other direction the region extends through the entire viewport.
 	float stripe_size;
 	if (crop_AR > AR)
 		stripe_size = viewport.width / crop_AR;
@@ -478,7 +478,7 @@ void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer
 
 	glUseProgram(shader);
 
-	glUniform2i (viewport_size_uniform, viewport.width, viewport.height);
+	glUniform4i (viewport_uniform, viewport.x, viewport.y, viewport.width, viewport.height);
 	glUniform1f (stripe_size_uniform, stripe_size);
 	glUniform1i (vertical_crop_uniform, crop_AR > AR);
 
