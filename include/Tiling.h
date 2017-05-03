@@ -26,7 +26,6 @@ public:
 	Lattice     lattice              (void) const { return lattice_; }
 	int         num_lattice_domains  (void) const { return num_lattice_domains_; }
 	int         num_symmetry_domains (void) const { return mesh_.positions_.size() / 6 * num_lattice_domains_; }
-	bool        consistent           (void) const { return consistent_; }
 
 	// Transformations.
 	const Eigen::Vector2f& position (void) const { return position_; }
@@ -38,35 +37,20 @@ public:
 	double                 rotation (void) const;
 	double                 scale    (void) const { return t1_.norm(); }
 
-	// Base image transformations.
-	const Eigen::Vector2f& image_position (void) const { return image_position_; }
-	Eigen::Vector2f        image_center   (void) const;
-
-	const Eigen::Vector2f& image_t1       (void) const { return image_t1_; }
-	Eigen::Vector2f        image_t2       (void) const;
-
-	double                 image_rotation (void) const;
-	double                 image_scale    (void) const { return image_t1_.norm(); }
-
 	// Meshes.
 	const Mesh& mesh          (void) const { return mesh_; }
 	const Mesh& frame         (void) const { return frame_mesh_; }
 	const Mesh& symmetry_mesh (void) const { return symmetry_mesh_; }
 
 	// Textures & coordinates.
-	const GL::Texture& base_image         (void) const { return base_image_; }
-	const GL::Texture& domain_texture     (void) const { return domain_texture_; }
 	const GL::Texture& mesh_texture       (void) const { return mesh_texture_; }
-	const std::vector<Eigen::Vector2f>&
-	                   domain_coordinates (void) const { return domain_coordinates_; }
 
 	// Set properties.
 	void set_symmetry_group      (const char*);
 	void set_num_lattice_domains (int n);
-	void set_inconsistent        (void) { consistent_ = false; }
 
 	// Set transformations.
-	void set_position   (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
+	void set_position   (const Eigen::Vector2f& p) { position_ = p; }
 	void set_center     (const Eigen::Vector2f&);
 
 	void set_t1         (const Eigen::Vector2f&);
@@ -76,25 +60,9 @@ public:
 	void set_scale      (double);
 	void multiply_scale (double factor);
 
-	// Set base image transformations.
-	void set_image_position   (const Eigen::Vector2f& p) { consistent_ = false; image_position_ = p; }
-	void set_image_center     (const Eigen::Vector2f&);
-
-	void set_image_t1         (const Eigen::Vector2f&);
-
-	void set_image_rotation   (double);
-	void set_image_scale      (double);
-	void multiply_image_scale (double factor);
-
-	void set_base_image (GL::Texture&&);
-
 	// Intuitive lattice domain deformations.
 	void set_deform_origin       (const Eigen::Vector2f&);
 	void deform                  (const Eigen::Vector2f&);
-
-	// This function constructs the symmetrified texture according to
-	// the current symmetry group.
-	void symmetrify (void);
 
 private:
 	// Mesh construction functions for the different symmetry groups.
@@ -134,9 +102,6 @@ private:
 	// the domain texture?
 	int         num_lattice_domains_;
 
-	// Is the domain texture consistent with current settings?
-	bool        consistent_;
-
 
 	// Transformations.
 	Eigen::Vector2f position_;
@@ -144,11 +109,6 @@ private:
 
 	// The second translation vector is defined relative to the first.
 	Eigen::Vector2f t2_relative_;
-
-
-	// Image transformations.
-	Eigen::Vector2f image_position_;
-	Eigen::Vector2f image_t1_;
 
 
 	// Meshes.
@@ -175,39 +135,9 @@ private:
 
 	// Textures & coordinates.
 
-	GL::Texture                  base_image_;
-
-	// This texture will contain the symmetrified fundamental domain.
-	GL::Texture                  domain_texture_;
-
 	// This is a buffer texture and will contain the sampling mesh.
 	GL::Texture                  mesh_texture_;
 	GL::Buffer                   mesh_buffer_;
-
-	// We only need texture coordinates for two triangles, so no need to define them
-	// in the mesh for every vertex separately.
-	// TODO: We don't need a duplicate of these in every tiling - same as the shader below.
-	std::vector<Eigen::Vector2f> domain_coordinates_;
-
-
-	// This shader is used for building the symmetrified fundamental domain.
-	// It practically superimposes samples of the user-supplied texture in
-	// such a way that the resulting fundamental domain conforms to the chosen
-	// symmetry group.
-	// TODO: We really don't need a copy of this shader for every tiling - do something.
-	GL::ShaderProgram symmetrify_shader_;
-	struct Uniforms
-	{
-		GLint num_instances;
-		GLint position;
-		GLint t1;
-		GLint t2;
-		GLint image_position;
-		GLint image_t1;
-		GLint image_t2;
-		GLint sampler;
-	}
-	uniforms_;
 
 
 	// Variables used for intuitive deformations.
