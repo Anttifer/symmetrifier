@@ -42,44 +42,15 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_.set_export_callback(&App::export_result, this);
 
 	// Mouse callbacks.
-	window_.add_mouse_pos_callback(&App::layered_position_callback, this);
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_LEFT, &App::layered_left_click_callback, this);
-	window_.add_mouse_button_callback(GLFW_MOUSE_BUTTON_RIGHT, &App::layered_right_click_callback, this);
-	window_.add_scroll_callback(&App::layered_scroll_callback, this);
+	window_.add_mouse_pos_callback    (&App::mouse_position_callback, this);
+	window_.add_mouse_button_callback (&App::mouse_button_callback, this);
+	window_.add_scroll_callback       (&App::mouse_scroll_callback, this);
 
-	// Key callbacks.
-	window_.add_key_callback(GLFW_KEY_P, &App::print_screen, this);
-	window_.add_key_callback(GLFW_KEY_SPACE, [this](int, int action, int){
-		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
-		{
-			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-				this->show_symmetry_frame_ ^= true;
-			else
-				this->show_result_ ^= true;
-		}
-	});
-	window_.add_key_callback(GLFW_KEY_ESCAPE, [this](int, int action, int){
-		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
-			this->show_settings_ ^= true;
-	});
-	window_.add_key_callback(GLFW_KEY_1, [this](int, int action, int){
-		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
-			this->tiling_.set_num_lattice_domains(1);
-	});
-	window_.add_key_callback(GLFW_KEY_2, [this](int, int action, int){
-		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
-			this->tiling_.set_num_lattice_domains(4);
-	});
-	window_.add_key_callback(GLFW_KEY_3, [this](int, int action, int){
-		if (action == GLFW_PRESS && !this->gui_.capturing_keyboard())
-			this->tiling_.set_num_lattice_domains(9);
-	});
+	// Keyboard callback.
+	window_.add_key_callback(&App::keyboard_callback, this);
 
-	// Drop callback.
-	window_.add_path_drop_callback([this](int count, const char** paths){
-		if (count > 0)
-			this->tiling_.set_base_image(GL::Texture::from_png(paths[0]));
-	});
+	// Path drop callback.
+	window_.add_path_drop_callback(&App::path_drop_callback, this);
 
 	// Disable vsync.
 	glfwSwapInterval(0);
@@ -674,6 +645,170 @@ void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
+void App::mouse_position_callback(double x, double y)
+{
+	if (gui_.capturing_mouse())
+		return;
+
+	auto& layer = layering_.current_layer();
+
+	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		Eigen::Vector2f position  = screen_to_view(x, y);
+		const auto& drag_position = position - press_position_;
+		const auto& layer_drag    = layer.from_world_direction(drag_position);
+
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		{
+			if (layer.has_current_image())
+				layer.current_image().set_position(object_static_position_ + layer_drag);
+			else
+				layer.tiling().set_position(object_static_position_ + layer_drag);
+		}
+		else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+		{
+			// TODO: Image deformations.
+			if (!layer.has_current_image())
+				layer.tiling().deform(layer_drag);
+		}
+		else
+			screen_center_ = screen_center_static_position_ - drag_position;
+	}
+	else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	{
+		// TODO: Global rotation.
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		{
+			Eigen::Vector2f world_press_position = view_to_world(press_position_);
+			Eigen::Vector2f world_position       = screen_to_world(x, y);
+
+			const auto& layer_press_position = layer.from_world(world_press_position);
+			const auto& layer_position       = layer.from_world(world_position);
+
+			if (layer.has_current_image())
+			{
+				auto& image = layer.current_image();
+
+				Eigen::Vector2f press_wrt_center    = layer_press_position - image.center();
+				Eigen::Vector2f position_wrt_center = layer_position       - image.center();
+
+				double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+				double dot = press_wrt_center.dot(position_wrt_center);
+				double drag_rotation = std::atan2(det, dot);
+
+				image.set_rotation(object_static_rotation_ + drag_rotation);
+			}
+			else
+			{
+				auto& tiling = layer.tiling();
+
+				Eigen::Vector2f press_wrt_center    = layer_press_position - tiling.center();
+				Eigen::Vector2f position_wrt_center = layer_position       - tiling.center();
+
+				double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+				double dot = press_wrt_center.dot(position_wrt_center);
+				double drag_rotation = std::atan2(det, dot);
+
+				tiling.set_rotation(object_static_rotation_ + drag_rotation);
+			}
+		}
+	}
+}
+
+void App::mouse_button_callback(int button, int action, int /* mods */)
+{
+	if (action != GLFW_PRESS)
+		return;
+
+	auto& layer = layering_.current_layer();
+
+	double x, y;
+	glfwGetCursorPos(window_, &x, &y);
+	press_position_ = screen_to_view(x, y);
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		screen_center_static_position_ = screen_center_;
+
+		if (layer.has_current_image())
+			object_static_position_ = layer.as_const().current_image().position();
+		else
+		{
+			object_static_position_ = layer.as_const().tiling().position();
+			layer.tiling().set_deform_origin(layer.from_world(view_to_world(press_position_)));
+		}
+	}
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+		if (layer.has_current_image())
+			object_static_rotation_ = layer.as_const().current_image().rotation();
+		else
+			object_static_rotation_ = layer.as_const().tiling().rotation();
+	}
+}
+
+void App::mouse_scroll_callback(double /* x_offset */, double y_offset)
+{
+	if (gui_.capturing_mouse())
+		return;
+
+	auto& layer         = layering_.current_layer();
+	const auto& ctiling = layer.as_const().tiling();
+
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	{
+		if (layer.has_current_image())
+		{
+			const auto& cimage = layer.as_const().current_image();
+
+			if (y_offset < 0)
+				layer.current_image().multiply_scale(zoom_factor_);
+			else if (y_offset > 0 && cimage.scale() > 0.001)
+				layer.current_image().multiply_scale(1 / zoom_factor_);
+		}
+		else
+		{
+			if (y_offset < 0)
+				layer.tiling().multiply_scale(zoom_factor_);
+			else if (y_offset > 0 && ctiling.scale() > 0.001)
+				layer.tiling().multiply_scale(1 / zoom_factor_);
+		}
+	}
+	else
+	{
+		if (y_offset > 0)
+			pixels_per_unit_ *=  zoom_factor_;
+		else if (y_offset < 0)
+			pixels_per_unit_ /=  zoom_factor_;
+	}
+}
+
+void App::keyboard_callback(int key, int /* scancode */, int action, int /* mods */)
+{
+	if (action != GLFW_PRESS || gui_.capturing_keyboard())
+		return;
+
+	if (key == GLFW_KEY_SPACE)
+	{
+		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			show_symmetry_frame_ ^= true;
+		else
+			show_result_ ^= true;
+	}
+	else if (key == GLFW_KEY_1)
+		layering_.current_layer().tiling().set_num_lattice_domains(1);
+	else if (key == GLFW_KEY_2)
+		layering_.current_layer().tiling().set_num_lattice_domains(4);
+	else if (key == GLFW_KEY_3)
+		layering_.current_layer().tiling().set_num_lattice_domains(9);
+}
+
+void App::path_drop_callback(int count, const char** paths)
+{
+	for (int i = 0; i < count; ++i)
+		load_layer_image(paths[i]);
+}
+
 void App::layered_position_callback(double x, double y)
 {
 	if (gui_.capturing_mouse())
@@ -686,15 +821,16 @@ void App::layered_position_callback(double x, double y)
 		int width, height;
 		glfwGetFramebufferSize(window_, &width, &height);
 		Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
+
 		const auto& drag_position = position - press_position_;
-		const auto& layer_drag = current_layer.from_world_direction(screen_to_world(drag_position));
+		const auto& layer_drag = current_layer.from_world_direction(screen_to_world_old(drag_position));
 
 		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 			current_layer.tiling().set_position(tiling_static_position_ + layer_drag);
 		else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
 			current_layer.tiling().deform(layer_drag);
 		else
-			screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
+			screen_center_ = screen_center_static_position_ - screen_to_world_old(drag_position);
 	}
 	else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 	{
@@ -704,8 +840,8 @@ void App::layered_position_callback(double x, double y)
 			glfwGetFramebufferSize(window_, &width, &height);
 			Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 
-			Eigen::Vector2f world_press_position = screen_center_ + screen_to_world(press_position_);
-			Eigen::Vector2f world_position       = screen_center_ + screen_to_world(position);
+			Eigen::Vector2f world_press_position = screen_center_ + screen_to_world_old(press_position_);
+			Eigen::Vector2f world_position       = screen_center_ + screen_to_world_old(position);
 
 			const auto& layer_press_position = current_layer.from_world(world_press_position);
 			const auto& layer_position       = current_layer.from_world(world_position);
@@ -737,11 +873,11 @@ void App::position_callback(double x, double y)
 			const auto& drag_position = position - press_position_;
 
 			if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-				tiling_.set_position(tiling_static_position_ + screen_to_world(drag_position));
+				tiling_.set_position(tiling_static_position_ + screen_to_world_old(drag_position));
 			else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-				tiling_.deform(screen_to_world(drag_position));
+				tiling_.deform(screen_to_world_old(drag_position));
 			else
-				screen_center_ = screen_center_static_position_ - screen_to_world(drag_position);
+				screen_center_ = screen_center_static_position_ - screen_to_world_old(drag_position);
 		}
 		else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 		{
@@ -751,8 +887,8 @@ void App::position_callback(double x, double y)
 				glfwGetFramebufferSize(window_, &width, &height);
 				Eigen::Vector2f position = {x / width * 2 - 1, 1 - y / height * 2};
 
-				Eigen::Vector2f world_press_position = screen_center_ + screen_to_world(press_position_);
-				Eigen::Vector2f world_position       = screen_center_ + screen_to_world(position);
+				Eigen::Vector2f world_press_position = screen_center_ + screen_to_world_old(press_position_);
+				Eigen::Vector2f world_position       = screen_center_ + screen_to_world_old(position);
 
 				// This doesn't change during rotation - could be cached if deemed necessary.
 				Eigen::Vector2f press_wrt_center    = world_press_position - tiling_.center();
@@ -786,7 +922,7 @@ void App::layered_left_click_callback(int action, int /* mods */)
 		screen_center_static_position_ = screen_center_;
 		tiling_static_position_        = ctiling.position();
 
-		layer.tiling().set_deform_origin(layer.from_world(screen_center_ + screen_to_world(press_position_)));
+		layer.tiling().set_deform_origin(layer.from_world(screen_center_ + screen_to_world_old(press_position_)));
 	}
 }
 
@@ -805,7 +941,7 @@ void App::left_click_callback(int action, int /* mods */)
 		screen_center_static_position_ = screen_center_;
 		tiling_static_position_        = tiling_.position();
 
-		tiling_.set_deform_origin(screen_center_ + screen_to_world(press_position_));
+		tiling_.set_deform_origin(screen_center_ + screen_to_world_old(press_position_));
 	}
 }
 
@@ -976,8 +1112,34 @@ void App::print_screen(int /* scancode */, int action, int /* mods */)
 	}
 }
 
+Eigen::Vector2f App::screen_to_view(double x, double y)
+{
+	// Invert y - OpenGL and hence graphics_area work from bottom to top.
+	int width, height;
+	glfwGetFramebufferSize(window_, &width, &height);
+	y = height - y;
+
+	const auto& view = gui_.graphics_area();
+	Eigen::Vector2f view_center = {view.x + view.width / 2.0f,
+	                               view.y + view.height / 2.0f};
+
+	return { (x - view_center.x()) / pixels_per_unit_,
+	         (y - view_center.y()) / pixels_per_unit_ };
+}
+
+Eigen::Vector2f App::view_to_world(const Eigen::Vector2f& v)
+{
+	return screen_center_ + v;
+}
+
 // TODO: Figure out where this should go.
-Eigen::Vector2f App::screen_to_world(const Eigen::Vector2f& v)
+Eigen::Vector2f App::screen_to_world(double x, double y)
+{
+	return view_to_world(screen_to_view(x, y));
+}
+
+// TODO: Figure out where this should go.
+Eigen::Vector2f App::screen_to_world_old(const Eigen::Vector2f& v)
 {
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);

@@ -49,18 +49,31 @@ private:
 	void layered_scroll_callback      (double, double);
 
 	// Mouse callbacks.
+	void mouse_position_callback (double, double);
+	void mouse_button_callback   (int, int, int);
+	void mouse_scroll_callback   (double, double);
+
+	// Old mouse callbacks.
 	void position_callback    (double, double);
 	void left_click_callback  (int, int);
 	void right_click_callback (int, int);
 	void scroll_callback      (double, double);
 
 	// Key callbacks.
+	void keyboard_callback       (int, int, int, int);
+
+	// Old key callbacks.
 	void print_screen  (int, int, int);
 
+	void path_drop_callback      (int, const char**);
+
 	// Utilities.
-	void            load_layer_image (const char* filename);
-	void            export_result    (int, int, const char*);
-	Eigen::Vector2f screen_to_world  (const Eigen::Vector2f&);
+	void            load_layer_image     (const char* filename);
+	void            export_result        (int, int, const char*);
+	Eigen::Vector2f screen_to_view       (double x, double y);
+	Eigen::Vector2f view_to_world        (const Eigen::Vector2f&);
+	Eigen::Vector2f screen_to_world      (double x, double y);
+	Eigen::Vector2f screen_to_world_old  (const Eigen::Vector2f&);
 
 	// Framework objects.
 	MainWindow    window_;
@@ -87,8 +100,10 @@ private:
 	// Mouse input helper variables.
 	Eigen::Vector2f press_position_;
 	Eigen::Vector2f screen_center_static_position_;
+	Eigen::Vector2f object_static_position_;
 	Eigen::Vector2f tiling_static_position_;
 	Eigen::Vector2f base_image_static_position_;
+	double          object_static_rotation_;
 	double          tiling_static_rotation_;
 	double          base_image_static_rotation_;
 };
