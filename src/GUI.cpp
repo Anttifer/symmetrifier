@@ -18,7 +18,9 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	menu_bar_visible_internal_        (true),
 	settings_window_visible_internal_ (true),
 	usage_window_visible_internal_    (false),
-	export_window_visible_internal_   (false),
+	object_settings_visible_internal_ (false),
+	view_settings_visible_internal_   (false),
+	export_settings_visible_internal_ (false),
 	export_width_internal_            (1600),
 	export_height_internal_           (1200),
 
@@ -30,7 +32,9 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	menu_bar_visible_        (&menu_bar_visible_internal_),
 	settings_window_visible_ (&settings_window_visible_internal_),
 	usage_window_visible_    (&usage_window_visible_internal_),
-	export_window_visible_   (&export_window_visible_internal_),
+	object_settings_visible_ (&object_settings_visible_internal_),
+	view_settings_visible_   (&view_settings_visible_internal_),
+	export_settings_visible_ (&export_settings_visible_internal_),
 	export_width_            (&export_width_internal_),
 	export_height_           (&export_height_internal_),
 
@@ -64,8 +68,6 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	// Reset per-frame data.
 	top_margin_ = bottom_margin_ = left_margin_ = right_margin_ = 0.0f;
 
-	usage_window_height_   = 0.0f;
-
 	if (*menu_bar_visible_)
 		draw_menu_bar();
 
@@ -75,18 +77,11 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	if (*usage_window_visible_)
 		draw_usage_window();
 
-	if (*export_window_visible_)
-		draw_export_window();
-
 	auto horizontal_margin = left_margin_   + right_margin_;
 	auto vertical_margin   = bottom_margin_ + top_margin_;
 
 	graphics_area_ = { (int)left_margin_, (int)bottom_margin_,
 	                   (int)(width - horizontal_margin), (int)(height - vertical_margin) };
-
-	// Development.
-	bool kek = true;
-	ImGui::ShowTestWindow(&kek);
 
 	implementation_.render(width, height, framebuffer);
 }
@@ -109,14 +104,8 @@ void GUI::draw_menu_bar(void)
 
 		if (ImGui::BeginMenu("Menu"))
 		{
-			if (ImGui::MenuItem("Show settings", "Esc", *settings_window_visible_))
-				*settings_window_visible_ ^= true;
-
 			if (ImGui::MenuItem("Show usage", NULL, *usage_window_visible_))
 				*usage_window_visible_ ^= true;
-
-			if (ImGui::MenuItem("Show export settings", NULL, *export_window_visible_))
-				*export_window_visible_ ^= true;
 
 			if (ImGui::MenuItem("Quit", "Alt+F4"))
 				glfwSetWindowShouldClose(window_, GLFW_TRUE);
@@ -130,7 +119,6 @@ void GUI::draw_menu_bar(void)
 
 void GUI::draw_settings_window(void)
 {
-	// TODO: Use render viewport size instead.
 	int width, height;
 	glfwGetFramebufferSize(window_, &width, &height);
 	auto vertical_margin = top_margin_ + bottom_margin_;
@@ -153,25 +141,21 @@ void GUI::draw_settings_window(void)
 		ImGui::Spacing();
 		ImGui::Spacing();
 
+		draw_general_toggles();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
 		draw_layer_settings();
 
 		ImGui::Spacing();
 		ImGui::Spacing();
 		ImGui::Spacing();
 
+		draw_current_object_settings();
 		draw_view_settings();
-
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
-
-		draw_frame_settings();
-
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
-
-		draw_image_settings();
+		draw_export_settings();
 
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -205,21 +189,7 @@ void GUI::draw_usage_window(void)
 		ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
 		ImGui::Bullet();
 		ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
-
-		usage_window_height_ = ImGui::GetWindowSize().y;
 	}
-	ImGui::End();
-}
-
-void GUI::draw_export_window(void)
-{
-	auto& io = ImGui::GetIO();
-
-	auto flags = ImGuiWindowFlags_ShowBorders;
-	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
-	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, usage_window_height_ + top_margin_}, ImGuiSetCond_Appearing);
-	if (ImGui::Begin("Export settings", export_window_visible_, flags))
-		draw_export_settings();
 	ImGui::End();
 }
 
@@ -633,60 +603,136 @@ void GUI::draw_symmetry_modal(void)
 		ImGui::CloseCurrentPopup();
 }
 
+void GUI::draw_general_toggles(void)
+{
+	ImGui::AlignFirstTextHeightToWidgets();
+	ImGui::Text("Show frame:"); ImGui::SameLine(110);
+	ImGui::Checkbox("##Show frame", frame_visible_);
+
+	auto middle = settings_width_ / 2;
+	ImGui::SameLine(middle);
+	ImGui::Text("Show result:"); ImGui::SameLine(middle + 110);
+	ImGui::Checkbox("##Show result", result_visible_);
+}
+
 void GUI::draw_view_settings(void)
 {
-	ImGui::Text("View settings");
-	ImGui::Separator();
+	auto flags = ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
-	ImGui::Text("Show result:"); ImGui::SameLine(130);
-	ImGui::Checkbox("##Show result", result_visible_);
+	// Since there is no boolean to externally control the state of
+	// TreeNodes yet, we need to resort to this trick setting it frame-by-frame.
+	static bool was_open_last_frame = false;
 
-	ImGui::Text("Screen center:"); ImGui::SameLine(130);
-	ImGui::PushItemWidth(-65.0f);
-	ImGui::DragFloat2("##Screen center", screen_center_->data(), 0.01f);
-	ImGui::PopItemWidth();
-	ImGui::SameLine();
-	if(ImGui::Button("Reset##Reset screen center"))
-		*screen_center_ = {0.5, 0.5};
+	if (*view_settings_visible_ && !was_open_last_frame)
+		ImGui::SetNextTreeNodeOpen(true);
+	else if (!*view_settings_visible_ && was_open_last_frame)
+		ImGui::SetNextTreeNodeOpen(false);
 
-	// We need a float, not a double.
-	float pixels_per_unit = *pixels_per_unit_;
-	ImGui::Text("Zoom level:"); ImGui::SameLine(130);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
-		*pixels_per_unit_ = pixels_per_unit;
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset zoom level"))
-		*pixels_per_unit_ = 500.0;
-
-	ImGui::Text("Background:"); ImGui::SameLine(130);
-	ImGui::PushItemWidth(-1.0f);
-	ImGui::ColorEdit3("##Background color", clear_color_->data());
-	ImGui::PopItemWidth();
-	ImGui::Dummy({0, 0}); ImGui::SameLine(130);
-	if (ImGui::Button("Reset##Reset background color"))
-		*clear_color_ = {0.1, 0.1, 0.1};
-	ImGui::SameLine();
-	ImGui::Button("Pick color...");
-	if (ImGui::IsItemHovered())
+	if (ImGui::TreeNodeEx("View settings", flags))
 	{
-		ImGui::BeginTooltip();
-		ImGui::Text("Not implemented yet :)");
-		ImGui::EndTooltip();
+		*view_settings_visible_ = was_open_last_frame = true;
+
+		ImGui::Separator();
+
+		ImGui::Text("Screen center:"); ImGui::SameLine(130);
+		ImGui::PushItemWidth(-65.0f);
+		ImGui::DragFloat2("##Screen center", screen_center_->data(), 0.01f);
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+		if(ImGui::Button("Reset##Reset screen center"))
+			*screen_center_ = {0.5, 0.5};
+
+		// We need a float, not a double.
+		float pixels_per_unit = *pixels_per_unit_;
+		ImGui::Text("Zoom level:"); ImGui::SameLine(130);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
+			*pixels_per_unit_ = pixels_per_unit;
+		ImGui::PopItemWidth();
+		ImGui::SameLine(0, 12);
+		if (ImGui::Button("Reset##Reset zoom level"))
+			*pixels_per_unit_ = 500.0;
+
+		ImGui::Text("Background:"); ImGui::SameLine(130);
+		ImGui::PushItemWidth(-1.0f);
+		ImGui::ColorEdit3("##Background color", clear_color_->data());
+		ImGui::PopItemWidth();
+		ImGui::Dummy({0, 0}); ImGui::SameLine(130);
+		if (ImGui::Button("Reset##Reset background color"))
+			*clear_color_ = {0.1, 0.1, 0.1};
+		ImGui::SameLine();
+		ImGui::Button("Pick color...");
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::Text("Not implemented yet :)");
+			ImGui::EndTooltip();
+		}
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+	}
+	else
+		*view_settings_visible_ = was_open_last_frame = false;
+}
+
+void GUI::draw_current_object_settings(void)
+{
+	const auto& layer = layering_.current_layer();
+	auto flags = ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+	// Since there is no boolean to externally control the state of
+	// TreeNodes yet, we need to resort to this trick setting it frame-by-frame.
+	static bool was_open_last_frame = false;
+
+	if (*object_settings_visible_ && !was_open_last_frame)
+		ImGui::SetNextTreeNodeOpen(true);
+	else if (!*object_settings_visible_ && was_open_last_frame)
+		ImGui::SetNextTreeNodeOpen(false);
+
+	if (layer.has_current_image())
+	{
+		const auto& image_name = layer.current_image().name();
+		if (ImGui::TreeNodeEx("object settings", flags,
+		                      "Image settings (%s)", image_name.c_str()))
+		{
+			*object_settings_visible_ = was_open_last_frame = true;
+
+			draw_current_image_settings();
+
+			ImGui::Spacing();
+			ImGui::Spacing();
+			ImGui::Spacing();
+		}
+		else
+			*object_settings_visible_ = was_open_last_frame = false;
+	}
+	else
+	{
+		const auto& frame_name = layer.tiling().symmetry_group();
+		if (ImGui::TreeNodeEx("object settings", flags,
+		                      "Frame settings (%s)", frame_name))
+		{
+			*object_settings_visible_ = was_open_last_frame = true;
+
+			draw_current_frame_settings();
+
+			ImGui::Spacing();
+			ImGui::Spacing();
+			ImGui::Spacing();
+		}
+		else
+			*object_settings_visible_ = was_open_last_frame = false;
 	}
 }
 
-void GUI::draw_frame_settings(void)
+void GUI::draw_current_frame_settings(void)
 {
 	auto& layer = layering_.current_layer();
 	const auto& ctiling = layer.as_const().tiling();
 
-	ImGui::Text("Frame settings");
 	ImGui::Separator();
-
-	ImGui::Text("Show frame:"); ImGui::SameLine(140);
-	ImGui::Checkbox("##Show frame", frame_visible_);
 
 	auto frame_position = ctiling.center();
 	ImGui::Text("Frame position:"); ImGui::SameLine(140);
@@ -728,128 +774,136 @@ void GUI::draw_frame_settings(void)
 		layer.tiling().set_num_lattice_domains(num_domains);
 }
 
-void GUI::draw_image_settings(void)
+void GUI::draw_current_image_settings(void)
 {
-	auto& layer = layering_.current_layer();
+	auto& layer        = layering_.current_layer();
+	auto idx           = layer.current_image_index();
+	const auto& cimage = layer.as_const().image(idx);
 
-	// TODO: Improve.
-	for (size_t idx = 0; idx < layer.size(); ++idx)
-	{
-		ImGui::PushID(idx);
+	ImGui::Separator();
 
-		const auto& cimage = layer.as_const().image(idx);
+	auto image_position = cimage.center();
+	ImGui::Text("Image position:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
+		layer.image(idx).set_center(image_position);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##Reset image position"))
+		layer.image(idx).set_center({0.5f, 0.5f});
 
-		ImGui::Text("Image settings");
-		ImGui::Separator();
+	float image_rotation = cimage.rotation() / M_PI * 180.0f;
+	ImGui::Text("Image rotation:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
+		layer.image(idx).set_rotation(image_rotation / 180.0f * M_PI);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset image rotation"))
+		layer.image(idx).set_rotation(0.0);
 
-		auto image_position = cimage.center();
-		ImGui::Text("Image position:"); ImGui::SameLine(140);
-		ImGui::PushItemWidth(-65.0f);
-		if (ImGui::DragFloat2("##Image position", image_position.data(), 0.01f))
-			layer.image(idx).set_center(image_position);
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##Reset image position"))
-			layer.image(idx).set_center({0.5f, 0.5f});
-
-		float image_rotation = cimage.rotation() / M_PI * 180.0f;
-		ImGui::Text("Image rotation:"); ImGui::SameLine(140);
-		ImGui::PushItemWidth(-65.0f);
-		if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
-			layer.image(idx).set_rotation(image_rotation / 180.0f * M_PI);
-		ImGui::PopItemWidth();
-		ImGui::SameLine(0, 12);
-		if (ImGui::Button("Reset##Reset image rotation"))
-			layer.image(idx).set_rotation(0.0);
-
-		float image_scale = cimage.scale();
-		ImGui::Text("Image scale:"); ImGui::SameLine(140);
-		ImGui::PushItemWidth(-65.0f);
-		if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
-			layer.image(idx).set_scale(image_scale);
-		ImGui::PopItemWidth();
-		ImGui::SameLine(0, 12);
-		if (ImGui::Button("Reset##Reset image scale"))
-			layer.image(idx).set_scale(1.0);
-
-		ImGui::PopID();
-	}
+	float image_scale = cimage.scale();
+	ImGui::Text("Image scale:"); ImGui::SameLine(140);
+	ImGui::PushItemWidth(-65.0f);
+	if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
+		layer.image(idx).set_scale(image_scale);
+	ImGui::PopItemWidth();
+	ImGui::SameLine(0, 12);
+	if (ImGui::Button("Reset##Reset image scale"))
+		layer.image(idx).set_scale(1.0);
 }
 
 void GUI::draw_export_settings(void)
 {
-	auto& layer = layering_.current_layer();
-	const auto& ctiling = layer.as_const().tiling();
+	auto flags = ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
-	ImGui::Text("Export settings");
-	ImGui::Separator();
+	// Since there is no boolean to externally control the state of
+	// TreeNodes yet, we need to resort to this trick setting it frame-by-frame.
+	static bool was_open_last_frame = false;
 
-	int resolution[] = {*export_width_, *export_height_};
-	ImGui::Text("Resolution:"); ImGui::SameLine(120);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::DragInt2("##Resolution", resolution, 1.0f, 512, 4096))
-	{
-		*export_width_  = std::max(512, std::min(resolution[0], 4096));
-		*export_height_ = std::max(512, std::min(resolution[1], 4096));
-	}
-	ImGui::PopItemWidth();
-	ImGui::SameLine();
-	if (ImGui::Button("Reset##Reset resolution"))
-	{
-		*export_width_  = 1600;
-		*export_height_ = 1200;
-	}
-	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
-	if (ImGui::Button("Fit to window"))
-	{
-		int width, height;
-		glfwGetFramebufferSize(window_, &width, &height);
-		*export_width_  = width;
-		*export_height_ = height;
-	}
+	if (*export_settings_visible_ && !was_open_last_frame)
+		ImGui::SetNextTreeNodeOpen(true);
+	else if (!*export_settings_visible_ && was_open_last_frame)
+		ImGui::SetNextTreeNodeOpen(false);
 
-	char buffer[256] = {'\0'};
-	std::strncpy(buffer, export_filename_.c_str(), 255);
-	ImGui::Text("Export as:"); ImGui::SameLine(120);
-	ImGui::PushItemWidth(-65.0f);
-	if (ImGui::InputText("##Filename", buffer, 256, ImGuiInputTextFlags_CharsNoBlank))
-		export_filename_ = buffer;
-	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
-	if (ImGui::Button("Reset##Reset filename"))
-		export_filename_ = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
-
-	bool should_export = false;
-	ImGui::Dummy({0, 0}); ImGui::SameLine(120);
-	if (ImGui::Button("Export"))
+	if (ImGui::TreeNodeEx("Export settings", flags))
 	{
-		if (export_filename_.empty())
-			ImGui::OpenPopup("No filename");
-		else
-			should_export = true;
-	}
-	auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
-	if (ImGui::BeginPopupModal("No filename", NULL, modal_flags))
-	{
-		ImVec2 button_size = {140, 0.0f};
-		auto default_name = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
+		*export_settings_visible_ = was_open_last_frame = true;
 
-		ImGui::Text("No filename set.");
-		ImGui::Text("Use the default name \"%s\"?", default_name.c_str());
-		if (ImGui::Button("OK##Export OK", button_size))
+		ImGui::Separator();
+
+		auto& layer         = layering_.current_layer();
+		const auto& ctiling = layer.as_const().tiling();
+
+		int resolution[] = {*export_width_, *export_height_};
+		ImGui::Text("Resolution:"); ImGui::SameLine(120);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::DragInt2("##Resolution", resolution, 1.0f, 512, 4096))
 		{
-			export_filename_ = default_name;
-			should_export = true;
-			ImGui::CloseCurrentPopup();
+			*export_width_  = std::max(512, std::min(resolution[0], 4096));
+			*export_height_ = std::max(512, std::min(resolution[1], 4096));
 		}
+		ImGui::PopItemWidth();
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel##Export cancel", button_size))
-			ImGui::CloseCurrentPopup();
+		if (ImGui::Button("Reset##Reset resolution"))
+		{
+			*export_width_  = 1600;
+			*export_height_ = 1200;
+		}
+		ImGui::Dummy({0, 0}); ImGui::SameLine(120);
+		if (ImGui::Button("Fit to window"))
+		{
+			int width, height;
+			glfwGetFramebufferSize(window_, &width, &height);
+			*export_width_  = width;
+			*export_height_ = height;
+		}
 
-		ImGui::EndPopup();
+		char buffer[256] = {'\0'};
+		std::strncpy(buffer, export_filename_.c_str(), 255);
+		ImGui::Text("Export as:"); ImGui::SameLine(120);
+		ImGui::PushItemWidth(-65.0f);
+		if (ImGui::InputText("##Filename", buffer, 256, ImGuiInputTextFlags_CharsNoBlank))
+			export_filename_ = buffer;
+		ImGui::PopItemWidth();
+		ImGui::SameLine(0, 12);
+		if (ImGui::Button("Reset##Reset filename"))
+			export_filename_ = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
+
+		bool should_export = false;
+		ImGui::Dummy({0, 0}); ImGui::SameLine(120);
+		if (ImGui::Button("Export"))
+		{
+			if (export_filename_.empty())
+				ImGui::OpenPopup("No filename");
+			else
+				should_export = true;
+		}
+		auto modal_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
+		if (ImGui::BeginPopupModal("No filename", NULL, modal_flags))
+		{
+			ImVec2 button_size = {140, 0.0f};
+			auto default_name = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
+
+			ImGui::Text("No filename set.");
+			ImGui::Text("Use the default name \"%s\"?", default_name.c_str());
+			if (ImGui::Button("OK##Export OK", button_size))
+			{
+				export_filename_ = default_name;
+				should_export = true;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel##Export cancel", button_size))
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndPopup();
+		}
+		if (should_export)
+			export_callback_(*export_width_, *export_height_, export_filename_.c_str());
 	}
-	if (should_export)
-		export_callback_(*export_width_, *export_height_, export_filename_.c_str());
+	else
+		*export_settings_visible_ = was_open_last_frame = false;
 }
 
 void GUI::populate_thumbnail_map(void)

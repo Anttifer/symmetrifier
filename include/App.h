@@ -60,7 +60,8 @@ private:
 	double          pixels_per_unit_;
 	bool            show_symmetry_frame_;
 	bool            show_result_;
-	bool            show_settings_;
+	bool            show_object_settings_;
+	bool            show_view_settings_;
 	bool            show_export_settings_;
 	int             export_width_;
 	int             export_height_;

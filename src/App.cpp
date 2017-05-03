@@ -17,7 +17,8 @@ App::App(int /* argc */, char** /* argv */) :
 	pixels_per_unit_       (300.0),
 	show_symmetry_frame_   (true),
 	show_result_           (true),
-	show_settings_         (true),
+	show_object_settings_  (false),
+	show_view_settings_    (false),
 	show_export_settings_  (false),
 	export_width_          (1600),
 	export_height_         (1200),
@@ -32,8 +33,9 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_.pixels_per_unit_track(pixels_per_unit_);
 	gui_.frame_visible_track(show_symmetry_frame_);
 	gui_.result_visible_track(show_result_);
-	gui_.settings_window_visible_track(show_settings_);
-	gui_.export_window_visible_track(show_export_settings_);
+	gui_.object_settings_visible_track(show_object_settings_);
+	gui_.view_settings_visible_track(show_view_settings_);
+	gui_.export_settings_visible_track(show_export_settings_);
 	gui_.export_width_track(export_width_);
 	gui_.export_height_track(export_height_);
 
@@ -665,6 +667,12 @@ void App::keyboard_callback(int key, int /* scancode */, int action, int /* mods
 		layering_.current_layer().tiling().set_num_lattice_domains(4);
 	else if (key == GLFW_KEY_3)
 		layering_.current_layer().tiling().set_num_lattice_domains(9);
+	else if (key == GLFW_KEY_S)
+		show_object_settings_ ^= true;
+	else if (key == GLFW_KEY_V)
+		show_view_settings_ ^= true;
+	else if (key == GLFW_KEY_E)
+		show_export_settings_ ^= true;
 }
 
 void App::path_drop_callback(int count, const char** paths)
