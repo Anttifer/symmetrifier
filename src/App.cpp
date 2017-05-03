@@ -83,7 +83,7 @@ void App::loop(void)
 		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 0);
 		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		render_layered_scene(gui_.graphics_area());
+		render_scene(gui_.graphics_area());
 		gui_.render(width, height);
 
 		// Show the result on screen.
@@ -94,7 +94,7 @@ void App::loop(void)
 	}
 }
 
-void App::render_layered_scene(const Rectangle<int>& viewport, GLuint framebuffer)
+void App::render_scene(const Rectangle<int>& viewport, GLuint framebuffer)
 {
 	const auto& current_layer = layering_.current_layer();
 
@@ -265,6 +265,113 @@ void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport
 
 	// Clean up.
 	glBindVertexArray(0);
+	glUseProgram(0);
+
+	glBindTexture(GL_TEXTURE_2D, old_tex);
+	glActiveTexture(old_active);
+	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
+}
+
+void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
+{
+	static auto shader = GL::ShaderProgram::from_files(
+		"shaders/tiling_hq_vert.glsl",
+		"shaders/tiling_hq_frag.glsl");
+
+	// Find uniform locations once.
+	static GLuint instance_num_uniform;
+	static GLuint frame_position_uniform;
+	static GLuint t1_uniform;
+	static GLuint t2_uniform;
+	static GLuint viewport_size_uniform;
+	static GLuint view_center_uniform;
+	static GLuint image_position_uniform;
+	static GLuint image_t1_uniform;
+	static GLuint image_t2_uniform;
+	static GLuint pixels_per_unit_uniform;
+	static GLuint num_domains_uniform;
+	static GLuint mesh_sampler_uniform;
+	static GLuint texture_sampler_uniform;
+	static bool init = [&](){
+		instance_num_uniform       = glGetUniformLocation(shader, "uNumInstances");
+		frame_position_uniform     = glGetUniformLocation(shader, "uFramePos");
+		t1_uniform                 = glGetUniformLocation(shader, "uT1");
+		t2_uniform                 = glGetUniformLocation(shader, "uT2");
+		viewport_size_uniform      = glGetUniformLocation(shader, "uScreenSize");
+		view_center_uniform        = glGetUniformLocation(shader, "uScreenCenter");
+		image_position_uniform     = glGetUniformLocation(shader, "uImagePos");
+		image_t1_uniform           = glGetUniformLocation(shader, "uImageT1");
+		image_t2_uniform           = glGetUniformLocation(shader, "uImageT2");
+		pixels_per_unit_uniform    = glGetUniformLocation(shader, "uPixelsPerUnit");
+		num_domains_uniform        = glGetUniformLocation(shader, "uNumSymmetryDomains");
+		mesh_sampler_uniform       = glGetUniformLocation(shader, "uMeshSampler");
+		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
+		return true;
+	}();
+	(void)init; // Suppress unused variable warning.
+
+	// Save previous state.
+	// FIXME: State saving wrt textures is imperfect - we use two of them.
+	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+	glActiveTexture(GL_TEXTURE1);
+	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+
+	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+
+	const auto plane_side_length = 10;
+	const auto num_instances     = plane_side_length * plane_side_length;
+
+	// Set the shader program and uniforms, and draw.
+	glUseProgram(shader);
+
+	glUniform1i  (instance_num_uniform, num_instances);
+	glUniform2i  (viewport_size_uniform, viewport.width, viewport.height);
+	glUniform2fv (view_center_uniform, 1, screen_center_.data());
+	glUniform1f  (pixels_per_unit_uniform, pixels_per_unit_);
+	glUniform1i  (texture_sampler_uniform, 1);
+	glUniform1i  (mesh_sampler_uniform, 2);
+
+	for (const auto& layer : layering_)
+	{
+		const auto& tiling = layer.tiling();
+		const auto& mesh   = tiling.mesh();
+
+		glBindVertexArray(mesh.vao_);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_BUFFER, tiling.mesh_texture());
+		glActiveTexture(GL_TEXTURE1);
+
+		const auto& tiling_position = layer.to_world(tiling.position());
+		const auto& tiling_t1       = layer.to_world_direction(tiling.t1());
+		const auto& tiling_t2       = layer.to_world_direction(tiling.t2());
+
+		glUniform2fv (frame_position_uniform, 1, tiling_position.data());
+		glUniform2fv (t1_uniform, 1, tiling_t1.data());
+		glUniform2fv (t2_uniform, 1, tiling_t2.data());
+		glUniform1i  (num_domains_uniform, tiling.num_symmetry_domains());
+
+		for (const auto& image : layer)
+		{
+			const auto& image_position = layer.to_world(image.position());
+			const auto& image_t1       = layer.to_world_direction(image.t1());
+			const auto& image_t2       = layer.to_world_direction(image.t2());
+
+			glBindTexture(GL_TEXTURE_2D, image.texture());
+
+			glUniform2fv (image_position_uniform, 1, image_position.data());
+			glUniform2fv (image_t1_uniform, 1, image_t1.data());
+			glUniform2fv (image_t2_uniform, 1, image_t2.data());
+
+			glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
+		}
+	}
+
+	// Clean up.
+	glBindVertexArray(0);
+
 	glUseProgram(0);
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
@@ -681,8 +788,7 @@ void App::export_result(int export_width, int export_height, const char* export_
 {
 	printf("Exporting...\n");
 
-	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
+	const auto& view = gui_.graphics_area();
 
 	auto texture = GL::Texture::empty_2D(export_width, export_height);
 	auto depth   = GL::Texture::empty_2D_depth(export_width, export_height);
@@ -697,9 +803,10 @@ void App::export_result(int export_width, int export_height, const char* export_
 
 	// We want to keep the zoom level irrespective of resolution chosen.
 	double ppu_old = pixels_per_unit_;
-	pixels_per_unit_ = std::max( export_width / (float)width, export_height / (float)height) * ppu_old;
+	pixels_per_unit_ = std::max(export_width / (float)view.width,
+	                            export_height / (float)view.height) * ppu_old;
 
-	render_tiling_hq(tiling_, export_width, export_height, fbo);
+	render_scene_hq({0, 0, export_width, export_height}, fbo);
 
 	pixels_per_unit_ = ppu_old;
 

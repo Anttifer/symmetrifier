@@ -23,8 +23,9 @@ public:
 	void loop (void);
 
 private:
-	// Renders everything but the GUI, layered.
-	void render_layered_scene (const Rectangle<int>& viewport, GLuint framebuffer = 0);
+	// Renders everything but the GUI.
+	void render_scene           (const Rectangle<int>& viewport, GLuint framebuffer = 0);
+	void render_scene_hq        (const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
 	void render_layer           (const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer = 0);
 	void render_layer_images    (const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer = 0);
@@ -35,14 +36,11 @@ private:
 	// Export cropping frame.
 	void render_export_frame    (const Rectangle<int>& viewport, GLuint framebuffer = 0);
 
-	// Mouse callbacks.
+	// Input handling.
 	void mouse_position_callback (double, double);
 	void mouse_button_callback   (int, int, int);
 	void mouse_scroll_callback   (double, double);
-
-	// Key callbacks.
 	void keyboard_callback       (int, int, int, int);
-
 	void path_drop_callback      (int, const char**);
 
 	// Utilities.
