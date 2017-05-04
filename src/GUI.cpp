@@ -10,19 +10,33 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	layering_       (layering),
 
 	// Sensible defaults.
-	clear_color_internal_             (0.1f, 0.1f, 0.1f),
-	screen_center_internal_           (0.5f, 0.5f),
-	pixels_per_unit_internal_         (500.0),
-	frame_visible_internal_           (true),
-	result_visible_internal_          (true),
-	menu_bar_visible_internal_        (true),
-	settings_window_visible_internal_ (true),
-	usage_window_visible_internal_    (false),
-	object_settings_visible_internal_ (false),
-	view_settings_visible_internal_   (false),
-	export_settings_visible_internal_ (false),
-	export_width_internal_            (1600),
-	export_height_internal_           (1200),
+	clear_color_default_             (0.1f, 0.1f, 0.1f),
+	screen_center_default_           (0.5f, 0.5f),
+	pixels_per_unit_default_         (500.0),
+	frame_visible_default_           (true),
+	result_visible_default_          (true),
+	menu_bar_visible_default_        (true),
+	settings_window_visible_default_ (true),
+	usage_window_visible_default_    (false),
+	object_settings_visible_default_ (false),
+	view_settings_visible_default_   (false),
+	export_settings_visible_default_ (false),
+	export_width_default_            (1600),
+	export_height_default_           (1200),
+
+	clear_color_internal_             (clear_color_default_),
+	screen_center_internal_           (screen_center_default_),
+	pixels_per_unit_internal_         (pixels_per_unit_default_),
+	frame_visible_internal_           (frame_visible_default_),
+	result_visible_internal_          (result_visible_default_),
+	menu_bar_visible_internal_        (menu_bar_visible_default_),
+	settings_window_visible_internal_ (settings_window_visible_default_),
+	usage_window_visible_internal_    (usage_window_visible_default_),
+	object_settings_visible_internal_ (object_settings_visible_default_),
+	view_settings_visible_internal_   (view_settings_visible_default_),
+	export_settings_visible_internal_ (export_settings_visible_default_),
+	export_width_internal_            (export_width_default_),
+	export_height_internal_           (export_height_default_),
 
 	clear_color_             (&clear_color_internal_),
 	screen_center_           (&screen_center_internal_),
@@ -52,6 +66,10 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	layer_deletion_scheduled_ (false),
 	image_deletion_scheduled_ (false)
 {
+	const auto& layer = layering_.current_layer();
+	set_tiling_defaults(layer.tiling());
+	set_image_defaults(layer.current_image());
+
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
 	io.Fonts->Clear();
@@ -94,6 +112,189 @@ bool GUI::capturing_mouse(void) const
 bool GUI::capturing_keyboard(void) const
 {
 	return ImGui::GetIO().WantCaptureKeyboard;
+}
+
+void GUI::set_tiling_defaults(const Tiling& tiling)
+{
+	tiling_center_default_   = tiling.center();
+	tiling_rotation_default_ = tiling.rotation();
+	tiling_scale_default_    = tiling.scale();
+}
+
+void GUI::set_image_defaults(const LayerImage& image)
+{
+	image_center_default_   = image.center();
+	image_rotation_default_ = image.rotation();
+	image_scale_default_    = image.scale();
+}
+
+void GUI::clear_color_track(Eigen::Vector3f& t)
+{
+	clear_color_internal_ = clear_color_default_;
+	clear_color_default_  = t;
+	clear_color_          = &t;
+}
+
+void GUI::screen_center_track(Eigen::Vector2f& t)
+{
+	screen_center_internal_ = screen_center_default_;
+	screen_center_default_  = t;
+	screen_center_          = &t;
+}
+
+void GUI::pixels_per_unit_track(double& t)
+{
+	pixels_per_unit_internal_ = pixels_per_unit_default_;
+	pixels_per_unit_default_  = t;
+	pixels_per_unit_          = &t;
+}
+
+void GUI::frame_visible_track(bool& t)
+{
+	frame_visible_internal_ = frame_visible_default_;
+	frame_visible_default_  = t;
+	frame_visible_          = &t;
+}
+
+void GUI::result_visible_track(bool& t)
+{
+	result_visible_internal_ = result_visible_default_;
+	result_visible_default_  = t;
+	result_visible_          = &t;
+}
+
+void GUI::menu_bar_visible_track(bool& t)
+{
+	menu_bar_visible_internal_ = menu_bar_visible_default_;
+	menu_bar_visible_default_  = t;
+	menu_bar_visible_          = &t;
+}
+
+void GUI::settings_window_visible_track(bool& t)
+{
+	settings_window_visible_internal_ = settings_window_visible_default_;
+	settings_window_visible_default_  = t;
+	settings_window_visible_          = &t;
+}
+
+void GUI::usage_window_visible_track(bool& t)
+{
+	usage_window_visible_internal_ = usage_window_visible_default_;
+	usage_window_visible_default_  = t;
+	usage_window_visible_          = &t;
+}
+
+void GUI::object_settings_visible_track(bool& t)
+{
+	object_settings_visible_internal_ = object_settings_visible_default_;
+	object_settings_visible_default_  = t;
+	object_settings_visible_          = &t;
+}
+
+void GUI::view_settings_visible_track(bool& t)
+{
+	view_settings_visible_internal_ = view_settings_visible_default_;
+	view_settings_visible_default_  = t;
+	view_settings_visible_          = &t;
+}
+
+void GUI::export_settings_visible_track(bool& t)
+{
+	export_settings_visible_internal_ = export_settings_visible_default_;
+	export_settings_visible_default_  = t;
+	export_settings_visible_          = &t;
+}
+
+void GUI::export_width_track(int& t)
+{
+	export_width_internal_ = export_width_default_;
+	export_width_default_  = t;
+	export_width_          = &t;
+}
+
+void GUI::export_height_track(int& t)
+{
+	export_height_internal_ = export_height_default_;
+	export_height_default_  = t;
+	export_height_          = &t;
+}
+
+void GUI::clear_color_untrack(void)
+{
+	clear_color_default_ = clear_color_internal_;
+	clear_color_         = &clear_color_internal_;
+}
+
+void GUI::screen_center_untrack(void)
+{
+	screen_center_default_ = screen_center_internal_;
+	screen_center_         = &screen_center_internal_;
+}
+
+void GUI::pixels_per_unit_untrack(void)
+{
+	pixels_per_unit_default_ = pixels_per_unit_internal_;
+	pixels_per_unit_         = &pixels_per_unit_internal_;
+}
+
+void GUI::frame_visible_untrack(void)
+{
+	frame_visible_default_ = frame_visible_internal_;
+	frame_visible_         = &frame_visible_internal_;
+}
+
+void GUI::result_visible_untrack(void)
+{
+	result_visible_default_ = result_visible_internal_;
+	result_visible_         = &result_visible_internal_;
+}
+
+void GUI::menu_bar_visible_untrack(void)
+{
+	menu_bar_visible_default_ = menu_bar_visible_internal_;
+	menu_bar_visible_         = &menu_bar_visible_internal_;
+}
+
+void GUI::settings_window_visible_untrack(void)
+{
+	settings_window_visible_default_ = settings_window_visible_internal_;
+	settings_window_visible_         = &settings_window_visible_internal_;
+}
+
+void GUI::usage_window_visible_untrack(void)
+{
+	usage_window_visible_default_ = usage_window_visible_internal_;
+	usage_window_visible_         = &usage_window_visible_internal_;
+}
+
+void GUI::object_settings_visible_untrack(void)
+{
+	object_settings_visible_default_ = object_settings_visible_internal_;
+	object_settings_visible_         = &object_settings_visible_internal_;
+}
+
+void GUI::view_settings_visible_untrack(void)
+{
+	view_settings_visible_default_ = view_settings_visible_internal_;
+	view_settings_visible_         = &view_settings_visible_internal_;
+}
+
+void GUI::export_settings_visible_untrack(void)
+{
+	export_settings_visible_default_ = export_settings_visible_internal_;
+	export_settings_visible_         = &export_settings_visible_internal_;
+}
+
+void GUI::export_width_untrack(void)
+{
+	export_width_default_ = export_width_internal_;
+	export_width_         = &export_width_internal_;
+}
+
+void GUI::export_height_untrack(void)
+{
+	export_height_default_ = export_height_internal_;
+	export_height_         = &export_height_internal_;
 }
 
 void GUI::draw_menu_bar(void)
@@ -640,7 +841,7 @@ void GUI::draw_view_settings(void)
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
 		if(ImGui::Button("Reset##Reset screen center"))
-			*screen_center_ = {0.5, 0.5};
+			*screen_center_ = screen_center_default_;
 
 		// We need a float, not a double.
 		float pixels_per_unit = *pixels_per_unit_;
@@ -651,7 +852,7 @@ void GUI::draw_view_settings(void)
 		ImGui::PopItemWidth();
 		ImGui::SameLine(0, 12);
 		if (ImGui::Button("Reset##Reset zoom level"))
-			*pixels_per_unit_ = 500.0;
+			*pixels_per_unit_ = pixels_per_unit_default_;
 
 		ImGui::Text("Background:"); ImGui::SameLine(130);
 		ImGui::PushItemWidth(-1.0f);
@@ -659,7 +860,7 @@ void GUI::draw_view_settings(void)
 		ImGui::PopItemWidth();
 		ImGui::Dummy({0, 0}); ImGui::SameLine(130);
 		if (ImGui::Button("Reset##Reset background color"))
-			*clear_color_ = {0.1, 0.1, 0.1};
+			*clear_color_ = clear_color_default_;
 		ImGui::SameLine();
 		ImGui::Button("Pick color...");
 		if (ImGui::IsItemHovered())
@@ -742,7 +943,7 @@ void GUI::draw_current_frame_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset frame position"))
-		layer.tiling().set_center({0.5, 0.5});
+		layer.tiling().set_center(tiling_center_default_);
 
 	float frame_rotation = ctiling.rotation() / M_PI * 180.0f;
 	ImGui::Text("Frame rotation:"); ImGui::SameLine(140);
@@ -752,7 +953,7 @@ void GUI::draw_current_frame_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset frame rotation"))
-		layer.tiling().set_rotation(0.0);
+		layer.tiling().set_rotation(tiling_rotation_default_);
 
 	float frame_scale = ctiling.scale();
 	ImGui::Text("Frame scale:"); ImGui::SameLine(140);
@@ -762,7 +963,7 @@ void GUI::draw_current_frame_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset frame scale"))
-		layer.tiling().set_scale(1.0);
+		layer.tiling().set_scale(tiling_scale_default_);
 
 	int num_domains = ctiling.num_lattice_domains();
 	bool domains_changed = false;
@@ -790,7 +991,7 @@ void GUI::draw_current_image_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset image position"))
-		layer.image(idx).set_center({0.5f, 0.5f});
+		layer.image(idx).set_center(image_center_default_);
 
 	float image_rotation = cimage.rotation() / M_PI * 180.0f;
 	ImGui::Text("Image rotation:"); ImGui::SameLine(140);
@@ -800,7 +1001,7 @@ void GUI::draw_current_image_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset image rotation"))
-		layer.image(idx).set_rotation(0.0);
+		layer.image(idx).set_rotation(image_rotation_default_);
 
 	float image_scale = cimage.scale();
 	ImGui::Text("Image scale:"); ImGui::SameLine(140);
@@ -810,7 +1011,7 @@ void GUI::draw_current_image_settings(void)
 	ImGui::PopItemWidth();
 	ImGui::SameLine(0, 12);
 	if (ImGui::Button("Reset##Reset image scale"))
-		layer.image(idx).set_scale(1.0);
+		layer.image(idx).set_scale(image_scale_default_);
 }
 
 void GUI::draw_export_settings(void)
@@ -847,16 +1048,14 @@ void GUI::draw_export_settings(void)
 		ImGui::SameLine();
 		if (ImGui::Button("Reset##Reset resolution"))
 		{
-			*export_width_  = 1600;
-			*export_height_ = 1200;
+			*export_width_  = export_width_default_;
+			*export_height_ = export_height_default_;
 		}
 		ImGui::Dummy({0, 0}); ImGui::SameLine(120);
-		if (ImGui::Button("Fit to window"))
+		if (ImGui::Button("Fit to view"))
 		{
-			int width, height;
-			glfwGetFramebufferSize(window_, &width, &height);
-			*export_width_  = width;
-			*export_height_ = height;
+			*export_width_  = graphics_area_.width;
+			*export_height_ = graphics_area_.height;
 		}
 
 		char buffer[256] = {'\0'};

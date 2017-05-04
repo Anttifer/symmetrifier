@@ -7,6 +7,8 @@
 #include "Rectangle.h"
 
 class Layering;
+class Tiling;
+class LayerImage;
 
 class GUI
 {
@@ -22,6 +24,7 @@ public:
 
 	// Getters for the values held by the GUI at the moment.
 	// These are either the internal variables or the variables the GUI is set to track.
+	// TODO: Macro / code generation system to avoid all this duplication of similar code.
 	const Eigen::Vector3f& clear_color             (void) const { return *clear_color_; }
 	const Eigen::Vector2f& screen_center           (void) const { return *screen_center_; }
 	double                 pixels_per_unit         (void) const { return *pixels_per_unit_; }
@@ -46,7 +49,7 @@ public:
 	void set_settings_window_visible (bool i)                   { *settings_window_visible_ = i; }
 	void set_usage_window_visible    (bool i)                   { *usage_window_visible_    = i; }
 	void set_object_settings_visible (bool i)                   { *object_settings_visible_ = i; }
-	void set_view_settings_visible   (bool i)                   { *view_settings_visible_ = i; }
+	void set_view_settings_visible   (bool i)                   { *view_settings_visible_   = i; }
 	void set_export_settings_visible (bool i)                   { *export_settings_visible_ = i; }
 	void set_export_width            (int i)                    { *export_width_            = i; }
 	void set_export_height           (int i)                    { *export_height_           = i; }
@@ -59,33 +62,36 @@ public:
 	void set_export_callback (const MemberExportCallback<T>& callback, T* this_pointer);
 	void set_export_callback (const ExportCallback& callback) { export_callback_ = callback; }
 
-	void clear_color_track             (Eigen::Vector3f& t) { clear_color_             = &t; }
-	void screen_center_track           (Eigen::Vector2f& t) { screen_center_           = &t; }
-	void pixels_per_unit_track         (double& t)          { pixels_per_unit_         = &t; }
-	void frame_visible_track           (bool& t)            { frame_visible_           = &t; }
-	void result_visible_track          (bool& t)            { result_visible_          = &t; }
-	void menu_bar_visible_track        (bool& t)            { menu_bar_visible_        = &t; }
-	void settings_window_visible_track (bool& t)            { settings_window_visible_ = &t; }
-	void usage_window_visible_track    (bool& t)            { usage_window_visible_    = &t; }
-	void object_settings_visible_track (bool& t)            { object_settings_visible_ = &t; }
-	void view_settings_visible_track   (bool& t)            { view_settings_visible_   = &t; }
-	void export_settings_visible_track (bool& t)            { export_settings_visible_ = &t; }
-	void export_width_track            (int& t)             { export_width_            = &t; }
-	void export_height_track           (int& t)             { export_height_           = &t; }
+	void set_tiling_defaults (const Tiling&);
+	void set_image_defaults  (const LayerImage&);
 
-	void clear_color_untrack             (void) { clear_color_             = &clear_color_internal_; }
-	void screen_center_untrack           (void) { screen_center_           = &screen_center_internal_; }
-	void pixels_per_unit_untrack         (void) { pixels_per_unit_         = &pixels_per_unit_internal_; }
-	void frame_visible_untrack           (void) { frame_visible_           = &frame_visible_internal_; }
-	void result_visible_untrack          (void) { result_visible_          = &result_visible_internal_; }
-	void menu_bar_visible_untrack        (void) { menu_bar_visible_        = &menu_bar_visible_internal_; }
-	void settings_window_visible_untrack (void) { settings_window_visible_ = &settings_window_visible_internal_; }
-	void usage_window_visible_untrack    (void) { usage_window_visible_    = &usage_window_visible_internal_; }
-	void object_settings_visible_untrack (void) { object_settings_visible_ = &object_settings_visible_internal_; }
-	void view_settings_visible_untrack   (void) { view_settings_visible_   = &view_settings_visible_internal_; }
-	void export_settings_visible_untrack (void) { export_settings_visible_ = &export_settings_visible_internal_; }
-	void export_width_untrack            (void) { export_width_            = &export_width_internal_; }
-	void export_height_untrack           (void) { export_height_           = &export_height_internal_; }
+	void clear_color_track             (Eigen::Vector3f& t);// { clear_color_             = &t; }
+	void screen_center_track           (Eigen::Vector2f& t);// { screen_center_           = &t; }
+	void pixels_per_unit_track         (double& t);//          { pixels_per_unit_         = &t; }
+	void frame_visible_track           (bool& t);//            { frame_visible_           = &t; }
+	void result_visible_track          (bool& t);//            { result_visible_          = &t; }
+	void menu_bar_visible_track        (bool& t);//            { menu_bar_visible_        = &t; }
+	void settings_window_visible_track (bool& t);//            { settings_window_visible_ = &t; }
+	void usage_window_visible_track    (bool& t);//            { usage_window_visible_    = &t; }
+	void object_settings_visible_track (bool& t);//            { object_settings_visible_ = &t; }
+	void view_settings_visible_track   (bool& t);//            { view_settings_visible_   = &t; }
+	void export_settings_visible_track (bool& t);//            { export_settings_visible_ = &t; }
+	void export_width_track            (int& t);//             { export_width_            = &t; }
+	void export_height_track           (int& t);//             { export_height_           = &t; }
+
+	void clear_color_untrack             (void);// { clear_color_             = &clear_color_internal_; }
+	void screen_center_untrack           (void);// { screen_center_           = &screen_center_internal_; }
+	void pixels_per_unit_untrack         (void);// { pixels_per_unit_         = &pixels_per_unit_internal_; }
+	void frame_visible_untrack           (void);// { frame_visible_           = &frame_visible_internal_; }
+	void result_visible_untrack          (void);// { result_visible_          = &result_visible_internal_; }
+	void menu_bar_visible_untrack        (void);// { menu_bar_visible_        = &menu_bar_visible_internal_; }
+	void settings_window_visible_untrack (void);// { settings_window_visible_ = &settings_window_visible_internal_; }
+	void usage_window_visible_untrack    (void);// { usage_window_visible_    = &usage_window_visible_internal_; }
+	void object_settings_visible_untrack (void);// { object_settings_visible_ = &object_settings_visible_internal_; }
+	void view_settings_visible_untrack   (void);// { view_settings_visible_   = &view_settings_visible_internal_; }
+	void export_settings_visible_untrack (void);// { export_settings_visible_ = &export_settings_visible_internal_; }
+	void export_width_untrack            (void);// { export_width_            = &export_width_internal_; }
+	void export_height_untrack           (void);// { export_height_           = &export_height_internal_; }
 
 private:
 	// Helper functions.
@@ -124,6 +130,28 @@ private:
 
 	MainWindow&      window_;
 	Layering&        layering_;
+
+	Eigen::Vector3f clear_color_default_;
+	Eigen::Vector2f screen_center_default_;
+	double          pixels_per_unit_default_;
+	bool            frame_visible_default_;
+	bool            result_visible_default_;
+	bool            menu_bar_visible_default_;
+	bool            settings_window_visible_default_;
+	bool            usage_window_visible_default_;
+	bool            object_settings_visible_default_;
+	bool            view_settings_visible_default_;
+	bool            export_settings_visible_default_;
+	int             export_width_default_;
+	int             export_height_default_;
+
+	Eigen::Vector2f tiling_center_default_;
+	double          tiling_rotation_default_;
+	double          tiling_scale_default_;
+
+	Eigen::Vector2f image_center_default_;
+	double          image_rotation_default_;
+	double          image_scale_default_;
 
 	Eigen::Vector3f clear_color_internal_;
 	Eigen::Vector2f screen_center_internal_;

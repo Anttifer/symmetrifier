@@ -15,17 +15,30 @@ App::App(int /* argc */, char** /* argv */) :
 	clear_color_           (0.1, 0.1, 0.1),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (300.0),
+
 	show_symmetry_frame_   (true),
 	show_result_           (true),
+
 	show_object_settings_  (false),
 	show_view_settings_    (false),
 	show_export_settings_  (false),
+
 	export_width_          (1600),
 	export_height_         (1200),
 
 	zoom_factor_           (1.2)
 {
+	// Load example settings.
+	auto& layer = layering_.current_layer();
+	layer.tiling().set_symmetry_group("333");
+	layer.tiling().set_center({0.5f, 0.5f});
+	layer.tiling().set_scale(2.0f);
+
 	load_layer_image("res/kissa");
+	layer.current_image().set_center({0.5f, 0.5f});
+
+	gui_.set_tiling_defaults(layer.as_const().tiling());
+	gui_.set_image_defaults(layer.as_const().current_image());
 
 	// Set GUI to track the relevant variables.
 	gui_.clear_color_track(clear_color_);
@@ -39,19 +52,13 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_.export_width_track(export_width_);
 	gui_.export_height_track(export_height_);
 
-	// Set GUI export button callback.
-	gui_.set_export_callback(&App::export_result, this);
-
-	// Mouse callbacks.
+	// Set input callbacks.
+	gui_.set_export_callback          (&App::export_result, this);
 	window_.add_mouse_pos_callback    (&App::mouse_position_callback, this);
 	window_.add_mouse_button_callback (&App::mouse_button_callback, this);
 	window_.add_scroll_callback       (&App::mouse_scroll_callback, this);
-
-	// Keyboard callback.
-	window_.add_key_callback(&App::keyboard_callback, this);
-
-	// Path drop callback.
-	window_.add_path_drop_callback(&App::path_drop_callback, this);
+	window_.add_key_callback          (&App::keyboard_callback, this);
+	window_.add_path_drop_callback    (&App::path_drop_callback, this);
 
 	// Disable vsync.
 	glfwSwapInterval(0);
@@ -64,11 +71,6 @@ App::App(int /* argc */, char** /* argv */) :
 
 	// This probably doesn't work, but worth asking anyway. :)
 	glEnable(GL_LINE_SMOOTH);
-
-	auto& layer = layering_.current_layer();
-	layer.tiling().set_symmetry_group("333");
-	layer.tiling().set_center({0.5f, 0.5f});
-	layer.tiling().set_scale(2.0f);
 }
 
 void App::loop(void)
