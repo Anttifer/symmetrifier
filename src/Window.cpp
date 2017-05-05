@@ -6,8 +6,8 @@ MainWindow::PointerMap MainWindow::window_by_pointer__;
 
 //--------------------
 
-MainWindow::MainWindow(int width, int height, const char* title)
-:	window_p_(nullptr)
+MainWindow::MainWindow(int width, int height, const char* title) :
+	window_p_(nullptr)
 {
 	glfwSetErrorCallback(&master_error_callback);
 	if (!glfwInit())
@@ -73,6 +73,11 @@ void MainWindow::add_mouse_button_callback(int button, const MouseButtonCallback
 	mouse_button_callback_map_[button].push_back(callback);
 }
 
+void MainWindow::add_mouse_button_callback(const GeneralMouseButtonCallback& callback)
+{
+	general_mouse_button_callbacks_.push_back(callback);
+}
+
 void MainWindow::add_mouse_pos_callback(const MousePosCallback& callback)
 {
 	mouse_pos_callbacks_.push_back(callback);
@@ -114,12 +119,16 @@ void MainWindow::master_char_callback(GLFWwindow* window, unsigned int c)
 void MainWindow::master_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 	const auto& callback_map = window_by_pointer__.at(window)->mouse_button_callback_map_;
+	const auto& callbacks    = window_by_pointer__.at(window)->general_mouse_button_callbacks_;
 
 	if (callback_map.find(button) != std::end(callback_map))
 	{
 		for (auto& callback : callback_map.at(button))
 			callback(action, mods);
 	}
+
+	for (auto& callback : callbacks)
+		callback(button, action, mods);
 }
 
 void MainWindow::master_mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)

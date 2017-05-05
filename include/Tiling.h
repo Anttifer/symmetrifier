@@ -8,7 +8,8 @@
 class Tiling
 {
 public:
-	Tiling (void);
+	Tiling          (void);
+	explicit Tiling (float symmetry_scale);
 
 	// Lattice types.
 	enum class Lattice
@@ -25,7 +26,6 @@ public:
 	Lattice     lattice              (void) const { return lattice_; }
 	int         num_lattice_domains  (void) const { return num_lattice_domains_; }
 	int         num_symmetry_domains (void) const { return mesh_.positions_.size() / 6 * num_lattice_domains_; }
-	bool        consistent           (void) const { return consistent_; }
 
 	// Transformations.
 	const Eigen::Vector2f& position (void) const { return position_; }
@@ -38,22 +38,19 @@ public:
 	double                 scale    (void) const { return t1_.norm(); }
 
 	// Meshes.
-	const Mesh&            mesh  (void) const { return mesh_; }
-	const Mesh&            frame (void) const { return frame_mesh_; }
+	const Mesh& mesh          (void) const { return mesh_; }
+	const Mesh& frame         (void) const { return frame_mesh_; }
+	const Mesh& symmetry_mesh (void) const { return symmetry_mesh_; }
 
 	// Textures & coordinates.
-	const GL::Texture& domain_texture     (void) const { return domain_texture_; }
 	const GL::Texture& mesh_texture       (void) const { return mesh_texture_; }
-	const std::vector<Eigen::Vector2f>&
-	                   domain_coordinates (void) const { return domain_coordinates_; }
 
 	// Set properties.
 	void set_symmetry_group      (const char*);
 	void set_num_lattice_domains (int n);
-	void set_inconsistent        (void) { consistent_ = false; }
 
 	// Set transformations.
-	void set_position   (const Eigen::Vector2f& p) { consistent_ = false; position_ = p; }
+	void set_position   (const Eigen::Vector2f& p) { position_ = p; }
 	void set_center     (const Eigen::Vector2f&);
 
 	void set_t1         (const Eigen::Vector2f&);
@@ -64,12 +61,8 @@ public:
 	void multiply_scale (double factor);
 
 	// Intuitive lattice domain deformations.
-	void set_deform_origin  (const Eigen::Vector2f&);
+	void set_deform_origin       (const Eigen::Vector2f&);
 	void deform                  (const Eigen::Vector2f&);
-
-	// This function constructs the symmetrified texture according to
-	// the current symmetry group.
-	void symmetrify (const GL::Texture&);
 
 private:
 	// Mesh construction functions for the different symmetry groups.
@@ -109,9 +102,6 @@ private:
 	// the domain texture?
 	int         num_lattice_domains_;
 
-	// Is the domain texture consistent with current settings?
-	bool        consistent_;
-
 
 	// Transformations.
 	Eigen::Vector2f position_;
@@ -139,38 +129,15 @@ private:
 	// In this mesh, each triangle is rescaled with respect to its centroid.
 	// This is reflected in the domain_coordinates_ for proper sampling.
 	// This is necessary in order to avoid ugly seams when rendering.
-	Mesh symmetry_mesh_;
+	float symmetry_scale_;
+	Mesh  symmetry_mesh_;
 
 
 	// Textures & coordinates.
 
-	// This texture will contain the symmetrified fundamental domain.
-	GL::Texture                  domain_texture_;
-
 	// This is a buffer texture and will contain the sampling mesh.
 	GL::Texture                  mesh_texture_;
 	GL::Buffer                   mesh_buffer_;
-
-	// We only need texture coordinates for two triangles, so no need to define them
-	// in the mesh for every vertex separately.
-	std::vector<Eigen::Vector2f> domain_coordinates_;
-
-
-	// This shader is used for building the symmetrified fundamental domain.
-	// It practically superimposes samples of the user-supplied texture in
-	// such a way that the resulting fundamental domain conforms to the chosen
-	// symmetry group.
-	GL::ShaderProgram symmetrify_shader_;
-	struct Uniforms
-	{
-		GLint num_instances;
-		GLint aspect_ratio;
-		GLint position;
-		GLint t1;
-		GLint t2;
-		GLint sampler;
-	}
-	uniforms_;
 
 
 	// Variables used for intuitive deformations.

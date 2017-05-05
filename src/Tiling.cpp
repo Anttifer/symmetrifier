@@ -6,9 +6,10 @@
 
 #define SCALE 0.98f
 
-Tiling::Tiling(void) :
+Tiling::Tiling(void) : Tiling(SCALE) {}
+
+Tiling::Tiling(float symmetry_scale) :
 	num_lattice_domains_ (1),
-	consistent_          (false),
 
 	position_            (0.0f, 0.0f),
 	t1_                  (1.0f, 0.0f),
@@ -17,38 +18,15 @@ Tiling::Tiling(void) :
 	mirror_color_        (0.1, 0.6, 1.0),
 	rotation_color_      (0.1, 1.0, 0.6),
 
-	symmetrify_shader_   (GL::ShaderProgram::from_files(
-		                     "shaders/symmetrify_vert.glsl",
-		                     "shaders/symmetrify_frag.glsl")
-	                     ),
-	uniforms_            {
-		                     glGetUniformLocation(symmetrify_shader_, "uNumInstances"),
-		                     glGetUniformLocation(symmetrify_shader_, "uAR"),
-		                     glGetUniformLocation(symmetrify_shader_, "uPos"),
-		                     glGetUniformLocation(symmetrify_shader_, "uT1"),
-		                     glGetUniformLocation(symmetrify_shader_, "uT2"),
-		                     glGetUniformLocation(symmetrify_shader_, "uTextureSampler")
-	                     }
+	symmetry_scale_      (symmetry_scale)
 {
 	set_symmetry_group("o");
-
-	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
-	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
-	domain_coordinates_ = {
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
-
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
-	};
 }
 
 Eigen::Vector2f Tiling::center(void) const
 {
 	if (num_lattice_domains_ % 2)
-		return position_ + (t1_ + t2()) / 2.0;
+		return position_ + (t1_ + t2()) / 2.0f;
 	else
 		return position_;
 }
@@ -66,8 +44,6 @@ double Tiling::rotation(void) const
 
 void Tiling::set_symmetry_group(const char* group)
 {
-	consistent_ = false;
-
 	if (!strncmp(group, "o", 8))
 	{
 		symmetry_group_ = "o";
@@ -184,19 +160,15 @@ void Tiling::set_symmetry_group(const char* group)
 
 void Tiling::set_num_lattice_domains(int n)
 {
-	consistent_ = false;
-
 	num_lattice_domains_ = n;
 	construct_mesh_texture();
 }
 
 void Tiling::set_center(const Eigen::Vector2f& center)
 {
-	consistent_ = false;
-
 	position_ = center;
 	if (num_lattice_domains_ % 2)
-		position_ -= (t1_ + t2()) / 2.0;
+		position_ -= (t1_ + t2()) / 2.0f;
 }
 
 void Tiling::set_t1(const Eigen::Vector2f& t1)
@@ -204,8 +176,6 @@ void Tiling::set_t1(const Eigen::Vector2f& t1)
 	// Never scale to zero.
 	if (t1.x() == 0.0f && t1.y() == 0.0f)
 		return;
-
-	consistent_ = false;
 
 	auto center = this->center();
 
@@ -219,8 +189,6 @@ void Tiling::set_t2(const Eigen::Vector2f& t2)
 	// Early out if lattice is square or hexagonal and thus fixed.
 	if (lattice_ == Lattice::Square || lattice_ == Lattice::Hexagonal)
 		return;
-
-	consistent_ = false;
 
 	// Convert t2 to relative coordinates.
 	Eigen::Vector2f orthogonal = { -t1_.y(), t1_.x() };
@@ -244,10 +212,8 @@ void Tiling::set_t2(const Eigen::Vector2f& t2)
 
 void Tiling::set_rotation(double r)
 {
-	consistent_ = false;
-
 	auto center   = this->center();
-	double norm   = t1_.norm();
+	float norm    = t1_.norm();
 	auto rotation = Eigen::Rotation2D<float>(r);
 
 	t1_ = rotation * Eigen::Vector2f(norm, 0);
@@ -261,8 +227,6 @@ void Tiling::set_scale(double scale)
 	if (scale == 0.0)
 		return;
 
-	consistent_ = false;
-
 	auto center = this->center();
 	t1_.normalize();
 	t1_ *= scale;
@@ -275,8 +239,6 @@ void Tiling::multiply_scale(double factor)
 	// Never scale to zero.
 	if (factor == 0.0)
 		return;
-
-	consistent_ = false;
 
 	auto center = this->center();
 	t1_ *= factor;
@@ -306,8 +268,6 @@ void Tiling::set_deform_origin(const Eigen::Vector2f& deform_origin)
 
 void Tiling::deform(const Eigen::Vector2f& deformation)
 {
-	consistent_ = false;
-
 	auto center = this->center();
 
 	float adj_factor = 2.0f / std::sqrt(num_lattice_domains_);
@@ -1077,9 +1037,9 @@ void Tiling::construct_symmetry_mesh(void)
 		const Eigen::Vector3f& c        = mesh_.positions_[i+2];
 		const Eigen::Vector3f  centroid = (a + b + c) / 3.0f;
 
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (a - centroid));
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (b - centroid));
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / SCALE * (c - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (a - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (b - centroid));
+		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (c - centroid));
 	}
 
 	symmetry_mesh_.update_buffers();
@@ -1108,53 +1068,4 @@ void Tiling::construct_mesh_texture(void)
 	glBindBuffer(GL_ARRAY_BUFFER, old_arr);
 
 	mesh_texture_ = GL::Texture::buffer_texture(mesh_buffer_, GL_RGB32F);
-}
-
-void Tiling::symmetrify(const GL::Texture& texture)
-{
-	auto AR        = texture.width_ / (float)texture.height_;
-	auto dimension = std::max({texture.width_, texture.height_, 512u});
-
-	// Set up the symmetrified texture.
-	domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
-	auto fbo        = GL::FBO::simple_C0(domain_texture_);
-	glClearColor(0, 0, 0, 0);
-	GL::clear(GL_COLOR_BUFFER_BIT, fbo);
-
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-
-	// Set texture wrapping parameters.
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-	glViewport(0, 0, dimension, dimension);
-
-	// Set the shader program, uniforms and texture parameters, and draw.
-	glUseProgram(symmetrify_shader_);
-
-	glUniform1i  (uniforms_.num_instances, num_lattice_domains_);
-	glUniform1f  (uniforms_.aspect_ratio, AR);
-	glUniform2fv (uniforms_.position, 1, position_.data());
-	glUniform2fv (uniforms_.t1, 1, t1_.data());
-	glUniform2fv (uniforms_.t2, 1, t2().data());
-	glUniform1i  (uniforms_.sampler, 1);
-
-	glBindVertexArray(symmetry_mesh_.vao_);
-	glDrawArraysInstanced(symmetry_mesh_.primitive_type_, 0, symmetry_mesh_.num_vertices_, num_lattice_domains_);
-
-	// Clean up.
-	glBindVertexArray(0);
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
-
-	consistent_ = true;
 }

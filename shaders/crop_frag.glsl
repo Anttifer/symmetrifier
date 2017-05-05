@@ -7,14 +7,16 @@ in Data {
 	vec2 vTexCoord;
 };
 
-uniform ivec2 uScreenSize;
+uniform ivec4 uViewport;
 uniform float uStripeSize;
 uniform bool  uVerticalCrop;
 
 layout(location = 0) out vec4 fColor;
 
 void main() {
-	vec2 centerDoubleDist = abs(2.0 * gl_FragCoord.xy - uScreenSize);
+	vec2 fragcoord = gl_FragCoord.xy - uViewport.xy;
+
+	vec2 centerDoubleDist = abs(2.0 * fragcoord - uViewport.zw);
 	int axis = uVerticalCrop ? 1 : 0;
 
 	fColor = vec4(0, 0, 0, 0.7);
