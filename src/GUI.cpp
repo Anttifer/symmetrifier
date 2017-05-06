@@ -70,6 +70,38 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	set_tiling_defaults(layer.tiling());
 	set_image_defaults(layer.current_image());
 
+	// Set style.
+	auto& style = ImGui::GetStyle();
+	style.WindowRounding = 0.0f;
+
+	style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.10f, 0.12f, 0.14f, 1.00f);
+	style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.12f, 0.14f, 0.16f, 0.90f);
+	style.Colors[ImGuiCol_FrameBg]               = ImVec4(0.43f, 0.57f, 0.63f, 0.30f);
+	style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.54f, 0.71f, 0.78f, 0.40f);
+	style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.66f, 0.78f, 0.82f, 0.45f);
+	style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.12f, 0.23f, 0.27f, 0.83f);
+	style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.36f, 0.67f, 0.80f, 0.20f);
+	style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.18f, 0.33f, 0.39f, 0.87f);
+	style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.25f, 0.35f, 0.39f, 1.00f);
+	style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.20f, 0.27f, 0.30f, 0.60f);
+	style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.11f, 0.70f, 0.82f, 0.45f);
+	style.Colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.11f, 0.70f, 0.82f, 0.59f);
+	style.Colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.11f, 0.70f, 0.82f, 0.78f);
+	style.Colors[ImGuiCol_CheckMark]             = ImVec4(0.55f, 0.80f, 0.90f, 0.67f);
+	style.Colors[ImGuiCol_Button]                = ImVec4(0.51f, 0.31f, 0.40f, 0.59f);
+	style.Colors[ImGuiCol_ButtonHovered]         = ImVec4(0.51f, 0.37f, 0.44f, 0.86f);
+	style.Colors[ImGuiCol_ButtonActive]          = ImVec4(0.55f, 0.40f, 0.47f, 1.00f);
+	style.Colors[ImGuiCol_Header]                = ImVec4(0.11f, 0.61f, 0.82f, 0.45f);
+	style.Colors[ImGuiCol_HeaderHovered]         = ImVec4(0.11f, 0.61f, 0.82f, 0.59f);
+	style.Colors[ImGuiCol_HeaderActive]          = ImVec4(0.11f, 0.61f, 0.82f, 0.78f);
+	style.Colors[ImGuiCol_ResizeGrip]            = ImVec4(0.69f, 0.91f, 1.00f, 0.45f);
+	style.Colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.69f, 0.91f, 1.00f, 0.59f);
+	style.Colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.69f, 0.91f, 1.00f, 0.78f);
+	style.Colors[ImGuiCol_CloseButton]           = ImVec4(0.50f, 0.78f, 0.90f, 0.50f);
+	style.Colors[ImGuiCol_CloseButtonHovered]    = ImVec4(0.70f, 0.84f, 0.90f, 0.60f);
+	style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.32f, 0.65f, 0.78f, 0.35f);
+	style.Colors[ImGuiCol_ModalWindowDarkening]  = ImVec4(0.08f, 0.08f, 0.08f, 0.67f);
+
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
 	io.Fonts->Clear();
