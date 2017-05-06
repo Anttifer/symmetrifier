@@ -34,7 +34,7 @@ App::App(int /* argc */, char** /* argv */) :
 	layer.tiling().set_center({0.5f, 0.5f});
 	layer.tiling().set_scale(2.0f);
 
-	load_layer_image("res/kissa");
+	load_layer_image("res/examples/kissa.png");
 	layer.current_image().set_center({0.5f, 0.5f});
 
 	gui_.set_tiling_defaults(layer.as_const().tiling());
