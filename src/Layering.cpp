@@ -38,6 +38,30 @@ void Layering::set_current_layer(size_t index)
 	set_current_layer(layer(index));
 }
 
+void Layering::next_layer(void)
+{
+	auto next_index = current_layer_index() + 1;
+
+	if (next_index < size())
+		set_current_layer(next_index);
+	else
+		set_current_layer(0);
+
+	current_layer().unset_current_image();
+}
+
+void Layering::previous_layer(void)
+{
+	auto index = current_layer_index();
+
+	if (index > 0)
+		set_current_layer(index - 1);
+	else
+		set_current_layer(size() - 1);
+
+	current_layer().unset_current_image();
+}
+
 void Layering::transfer_image(size_t src, size_t dst, size_t src_img, size_t dst_img)
 {
 	if (src >= size() || dst >= size() || src_img >= layer(src).size())

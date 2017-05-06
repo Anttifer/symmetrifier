@@ -41,11 +41,13 @@ private:
 	void path_drop_callback      (int, const char**);
 
 	// Utilities.
-	void            load_layer_image     (const char* filename);
-	void            export_result        (int, int, const char*);
-	Eigen::Vector2f screen_to_view       (double x, double y);
-	Eigen::Vector2f view_to_world        (const Eigen::Vector2f&);
-	Eigen::Vector2f screen_to_world      (double x, double y);
+	void            load_layer_image      (const char* filename);
+	void            next_layer_object     (void);
+	void            previous_layer_object (void);
+	void            export_result         (int, int, const char*);
+	Eigen::Vector2f screen_to_view        (double x, double y);
+	Eigen::Vector2f view_to_world         (const Eigen::Vector2f&);
+	Eigen::Vector2f screen_to_world       (double x, double y);
 
 	// Framework objects.
 	MainWindow    window_;

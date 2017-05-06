@@ -545,11 +545,12 @@ void GUI::draw_layer_settings(void)
 		auto        layer_label       = "Layer - ("s + symmetry_group + ")";
 
 		// Layer selection.
-		if (ImGui::Selectable(layer_label.c_str(), layer_selected && no_image_selected, 0, {110, 0}))
+		if (ImGui::Selectable(layer_label.c_str(), layer_selected && no_image_selected))
 		{
 			layering_.set_current_layer(layer);
 			layering_.current_layer().unset_current_image();
 		}
+		ImGui::SetItemAllowOverlap();
 		if (layer_selected && no_image_selected)
 			draw_layer_order_buttons(layer_idx);
 
@@ -564,11 +565,12 @@ void GUI::draw_layer_settings(void)
 			ImGui::AlignFirstTextHeightToWidgets();
 
 			// Image selection.
-			if (ImGui::Selectable(image_label.c_str(), image_selected && layer_selected, 0, {89, 0}))
+			if (ImGui::Selectable(image_label.c_str(), image_selected && layer_selected))
 			{
 				layering_.set_current_layer(layer);
 				layering_.current_layer().set_current_image(image_idx);
 			}
+			ImGui::SetItemAllowOverlap();
 			if (image_selected && layer_selected)
 				draw_image_order_buttons(layer_idx, image_idx);
 

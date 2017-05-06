@@ -651,14 +651,14 @@ void App::mouse_scroll_callback(double /* x_offset */, double y_offset)
 	}
 }
 
-void App::keyboard_callback(int key, int /* scancode */, int action, int /* mods */)
+void App::keyboard_callback(int key, int /* scancode */, int action, int mods)
 {
 	if (action != GLFW_PRESS || gui_.capturing_keyboard())
 		return;
 
 	if (key == GLFW_KEY_SPACE)
 	{
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		if (mods & GLFW_MOD_CONTROL)
 			show_symmetry_frame_ ^= true;
 		else
 			show_result_ ^= true;
@@ -669,12 +669,18 @@ void App::keyboard_callback(int key, int /* scancode */, int action, int /* mods
 		layering_.current_layer().tiling().set_num_lattice_domains(4);
 	else if (key == GLFW_KEY_3)
 		layering_.current_layer().tiling().set_num_lattice_domains(9);
+
 	else if (key == GLFW_KEY_S)
 		show_object_settings_ ^= true;
 	else if (key == GLFW_KEY_V)
 		show_view_settings_ ^= true;
 	else if (key == GLFW_KEY_E)
 		show_export_settings_ ^= true;
+
+	else if (key == GLFW_KEY_D)
+		next_layer_object();
+	else if (key == GLFW_KEY_A)
+		previous_layer_object();
 }
 
 void App::path_drop_callback(int count, const char** paths)
@@ -702,6 +708,57 @@ void App::load_layer_image(const char* filename)
 
 	// Even in case of error - just to draw attention.
 	layering_.current_layer().add_image(basename, std::move(texture));
+}
+
+void App::next_layer_object(void)
+{
+	auto& layer = layering_.current_layer();
+
+	// We need to take care with the directions, i.e. what "next" and "previous" mean here.
+	// The meaning is different in the GUI and in Layering, to reflect the rendering order.
+	// Basically the layers and the images within layers are in reverse order.
+	if (layer.has_current_image())
+	{
+		auto index = layer.current_image_index();
+
+		if (index > 0)
+			layer.set_current_image(index - 1);
+		else
+			layering_.previous_layer();
+	}
+	else
+	{
+		auto size = layer.size();
+
+		if (size == 0)
+			layering_.previous_layer();
+		else
+			layer.set_current_image(size - 1);
+	}
+}
+
+void App::previous_layer_object(void)
+{
+	auto& layer = layering_.current_layer();
+
+	if (layer.has_current_image())
+	{
+		auto previous_index = layer.current_image_index() + 1;
+
+		if (previous_index < layer.size())
+			layer.set_current_image(previous_index);
+		else
+			layer.unset_current_image();
+	}
+	else
+	{
+		layering_.next_layer();
+		auto& new_layer = layering_.current_layer();
+		auto size = new_layer.size();
+
+		if (size > 0)
+			new_layer.set_current_image(0);
+	}
 }
 
 // TODO: Add support to larger exports rendered in smaller tiles.
