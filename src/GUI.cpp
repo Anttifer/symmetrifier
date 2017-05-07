@@ -82,7 +82,7 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.12f, 0.23f, 0.27f, 0.83f);
 	style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.36f, 0.67f, 0.80f, 0.20f);
 	style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.18f, 0.33f, 0.39f, 0.87f);
-	style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.25f, 0.35f, 0.39f, 1.00f);
+	style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.25f, 0.28f, 0.31f, 1.00f);
 	style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.20f, 0.27f, 0.30f, 0.60f);
 	style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.11f, 0.70f, 0.82f, 0.45f);
 	style.Colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.11f, 0.70f, 0.82f, 0.59f);
