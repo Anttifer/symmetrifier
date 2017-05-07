@@ -133,6 +133,9 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	graphics_area_ = { (int)left_margin_, (int)bottom_margin_,
 	                   (int)(width - horizontal_margin), (int)(height - vertical_margin) };
 
+	bool kek = true;
+	ImGui::ShowTestWindow(&kek);
+
 	implementation_.render(width, height, framebuffer);
 }
 
