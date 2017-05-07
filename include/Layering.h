@@ -21,6 +21,9 @@ public:
 	void set_current_layer (const Layer&);
 	void set_current_layer (size_t index);
 
+	void next_layer     (void);
+	void previous_layer (void);
+
 	void transfer_image    (size_t source_layer, size_t destination_layer,
 	                        size_t source_image, size_t destination_image);
 	void transfer_image    (size_t layer, size_t source_image, size_t destination_image);
