@@ -799,7 +799,7 @@ Eigen::Vector2f App::screen_to_view(double x, double y)
 {
 	// Invert y - OpenGL and hence graphics_area work from bottom to top.
 	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
+	glfwGetWindowSize(window_, &width, &height);
 	y = height - y;
 
 	const auto& view = gui_.graphics_area();
