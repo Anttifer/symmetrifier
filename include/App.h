@@ -60,6 +60,7 @@ private:
 	Eigen::Vector3f clear_color_;
 	Eigen::Vector2f screen_center_;
 	double          pixels_per_unit_;
+	double          zoom_factor_;
 	bool            show_symmetry_frame_;
 	bool            show_result_;
 	bool            show_object_settings_;
@@ -67,9 +68,6 @@ private:
 	bool            show_export_settings_;
 	int             export_width_;
 	int             export_height_;
-
-	// These are constants in practice.
-	double zoom_factor_;
 
 	// Mouse input helper variables.
 	Eigen::Vector2f press_position_;

@@ -79,9 +79,9 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	style.Colors[ImGuiCol_FrameBg]               = ImVec4(0.43f, 0.57f, 0.63f, 0.30f);
 	style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.54f, 0.71f, 0.78f, 0.40f);
 	style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.66f, 0.78f, 0.82f, 0.45f);
-	style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.12f, 0.23f, 0.27f, 0.83f);
-	style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.36f, 0.67f, 0.80f, 0.20f);
-	style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.18f, 0.33f, 0.39f, 0.87f);
+	style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.15f, 0.29f, 0.35f, 0.82f);
+	style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.32f, 0.65f, 0.78f, 0.24f);
+	style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.21f, 0.42f, 0.51f, 0.90f);
 	style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.25f, 0.28f, 0.31f, 1.00f);
 	style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.20f, 0.27f, 0.30f, 0.60f);
 	style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.11f, 0.70f, 0.82f, 0.45f);
@@ -752,6 +752,10 @@ void GUI::draw_symmetry_settings(void)
 	auto& layer = layering_.current_layer();
 	const auto& ctiling = layer.as_const().tiling();
 
+	ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(140/255.0f, 10/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(140/255.0f, 40/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor::HSV(140/255.0f, 90/255.0f, 1.0f, 1.0f));
+
 	ImGui::Text("Choose the symmetry group");
 	ImGui::Separator();
 
@@ -770,6 +774,8 @@ void GUI::draw_symmetry_settings(void)
 		ImGui::EndPopup();
 	}
 	ImGui::PopID();
+
+	ImGui::PopStyleColor(3);
 }
 
 void GUI::draw_symmetry_modal(void)
