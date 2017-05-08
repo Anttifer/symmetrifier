@@ -9,7 +9,7 @@ DEPDIR   := dep
 CXX      := g++
 CPPFLAGS := -DGLEW_STATIC
 # CXXFLAGS := -Wall -Wextra -Wshadow -pedantic
-CXXFLAGS := -std=c++14 -g -O0 -Wall -Wextra -Wshadow -pedantic
+CXXFLAGS := -std=c++14 -O3 -Wall -Wextra -Wshadow -pedantic
 LDLIBS   := -lGLEW -lGL -lglfw
 INCL     := -Iinclude -I/usr/local/include -I/usr/local/include/eigen3
 
