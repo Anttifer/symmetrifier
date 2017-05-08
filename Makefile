@@ -8,7 +8,7 @@ DEPDIR   := dep
 # These can be modified too.
 CXX      := g++
 CPPFLAGS := -DGLEW_STATIC
-CXXFLAGS := -std=c++14 -g -O0 -Wall -Wextra -Wshadow -pedantic
+CXXFLAGS := -std=c++14 -O3 -Wall -Wextra -Wshadow -pedantic
 LDFLAGS  := -L/usr/local/lib
 LDLIBS   := -lGLEW -lglfw3 -framework Cocoa -framework IOKit -framework CoreVideo -framework OpenGL
 INCL     := -Iinclude -I/usr/local/include -I/usr/local/include/eigen3

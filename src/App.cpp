@@ -15,6 +15,7 @@ App::App(int /* argc */, char** /* argv */) :
 	clear_color_           (0.1, 0.1, 0.1),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (300.0),
+	zoom_factor_           (1.2),
 
 	show_symmetry_frame_   (true),
 	show_result_           (true),
@@ -24,9 +25,7 @@ App::App(int /* argc */, char** /* argv */) :
 	show_export_settings_  (false),
 
 	export_width_          (1600),
-	export_height_         (1200),
-
-	zoom_factor_           (1.2)
+	export_height_         (1200)
 {
 	// Load example settings.
 	auto& layer = layering_.current_layer();
@@ -797,10 +796,17 @@ void App::export_result(int export_width, int export_height, const char* export_
 
 Eigen::Vector2f App::screen_to_view(double x, double y)
 {
+	int fb_width, fb_height, win_width, win_height;
+	glfwGetFramebufferSize(window_, &fb_width, &fb_height);
+	glfwGetWindowSize(window_, &win_width, &win_height);
+
+	float scale_width  = win_width  > 0 ? fb_width  / (float)win_width  : 0;
+	float scale_height = win_height > 0 ? fb_height / (float)win_height : 0;
+
+	x *= scale_width; y *= scale_height;
+
 	// Invert y - OpenGL and hence graphics_area work from bottom to top.
-	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
-	y = height - y;
+	y = fb_height - y;
 
 	const auto& view = gui_.graphics_area();
 	Eigen::Vector2f view_center = {view.x + view.width / 2.0f,

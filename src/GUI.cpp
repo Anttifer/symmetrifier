@@ -24,34 +24,6 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	export_width_default_            (1600),
 	export_height_default_           (1200),
 
-	clear_color_internal_             (clear_color_default_),
-	screen_center_internal_           (screen_center_default_),
-	pixels_per_unit_internal_         (pixels_per_unit_default_),
-	frame_visible_internal_           (frame_visible_default_),
-	result_visible_internal_          (result_visible_default_),
-	menu_bar_visible_internal_        (menu_bar_visible_default_),
-	settings_window_visible_internal_ (settings_window_visible_default_),
-	usage_window_visible_internal_    (usage_window_visible_default_),
-	object_settings_visible_internal_ (object_settings_visible_default_),
-	view_settings_visible_internal_   (view_settings_visible_default_),
-	export_settings_visible_internal_ (export_settings_visible_default_),
-	export_width_internal_            (export_width_default_),
-	export_height_internal_           (export_height_default_),
-
-	clear_color_             (&clear_color_internal_),
-	screen_center_           (&screen_center_internal_),
-	pixels_per_unit_         (&pixels_per_unit_internal_),
-	frame_visible_           (&frame_visible_internal_),
-	result_visible_          (&result_visible_internal_),
-	menu_bar_visible_        (&menu_bar_visible_internal_),
-	settings_window_visible_ (&settings_window_visible_internal_),
-	usage_window_visible_    (&usage_window_visible_internal_),
-	object_settings_visible_ (&object_settings_visible_internal_),
-	view_settings_visible_   (&view_settings_visible_internal_),
-	export_settings_visible_ (&export_settings_visible_internal_),
-	export_width_            (&export_width_internal_),
-	export_height_           (&export_height_internal_),
-
 	// Lambda that accepts anything and does nothing.
 	export_callback_ ([](...){}),
 
@@ -79,9 +51,9 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	style.Colors[ImGuiCol_FrameBg]               = ImVec4(0.43f, 0.57f, 0.63f, 0.30f);
 	style.Colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.54f, 0.71f, 0.78f, 0.40f);
 	style.Colors[ImGuiCol_FrameBgActive]         = ImVec4(0.66f, 0.78f, 0.82f, 0.45f);
-	style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.12f, 0.23f, 0.27f, 0.83f);
-	style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.36f, 0.67f, 0.80f, 0.20f);
-	style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.18f, 0.33f, 0.39f, 0.87f);
+	style.Colors[ImGuiCol_TitleBg]               = ImVec4(0.15f, 0.29f, 0.35f, 0.82f);
+	style.Colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.32f, 0.65f, 0.78f, 0.24f);
+	style.Colors[ImGuiCol_TitleBgActive]         = ImVec4(0.21f, 0.42f, 0.51f, 0.90f);
 	style.Colors[ImGuiCol_MenuBarBg]             = ImVec4(0.25f, 0.28f, 0.31f, 1.00f);
 	style.Colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.20f, 0.27f, 0.30f, 0.60f);
 	style.Colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.11f, 0.70f, 0.82f, 0.45f);
@@ -158,175 +130,6 @@ void GUI::set_image_defaults(const LayerImage& image)
 	image_center_default_   = image.center();
 	image_rotation_default_ = image.rotation();
 	image_scale_default_    = image.scale();
-}
-
-void GUI::clear_color_track(Eigen::Vector3f& t)
-{
-	clear_color_internal_ = clear_color_default_;
-	clear_color_default_  = t;
-	clear_color_          = &t;
-}
-
-void GUI::screen_center_track(Eigen::Vector2f& t)
-{
-	screen_center_internal_ = screen_center_default_;
-	screen_center_default_  = t;
-	screen_center_          = &t;
-}
-
-void GUI::pixels_per_unit_track(double& t)
-{
-	pixels_per_unit_internal_ = pixels_per_unit_default_;
-	pixels_per_unit_default_  = t;
-	pixels_per_unit_          = &t;
-}
-
-void GUI::frame_visible_track(bool& t)
-{
-	frame_visible_internal_ = frame_visible_default_;
-	frame_visible_default_  = t;
-	frame_visible_          = &t;
-}
-
-void GUI::result_visible_track(bool& t)
-{
-	result_visible_internal_ = result_visible_default_;
-	result_visible_default_  = t;
-	result_visible_          = &t;
-}
-
-void GUI::menu_bar_visible_track(bool& t)
-{
-	menu_bar_visible_internal_ = menu_bar_visible_default_;
-	menu_bar_visible_default_  = t;
-	menu_bar_visible_          = &t;
-}
-
-void GUI::settings_window_visible_track(bool& t)
-{
-	settings_window_visible_internal_ = settings_window_visible_default_;
-	settings_window_visible_default_  = t;
-	settings_window_visible_          = &t;
-}
-
-void GUI::usage_window_visible_track(bool& t)
-{
-	usage_window_visible_internal_ = usage_window_visible_default_;
-	usage_window_visible_default_  = t;
-	usage_window_visible_          = &t;
-}
-
-void GUI::object_settings_visible_track(bool& t)
-{
-	object_settings_visible_internal_ = object_settings_visible_default_;
-	object_settings_visible_default_  = t;
-	object_settings_visible_          = &t;
-}
-
-void GUI::view_settings_visible_track(bool& t)
-{
-	view_settings_visible_internal_ = view_settings_visible_default_;
-	view_settings_visible_default_  = t;
-	view_settings_visible_          = &t;
-}
-
-void GUI::export_settings_visible_track(bool& t)
-{
-	export_settings_visible_internal_ = export_settings_visible_default_;
-	export_settings_visible_default_  = t;
-	export_settings_visible_          = &t;
-}
-
-void GUI::export_width_track(int& t)
-{
-	export_width_internal_ = export_width_default_;
-	export_width_default_  = t;
-	export_width_          = &t;
-}
-
-void GUI::export_height_track(int& t)
-{
-	export_height_internal_ = export_height_default_;
-	export_height_default_  = t;
-	export_height_          = &t;
-}
-
-void GUI::clear_color_untrack(void)
-{
-	clear_color_default_ = clear_color_internal_;
-	clear_color_         = &clear_color_internal_;
-}
-
-void GUI::screen_center_untrack(void)
-{
-	screen_center_default_ = screen_center_internal_;
-	screen_center_         = &screen_center_internal_;
-}
-
-void GUI::pixels_per_unit_untrack(void)
-{
-	pixels_per_unit_default_ = pixels_per_unit_internal_;
-	pixels_per_unit_         = &pixels_per_unit_internal_;
-}
-
-void GUI::frame_visible_untrack(void)
-{
-	frame_visible_default_ = frame_visible_internal_;
-	frame_visible_         = &frame_visible_internal_;
-}
-
-void GUI::result_visible_untrack(void)
-{
-	result_visible_default_ = result_visible_internal_;
-	result_visible_         = &result_visible_internal_;
-}
-
-void GUI::menu_bar_visible_untrack(void)
-{
-	menu_bar_visible_default_ = menu_bar_visible_internal_;
-	menu_bar_visible_         = &menu_bar_visible_internal_;
-}
-
-void GUI::settings_window_visible_untrack(void)
-{
-	settings_window_visible_default_ = settings_window_visible_internal_;
-	settings_window_visible_         = &settings_window_visible_internal_;
-}
-
-void GUI::usage_window_visible_untrack(void)
-{
-	usage_window_visible_default_ = usage_window_visible_internal_;
-	usage_window_visible_         = &usage_window_visible_internal_;
-}
-
-void GUI::object_settings_visible_untrack(void)
-{
-	object_settings_visible_default_ = object_settings_visible_internal_;
-	object_settings_visible_         = &object_settings_visible_internal_;
-}
-
-void GUI::view_settings_visible_untrack(void)
-{
-	view_settings_visible_default_ = view_settings_visible_internal_;
-	view_settings_visible_         = &view_settings_visible_internal_;
-}
-
-void GUI::export_settings_visible_untrack(void)
-{
-	export_settings_visible_default_ = export_settings_visible_internal_;
-	export_settings_visible_         = &export_settings_visible_internal_;
-}
-
-void GUI::export_width_untrack(void)
-{
-	export_width_default_ = export_width_internal_;
-	export_width_         = &export_width_internal_;
-}
-
-void GUI::export_height_untrack(void)
-{
-	export_height_default_ = export_height_internal_;
-	export_height_         = &export_height_internal_;
 }
 
 void GUI::draw_menu_bar(void)
@@ -749,6 +552,10 @@ void GUI::draw_symmetry_settings(void)
 	auto& layer = layering_.current_layer();
 	const auto& ctiling = layer.as_const().tiling();
 
+	ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(140/255.0f, 10/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(140/255.0f, 40/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor::HSV(140/255.0f, 90/255.0f, 1.0f, 1.0f));
+
 	ImGui::Text("Choose the symmetry group");
 	ImGui::Separator();
 
@@ -767,6 +574,8 @@ void GUI::draw_symmetry_settings(void)
 		ImGui::EndPopup();
 	}
 	ImGui::PopID();
+
+	ImGui::PopStyleColor(3);
 }
 
 void GUI::draw_symmetry_modal(void)
