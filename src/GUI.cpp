@@ -156,7 +156,7 @@ void GUI::draw_menu_bar(void)
 void GUI::draw_settings_window(void)
 {
 	int width, height;
-	glfwGetFramebufferSize(window_, &width, &height);
+	glfwGetWindowSize(window_, &width, &height);
 	auto vertical_margin = top_margin_ + bottom_margin_;
 
 	auto flags = 0;
