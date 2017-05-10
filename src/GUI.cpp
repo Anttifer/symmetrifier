@@ -564,8 +564,14 @@ void GUI::draw_symmetry_settings(void)
 
 	auto current_group = ctiling.symmetry_group();
 
-	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
-	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
+	// 130 and not 120 due to padding.
+	int label_offset = (130 - ImGui::CalcTextSize(current_group).x) / 2;
+
+	ImGui::Text("Current:"); ImGui::SameLine(100);
+
+	ImGui::BeginGroup();
+	ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
+	ImGui::Text(current_group);
 	ImGui::PushID("Group choice");
 	if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
 		ImGui::OpenPopup("Choose a symmetry group");
@@ -577,6 +583,7 @@ void GUI::draw_symmetry_settings(void)
 		ImGui::EndPopup();
 	}
 	ImGui::PopID();
+	ImGui::EndGroup();
 
 	ImGui::PopStyleColor(3);
 }
@@ -587,8 +594,11 @@ void GUI::draw_symmetry_modal(void)
 
 	bool modal_should_close = false;
 
-	auto create_button_group = [&](const char* symmetry_group, int label_offset = 60)
+	auto create_button_group = [&](const char* symmetry_group)
 	{
+		// 140 and not 120 due to padding.
+		int label_offset = (140 - ImGui::CalcTextSize(symmetry_group).x) / 2;
+
 		ImGui::BeginGroup();
 		ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
 		ImGui::Text(symmetry_group);
@@ -614,34 +624,34 @@ void GUI::draw_symmetry_modal(void)
 	create_button_group("**");
 
 	// 2-fold rotations.
-	create_button_group("2222", 45);
+	create_button_group("2222");
 	ImGui::SameLine();
-	create_button_group("22x", 45);
+	create_button_group("22x");
 	ImGui::SameLine();
-	create_button_group("22*", 45);
+	create_button_group("22*");
 	ImGui::SameLine();
-	create_button_group("2*22", 45);
+	create_button_group("2*22");
 	ImGui::SameLine();
-	create_button_group("*2222", 45);
+	create_button_group("*2222");
 
 	// 3-fold rotations.
-	create_button_group("333", 50);
+	create_button_group("333");
 	ImGui::SameLine();
-	create_button_group("3*3", 50);
+	create_button_group("3*3");
 	ImGui::SameLine();
-	create_button_group("*333", 50);
+	create_button_group("*333");
 
 	// 4-fold rotations.
-	create_button_group("442", 50);
+	create_button_group("442");
 	ImGui::SameLine();
-	create_button_group("4*2", 50);
+	create_button_group("4*2");
 	ImGui::SameLine();
-	create_button_group("*442", 50);
+	create_button_group("*442");
 
 	// 6-fold rotations.
-	create_button_group("632", 50);
+	create_button_group("632");
 	ImGui::SameLine();
-	create_button_group("*632", 50);
+	create_button_group("*632");
 	ImGui::SameLine();
 
 	ImGui::PopID();
