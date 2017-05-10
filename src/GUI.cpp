@@ -712,19 +712,19 @@ void GUI::draw_view_settings(void)
 
 		ImGui::Text("Background:"); ImGui::SameLine(130);
 		ImGui::PushItemWidth(-1.0f);
-		ImGui::ColorEdit3("##Background color", clear_color_->data());
+		ImGui::ColorEdit3("Background:##Background color", clear_color_->data());
 		ImGui::PopItemWidth();
 		ImGui::Dummy({0, 0}); ImGui::SameLine(130);
 		if (ImGui::Button("Reset##Reset background color"))
 			*clear_color_ = clear_color_default_;
-		ImGui::SameLine();
-		ImGui::Button("Pick color...");
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::BeginTooltip();
-			ImGui::Text("Not implemented yet :)");
-			ImGui::EndTooltip();
-		}
+		// ImGui::SameLine();
+		// ImGui::Button("Pick color...");
+		// if (ImGui::IsItemHovered())
+		// {
+		// 	ImGui::BeginTooltip();
+		// 	ImGui::Text("Not implemented yet :)");
+		// 	ImGui::EndTooltip();
+		// }
 
 		ImGui::Spacing();
 		ImGui::Spacing();
