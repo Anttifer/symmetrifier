@@ -826,7 +826,7 @@ void GUI::draw_current_frame_settings(void)
 	ImGui::Text("Domains:"); ImGui::SameLine(140);
 	domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
 	domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
-	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
+	// domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
 	if (domains_changed)
 		layer.tiling().set_num_lattice_domains(num_domains);
 }
