@@ -9,34 +9,6 @@ using namespace Eigen;
 
 //--------------------
 
-Mesh::Mesh(Mesh&& other)
-:	positions_        (std::move(other.positions_)),
-	normals_          (std::move(other.normals_)),
-	texcoords_        (std::move(other.texcoords_)),
-	position_buffer_  (std::move(other.position_buffer_)),
-	normal_buffer_    (std::move(other.normal_buffer_)),
-	texcoord_buffer_  (std::move(other.texcoord_buffer_)),
-	vao_(std::move    (other.vao_)),
-	num_vertices_     (other.num_vertices_),
-	primitive_type_   (other.primitive_type_)
-{}
-
-Mesh& Mesh::operator=(Mesh&& other) {
-	if (this != &other) {
-		positions_       = std::move(other.positions_);
-		normals_         = std::move(other.normals_);
-		texcoords_       = std::move(other.texcoords_);
-		position_buffer_ = std::move(other.position_buffer_);
-		normal_buffer_   = std::move(other.normal_buffer_);
-		texcoord_buffer_ = std::move(other.texcoord_buffer_);
-		vao_             = std::move(other.vao_);
-		num_vertices_    = other.num_vertices_;
-		primitive_type_  = other.primitive_type_;
-	}
-
-	return *this;
-}
-
 void Mesh::update_buffers(void) {
 	glBindVertexArray(vao_);
 

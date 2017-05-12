@@ -386,7 +386,7 @@ void GUI::draw_layer_settings(void)
 			layering_.current_layer().unset_current_image();
 		}
 		ImGui::SetItemAllowOverlap();
-		if (layer_selected && no_image_selected)
+		// if (layer_selected && no_image_selected)
 			draw_layer_order_buttons(layer_idx);
 
 		ImGui::TreePush("images");
@@ -406,7 +406,7 @@ void GUI::draw_layer_settings(void)
 				layering_.current_layer().set_current_image(image_idx);
 			}
 			ImGui::SetItemAllowOverlap();
-			if (image_selected && layer_selected)
+			// if (image_selected && layer_selected)
 				draw_image_order_buttons(layer_idx, image_idx);
 
 			ImGui::PopID();
