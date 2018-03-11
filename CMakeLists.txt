@@ -11,23 +11,23 @@ find_package(glfw3 3.2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
-add_executable(supersymmetry
+add_executable(symmetrifier
 	${SRC_FILES}
 	${INCLUDE_FILES}
 )
 
-target_include_directories(supersymmetry
+target_include_directories(symmetrifier
 	PRIVATE
 	${GLEW_INCLUDE_DIRS}
 	${GLFW3_INCLUDE_DIRS}
 	${EIGEN3_INCLUDE_DIRS}
 )
 
-target_link_libraries(supersymmetry
+target_link_libraries(symmetrifier
 	PRIVATE
 	glfw
 	${GLEW_LIBRARIES}
 	${OPENGL_LIBRARIES}
 )
 
-set_property(TARGET supersymmetry PROPERTY CXX_STANDARD 14)
+set_property(TARGET symmetrifier PROPERTY CXX_STANDARD 14)

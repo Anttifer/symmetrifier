@@ -1,5 +1,5 @@
 # These can be modified.
-NAME     := supersymmetry
+NAME     := symmetrifier
 SRCDIR   := src
 OBJDIR   := obj
 BINDIR   := bin
