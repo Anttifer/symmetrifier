@@ -8,7 +8,7 @@
 //--------------------
 
 App::App(int /* argc */, char** /* argv */) :
-	window_                (1440, 900, "supersymmetry"),
+	window_                (1440, 900, "symmetrifier"),
 	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
 	gui_                   (window_, layering_),
 
