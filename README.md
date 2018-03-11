@@ -17,3 +17,6 @@ cd ..
 ./build/symmetrifier
 ```
 Since some shader locations are hardcoded for now, it is necessary to run the application from the repository root.
+
+### Usage preview:
+![Group 3\*3 and a butterfly](usage_sample.png)
