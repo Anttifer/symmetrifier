@@ -386,7 +386,7 @@ void GUI::draw_layer_settings(void)
 			layering_.current_layer().unset_current_image();
 		}
 		ImGui::SetItemAllowOverlap();
-		if (layer_selected && no_image_selected)
+		// if (layer_selected && no_image_selected)
 			draw_layer_order_buttons(layer_idx);
 
 		ImGui::TreePush("images");
@@ -406,7 +406,7 @@ void GUI::draw_layer_settings(void)
 				layering_.current_layer().set_current_image(image_idx);
 			}
 			ImGui::SetItemAllowOverlap();
-			if (image_selected && layer_selected)
+			// if (image_selected && layer_selected)
 				draw_image_order_buttons(layer_idx, image_idx);
 
 			ImGui::PopID();
@@ -561,8 +561,14 @@ void GUI::draw_symmetry_settings(void)
 
 	auto current_group = ctiling.symmetry_group();
 
-	ImGui::Text("Current:"); ImGui::SameLine(148); ImGui::Text(current_group);
-	ImGui::Dummy({0, 0}); ImGui::SameLine(100);
+	// 130 and not 120 due to padding.
+	int label_offset = (130 - ImGui::CalcTextSize(current_group).x) / 2;
+
+	ImGui::Text("Current:"); ImGui::SameLine(100);
+
+	ImGui::BeginGroup();
+	ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
+	ImGui::Text(current_group);
 	ImGui::PushID("Group choice");
 	if (ImGui::ImageButton((ImTextureID)(uintptr_t)thumbnail_map_[current_group], {120, 120}, {0, 1}, {1, 0}, 5))
 		ImGui::OpenPopup("Choose a symmetry group");
@@ -574,6 +580,7 @@ void GUI::draw_symmetry_settings(void)
 		ImGui::EndPopup();
 	}
 	ImGui::PopID();
+	ImGui::EndGroup();
 
 	ImGui::PopStyleColor(3);
 }
@@ -584,8 +591,11 @@ void GUI::draw_symmetry_modal(void)
 
 	bool modal_should_close = false;
 
-	auto create_button_group = [&](const char* symmetry_group, int label_offset = 60)
+	auto create_button_group = [&](const char* symmetry_group)
 	{
+		// 140 and not 120 due to padding.
+		int label_offset = (140 - ImGui::CalcTextSize(symmetry_group).x) / 2;
+
 		ImGui::BeginGroup();
 		ImGui::Dummy({0, 0}); ImGui::SameLine(label_offset);
 		ImGui::Text(symmetry_group);
@@ -611,34 +621,34 @@ void GUI::draw_symmetry_modal(void)
 	create_button_group("**");
 
 	// 2-fold rotations.
-	create_button_group("2222", 45);
+	create_button_group("2222");
 	ImGui::SameLine();
-	create_button_group("22x", 45);
+	create_button_group("22x");
 	ImGui::SameLine();
-	create_button_group("22*", 45);
+	create_button_group("22*");
 	ImGui::SameLine();
-	create_button_group("2*22", 45);
+	create_button_group("2*22");
 	ImGui::SameLine();
-	create_button_group("*2222", 45);
+	create_button_group("*2222");
 
 	// 3-fold rotations.
-	create_button_group("333", 50);
+	create_button_group("333");
 	ImGui::SameLine();
-	create_button_group("3*3", 50);
+	create_button_group("3*3");
 	ImGui::SameLine();
-	create_button_group("*333", 50);
+	create_button_group("*333");
 
 	// 4-fold rotations.
-	create_button_group("442", 50);
+	create_button_group("442");
 	ImGui::SameLine();
-	create_button_group("4*2", 50);
+	create_button_group("4*2");
 	ImGui::SameLine();
-	create_button_group("*442", 50);
+	create_button_group("*442");
 
 	// 6-fold rotations.
-	create_button_group("632", 50);
+	create_button_group("632");
 	ImGui::SameLine();
-	create_button_group("*632", 50);
+	create_button_group("*632");
 	ImGui::SameLine();
 
 	ImGui::PopID();
@@ -699,19 +709,19 @@ void GUI::draw_view_settings(void)
 
 		ImGui::Text("Background:"); ImGui::SameLine(130);
 		ImGui::PushItemWidth(-1.0f);
-		ImGui::ColorEdit3("##Background color", clear_color_->data());
+		ImGui::ColorEdit3("Background:##Background color", clear_color_->data());
 		ImGui::PopItemWidth();
 		ImGui::Dummy({0, 0}); ImGui::SameLine(130);
 		if (ImGui::Button("Reset##Reset background color"))
 			*clear_color_ = clear_color_default_;
-		ImGui::SameLine();
-		ImGui::Button("Pick color...");
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::BeginTooltip();
-			ImGui::Text("Not implemented yet :)");
-			ImGui::EndTooltip();
-		}
+		// ImGui::SameLine();
+		// ImGui::Button("Pick color...");
+		// if (ImGui::IsItemHovered())
+		// {
+		// 	ImGui::BeginTooltip();
+		// 	ImGui::Text("Not implemented yet :)");
+		// 	ImGui::EndTooltip();
+		// }
 
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -813,7 +823,7 @@ void GUI::draw_current_frame_settings(void)
 	ImGui::Text("Domains:"); ImGui::SameLine(140);
 	domains_changed |= ImGui::RadioButton("1##Domains 1", &num_domains, 1); ImGui::SameLine();
 	domains_changed |= ImGui::RadioButton("4##Domains 2", &num_domains, 4); ImGui::SameLine();
-	domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
+	// domains_changed |= ImGui::RadioButton("9##Domains 3", &num_domains, 9); ImGui::SameLine();
 	if (domains_changed)
 		layer.tiling().set_num_lattice_domains(num_domains);
 }
