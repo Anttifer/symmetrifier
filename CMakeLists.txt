@@ -6,6 +6,8 @@ file(GLOB_RECURSE INCLUDE_FILES include/*)
 
 include_directories(include)
 
+set(GLEW_USE_STATIC_LIBS ON)
+
 find_package(Eigen3 REQUIRED)
 find_package(glfw3 3.2 REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -26,7 +28,7 @@ target_include_directories(symmetrifier
 target_link_libraries(symmetrifier
 	PRIVATE
 	glfw
-	${GLEW_LIBRARIES}
+	GLEW::GLEW
 	${OPENGL_LIBRARIES}
 )
 
