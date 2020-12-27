@@ -555,9 +555,9 @@ void GUI::draw_symmetry_settings(void)
 	auto& layer = layering_.current_layer();
 	const auto& ctiling = layer.as_const().tiling();
 
-	ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(140/255.0f, 10/255.0f, 1.0f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(140/255.0f, 40/255.0f, 1.0f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor::HSV(140/255.0f, 90/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(140/255.0f, 10/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(140/255.0f, 40/255.0f, 1.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(140/255.0f, 90/255.0f, 1.0f, 1.0f));
 
 	ImGui::Text("Choose the symmetry group");
 	ImGui::Separator();

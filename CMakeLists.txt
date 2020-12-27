@@ -4,7 +4,18 @@ project(symmetry)
 file(GLOB_RECURSE SRC_FILES src/*)
 file(GLOB_RECURSE INCLUDE_FILES include/*)
 
-include_directories(include)
+set(IMGUI_SRC_FILES
+	external/imgui/imgui.cpp
+	external/imgui/imgui_draw.cpp
+	external/imgui/imgui_demo.cpp
+)
+set(IMGUI_INCLUDE_FILES
+	external/imgui/imgui.h
+	external/imgui/imgui_internal.h
+	external/imgui/imconfig.h
+)
+
+include_directories(include external/imgui)
 
 set(GLEW_USE_STATIC_LIBS ON)
 
@@ -16,6 +27,7 @@ find_package(GLEW REQUIRED)
 add_executable(symmetrifier
 	${SRC_FILES}
 	${INCLUDE_FILES}
+	${IMGUI_SRC_FILES}
 )
 
 target_include_directories(symmetrifier
