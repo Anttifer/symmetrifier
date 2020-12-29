@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.8)
 project(symmetry)
 
 file(GLOB_RECURSE SRC_FILES src/*)
@@ -12,15 +12,20 @@ set(IMGUI_SRC_FILES
 
 set(GLEW_USE_STATIC_LIBS ON)
 
+find_package(Eigen3 REQUIRED)
+find_package(GLEW REQUIRED)
+
 if(NOT MSVC)
 	string(APPEND CMAKE_CXX_FLAGS_DEBUG
 		" -O0 -Wall -Wextra -Wshadow -pedantic"
 )
 endif()
 
-find_package(Eigen3 REQUIRED)
-find_package(glfw3 3.3 REQUIRED)
-find_package(GLEW REQUIRED)
+option(GLFW_BUILD_DOCS "Build GLFW docs" OFF)
+option(GLFW_BUILD_TESTS "Build GLFW tests" OFF)
+option(GLFW_BUILD_EXAMPLES "Build GLFW examples" OFF)
+
+add_subdirectory(external/glfw)
 
 add_library(imgui STATIC
 	${IMGUI_SRC_FILES}
@@ -44,7 +49,7 @@ target_include_directories(symmetrifier
 target_link_libraries(symmetrifier
 	PRIVATE
 	imgui
-	glfw3
+	glfw
 	GLEW::GLEW
 )
 
