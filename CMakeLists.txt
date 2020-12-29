@@ -38,6 +38,7 @@ target_include_directories(imgui
 
 add_executable(symmetrifier
 	${SRC_FILES}
+	${INCLUDE_FILES}
 )
 
 target_include_directories(symmetrifier
@@ -54,3 +55,9 @@ target_link_libraries(symmetrifier
 )
 
 set_property(TARGET symmetrifier PROPERTY CXX_STANDARD 17)
+
+if(MSVC)
+	set_property(TARGET symmetrifier PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT symmetrifier)
+	target_compile_definitions(symmetrifier PRIVATE _USE_MATH_DEFINES)
+endif()
