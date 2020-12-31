@@ -20,7 +20,7 @@ App::App(int /* argc */, char** /* argv */) :
 	show_symmetry_frame_   (true),
 	show_result_           (true),
 
-	show_object_settings_  (false),
+	show_object_settings_  (true),
 	show_view_settings_    (false),
 	show_export_settings_  (false),
 
@@ -517,72 +517,72 @@ void App::mouse_position_callback(double x, double y)
 	if (gui_.capturing_mouse())
 		return;
 
+	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS)
+		return;
+
 	auto& layer = layering_.current_layer();
 
-	if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		Eigen::Vector2f position  = screen_to_view(x, y);
-		const auto& drag_position = position - press_position_;
-		const auto& layer_drag    = layer.from_world_direction(drag_position);
+	const auto& position = screen_to_view(x, y);
+	const auto& drag_position = position - press_position_;
+	const auto& layer_drag = layer.from_world_direction(drag_position);
 
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	// Move object.
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	{
+		if (layer.has_current_image())
+			layer.current_image().set_position(object_static_position_ + layer_drag);
+		else
+			layer.tiling().set_position(object_static_position_ + layer_drag);
+	}
+	// Rotate object.
+	else if (glfwGetKey(window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+	{
+		const auto& world_press_position = view_to_world(press_position_);
+		const auto& world_position = screen_to_world(x, y);
+
+		const auto& layer_press_position = layer.from_world(world_press_position);
+		const auto& layer_position = layer.from_world(world_position);
+
+		if (layer.has_current_image())
 		{
-			if (layer.has_current_image())
-				layer.current_image().set_position(object_static_position_ + layer_drag);
-			else
-				layer.tiling().set_position(object_static_position_ + layer_drag);
-		}
-		else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-		{
-			// TODO: Image deformations.
-			if (!layer.has_current_image())
-				layer.tiling().deform(layer_drag);
+			auto& image = layer.current_image();
+
+			Eigen::Vector2f press_wrt_center = layer_press_position - image.center();
+			Eigen::Vector2f position_wrt_center = layer_position - image.center();
+
+			double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+			double dot = press_wrt_center.dot(position_wrt_center);
+			double drag_rotation = std::atan2(det, dot);
+
+			image.set_rotation(object_static_rotation_ + drag_rotation);
 		}
 		else
-			screen_center_ = screen_center_static_position_ - drag_position;
-	}
-	else if (glfwGetMouseButton(window_, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-	{
-		// TODO: Global rotation.
-		if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		{
-			Eigen::Vector2f world_press_position = view_to_world(press_position_);
-			Eigen::Vector2f world_position       = screen_to_world(x, y);
+			auto& tiling = layer.tiling();
 
-			const auto& layer_press_position = layer.from_world(world_press_position);
-			const auto& layer_position       = layer.from_world(world_position);
+			Eigen::Vector2f press_wrt_center = layer_press_position - tiling.center();
+			Eigen::Vector2f position_wrt_center = layer_position - tiling.center();
 
-			if (layer.has_current_image())
-			{
-				auto& image = layer.current_image();
+			double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
+			double dot = press_wrt_center.dot(position_wrt_center);
+			double drag_rotation = std::atan2(det, dot);
 
-				Eigen::Vector2f press_wrt_center    = layer_press_position - image.center();
-				Eigen::Vector2f position_wrt_center = layer_position       - image.center();
-
-				double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
-				double dot = press_wrt_center.dot(position_wrt_center);
-				double drag_rotation = std::atan2(det, dot);
-
-				image.set_rotation(object_static_rotation_ + drag_rotation);
-			}
-			else
-			{
-				auto& tiling = layer.tiling();
-
-				Eigen::Vector2f press_wrt_center    = layer_press_position - tiling.center();
-				Eigen::Vector2f position_wrt_center = layer_position       - tiling.center();
-
-				double det = (Eigen::Matrix2f() << press_wrt_center, position_wrt_center).finished().determinant();
-				double dot = press_wrt_center.dot(position_wrt_center);
-				double drag_rotation = std::atan2(det, dot);
-
-				tiling.set_rotation(object_static_rotation_ + drag_rotation);
-			}
+			tiling.set_rotation(object_static_rotation_ + drag_rotation);
 		}
 	}
+	// Deform object.
+	else if (glfwGetKey(window_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+	{
+		// TODO: Image deformations.
+		if (!layer.has_current_image())
+			layer.tiling().deform(layer_drag);
+	}
+	// Move view.
+	else
+		screen_center_ = screen_center_static_position_ - drag_position;
 }
 
-void App::mouse_button_callback(int button, int action, int /* mods */)
+void App::mouse_button_callback(int /* button */, int action, int /* mods */)
 {
 	if (action != GLFW_PRESS)
 		return;
@@ -593,24 +593,18 @@ void App::mouse_button_callback(int button, int action, int /* mods */)
 	glfwGetCursorPos(window_, &x, &y);
 	press_position_ = screen_to_view(x, y);
 
-	if (button == GLFW_MOUSE_BUTTON_LEFT)
-	{
-		screen_center_static_position_ = screen_center_;
+	screen_center_static_position_ = screen_center_;
 
-		if (layer.has_current_image())
-			object_static_position_ = layer.as_const().current_image().position();
-		else
-		{
-			object_static_position_ = layer.as_const().tiling().position();
-			layer.tiling().set_deform_origin(layer.from_world(view_to_world(press_position_)));
-		}
-	}
-	else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+	if (layer.has_current_image())
 	{
-		if (layer.has_current_image())
-			object_static_rotation_ = layer.as_const().current_image().rotation();
-		else
-			object_static_rotation_ = layer.as_const().tiling().rotation();
+		object_static_position_ = layer.as_const().current_image().position();
+		object_static_rotation_ = layer.as_const().current_image().rotation();
+	}
+	else
+	{
+		object_static_position_ = layer.as_const().tiling().position();
+		object_static_rotation_ = layer.as_const().tiling().rotation();
+		layer.tiling().set_deform_origin(layer.from_world(view_to_world(press_position_)));
 	}
 }
 
