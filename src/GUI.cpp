@@ -217,13 +217,13 @@ void GUI::draw_usage_window(void)
 		ImGui::Bullet();
 		ImGui::TextWrapped("Click and drag to move around.");
 		ImGui::Bullet();
-		ImGui::TextWrapped("Control + drag to move the symmetrification frame.");
+		ImGui::TextWrapped("Control + drag to move the selected object (image or frame).");
 		ImGui::Bullet();
-		ImGui::TextWrapped("Control + right drag to rotate the symmetrification frame.");
+		ImGui::TextWrapped("Shift + drag to rotate the selected object.");
 		ImGui::Bullet();
 		ImGui::TextWrapped("Scroll to zoom.");
 		ImGui::Bullet();
-		ImGui::TextWrapped("Control + scroll to resize the symmetrification frame.");
+		ImGui::TextWrapped("Control + scroll to resize the selected object.");
 		ImGui::Bullet();
 		ImGui::TextWrapped("Spacebar to toggle the symmetrified view.");
 		ImGui::Bullet();
