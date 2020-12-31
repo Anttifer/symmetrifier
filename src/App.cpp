@@ -40,16 +40,16 @@ App::App(int /* argc */, char** /* argv */) :
 	gui_.set_image_defaults(layer.as_const().current_image());
 
 	// Set GUI to track the relevant variables.
-	gui_.clear_color_track(clear_color_);
-	gui_.screen_center_track(screen_center_);
-	gui_.pixels_per_unit_track(pixels_per_unit_);
-	gui_.frame_visible_track(show_symmetry_frame_);
-	gui_.result_visible_track(show_result_);
-	gui_.object_settings_visible_track(show_object_settings_);
-	gui_.view_settings_visible_track(show_view_settings_);
-	gui_.export_settings_visible_track(show_export_settings_);
-	gui_.export_width_track(export_width_);
-	gui_.export_height_track(export_height_);
+	gui_.clear_color_.track(clear_color_);
+	gui_.screen_center_.track(screen_center_);
+	gui_.pixels_per_unit_.track(pixels_per_unit_);
+	gui_.frame_visible_.track(show_symmetry_frame_);
+	gui_.result_visible_.track(show_result_);
+	gui_.object_settings_visible_.track(show_object_settings_);
+	gui_.view_settings_visible_.track(show_view_settings_);
+	gui_.export_settings_visible_.track(show_export_settings_);
+	gui_.export_width_.track(export_width_);
+	gui_.export_height_.track(export_height_);
 
 	// Set input callbacks.
 	gui_.set_export_callback          (&App::export_result, this);

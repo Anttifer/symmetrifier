@@ -5,7 +5,7 @@
 #include <Eigen/Geometry>
 #include <unordered_map>
 #include "Rectangle.h"
-#include "GUICreateMember.h"
+#include "GUIVariable.h"
 
 class Layering;
 class Tiling;
@@ -33,6 +33,21 @@ public:
 
 	void set_tiling_defaults (const Tiling&);
 	void set_image_defaults  (const LayerImage&);
+
+	// These variables are used in the GUI and can be set to track external data.
+	GUIVariable<Eigen::Vector3f> clear_color_;
+	GUIVariable<Eigen::Vector2f> screen_center_;
+	GUIVariable<double>          pixels_per_unit_;
+	GUIVariable<bool>            frame_visible_;
+	GUIVariable<bool>            result_visible_;
+	GUIVariable<bool>            menu_bar_visible_;
+	GUIVariable<bool>            settings_window_visible_;
+	GUIVariable<bool>            usage_window_visible_;
+	GUIVariable<bool>            object_settings_visible_;
+	GUIVariable<bool>            view_settings_visible_;
+	GUIVariable<bool>            export_settings_visible_;
+	GUIVariable<int>             export_width_;
+	GUIVariable<int>             export_height_;
 
 private:
 	// Helper functions.
@@ -71,30 +86,6 @@ private:
 
 	MainWindow&      window_;
 	Layering&        layering_;
-
-	// The macro CREATE_MEMBER(TYPE, NAME) defines the following functions:
-	// const TYPE& NAME         (void)        const;
-	// void        set_NAME     (const TYPE&);
-	// void        NAME_track   (TYPE&);
-	// void        NAME_untrack (void);
-	//
-	// and the following variables:
-	// TYPE  NAME_default_;
-	// TYPE  NAME_internal_ = NAME_default_;
-	// TYPE* NAME_          = &NAME_internal_;
-	CREATE_MEMBER(Eigen::Vector3f, clear_color)
-	CREATE_MEMBER(Eigen::Vector2f, screen_center)
-	CREATE_MEMBER(double, pixels_per_unit)
-	CREATE_MEMBER(bool, frame_visible)
-	CREATE_MEMBER(bool, result_visible)
-	CREATE_MEMBER(bool, menu_bar_visible)
-	CREATE_MEMBER(bool, settings_window_visible)
-	CREATE_MEMBER(bool, usage_window_visible)
-	CREATE_MEMBER(bool, object_settings_visible)
-	CREATE_MEMBER(bool, view_settings_visible)
-	CREATE_MEMBER(bool, export_settings_visible)
-	CREATE_MEMBER(int, export_width)
-	CREATE_MEMBER(int, export_height)
 
 	Eigen::Vector2f tiling_center_default_;
 	double          tiling_rotation_default_;

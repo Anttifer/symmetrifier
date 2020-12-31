@@ -10,19 +10,19 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	layering_       (layering),
 
 	// Sensible defaults.
-	clear_color_default_             (0.1f, 0.1f, 0.1f),
-	screen_center_default_           (0.5f, 0.5f),
-	pixels_per_unit_default_         (500.0),
-	frame_visible_default_           (true),
-	result_visible_default_          (true),
-	menu_bar_visible_default_        (true),
-	settings_window_visible_default_ (true),
-	usage_window_visible_default_    (false),
-	object_settings_visible_default_ (false),
-	view_settings_visible_default_   (false),
-	export_settings_visible_default_ (false),
-	export_width_default_            (1600),
-	export_height_default_           (1200),
+	clear_color_             (0.1f, 0.1f, 0.1f),
+	screen_center_           (0.5f, 0.5f),
+	pixels_per_unit_         (500.0),
+	frame_visible_           (true),
+	result_visible_          (true),
+	menu_bar_visible_        (true),
+	settings_window_visible_ (true),
+	usage_window_visible_    (false),
+	object_settings_visible_ (false),
+	view_settings_visible_   (false),
+	export_settings_visible_ (false),
+	export_width_            (1600),
+	export_height_           (1200),
 
 	// Lambda that accepts anything and does nothing.
 	export_callback_ ([](...){}),
@@ -697,7 +697,7 @@ void GUI::draw_view_settings(void)
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
 		if(ImGui::Button("Reset##Reset screen center"))
-			*screen_center_ = screen_center_default_;
+			screen_center_.reset();
 
 		// We need a float, not a double.
 		float pixels_per_unit = *pixels_per_unit_;
@@ -708,7 +708,7 @@ void GUI::draw_view_settings(void)
 		ImGui::PopItemWidth();
 		ImGui::SameLine(0, 12);
 		if (ImGui::Button("Reset##Reset zoom level"))
-			*pixels_per_unit_ = pixels_per_unit_default_;
+			pixels_per_unit_.reset();
 
 		ImGui::Text("Background:"); ImGui::SameLine(130);
 		ImGui::PushItemWidth(-1.0f);
@@ -716,7 +716,7 @@ void GUI::draw_view_settings(void)
 		ImGui::PopItemWidth();
 		ImGui::Dummy({0, 0}); ImGui::SameLine(130);
 		if (ImGui::Button("Reset##Reset background color"))
-			*clear_color_ = clear_color_default_;
+			clear_color_.reset();
 		// ImGui::SameLine();
 		// ImGui::Button("Pick color...");
 		// if (ImGui::IsItemHovered())
@@ -904,8 +904,8 @@ void GUI::draw_export_settings(void)
 		ImGui::SameLine();
 		if (ImGui::Button("Reset##Reset resolution"))
 		{
-			*export_width_  = export_width_default_;
-			*export_height_ = export_height_default_;
+			export_width_.reset();
+			export_height_.reset();
 		}
 		ImGui::Dummy({0, 0}); ImGui::SameLine(120);
 		if (ImGui::Button("Fit to view"))
