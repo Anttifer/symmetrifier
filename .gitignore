@@ -3,6 +3,8 @@ obj/
 dep/
 build/
 
+/symmetrifier*
+
 *.swp
 *.png
 *.ini

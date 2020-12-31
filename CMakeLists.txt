@@ -61,3 +61,7 @@ if(MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT symmetrifier)
 	target_compile_definitions(symmetrifier PRIVATE _USE_MATH_DEFINES)
 endif()
+
+add_custom_command(TARGET symmetrifier POST_BUILD COMMAND
+	${CMAKE_COMMAND} -E copy $<TARGET_FILE:symmetrifier> ${CMAKE_CURRENT_SOURCE_DIR}
+)
