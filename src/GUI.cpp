@@ -5,10 +5,6 @@
 #include "imgui.h"
 
 GUI::GUI(MainWindow& window, Layering& layering) :
-	implementation_ (window),
-	window_         (window),
-	layering_       (layering),
-
 	// Sensible defaults.
 	clear_color_             (0.1f, 0.1f, 0.1f),
 	screen_center_           (0.5f, 0.5f),
@@ -23,6 +19,10 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	export_settings_visible_ (false),
 	export_width_            (1600),
 	export_height_           (1200),
+
+	implementation_ (window),
+	window_         (window),
+	layering_       (layering),
 
 	// Lambda that accepts anything and does nothing.
 	export_callback_ ([](...){}),

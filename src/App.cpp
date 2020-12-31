@@ -8,10 +8,6 @@
 //--------------------
 
 App::App(int /* argc */, char** /* argv */) :
-	window_                (1440, 900, "symmetrifier"),
-	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
-	gui_                   (window_, layering_),
-
 	clear_color_           (0.1, 0.1, 0.1),
 	screen_center_         (0.5, 0.5),
 	pixels_per_unit_       (300.0),
@@ -25,7 +21,11 @@ App::App(int /* argc */, char** /* argv */) :
 	show_export_settings_  (false),
 
 	export_width_          (1600),
-	export_height_         (1200)
+	export_height_         (1200),
+
+	window_                (1440, 900, "symmetrifier"),
+	time_                  ( (glfwSetTime(0), glfwGetTime()) ),
+	gui_                   (window_, layering_)
 {
 	// Load example settings.
 	auto& layer = layering_.current_layer();
