@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <vector>
-#include <lodepng.h>
+#include "stb_image_write.h"
 
 //--------------------
 
@@ -19,17 +19,16 @@ void GL::tex_to_png(const GL::Texture& texture, const char* filename) {
 	auto image_data = std::vector<unsigned char>(width * height * 4);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image_data[0]);
 
-	// Lode's system is upside down.
-	auto lode_data = std::vector<unsigned char>();
-	lode_data.reserve(width * height * 4);
-	for (auto it = image_data.end() - (width*4); it != image_data.begin(); it -= (width*4)) {
-		lode_data.insert(lode_data.end(), it, it + (width*4));
+	// Images are stored top-to-bottom.
+	auto file_data = std::vector<unsigned char>();
+	file_data.reserve(4 * width * height);
+	for (auto it = image_data.end() - (4*width); it != image_data.begin(); it -= (4*width)) {
+		file_data.insert(file_data.end(), it, it + (4*width));
 	}
-	lode_data.insert(lode_data.end(), image_data.begin(), image_data.begin() + (width*4));
+	file_data.insert(file_data.end(), image_data.begin(), image_data.begin() + (4*width));
 
-	auto image = std::vector<unsigned char>();
-	lodepng::encode(image, lode_data, width, height);
-	lodepng::save_file(image, filename);
+	// TODO: Failure reporting and output without alpha.
+	stbi_write_png(filename, width, height, 4, &file_data[0], 0);
 
 	glBindTexture(GL_TEXTURE_2D, old_tex);
 }
