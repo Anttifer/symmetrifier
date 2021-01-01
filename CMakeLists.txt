@@ -44,6 +44,7 @@ add_executable(symmetrifier
 target_include_directories(symmetrifier
 	PRIVATE
 	include
+	external/stb
 	${EIGEN3_INCLUDE_DIRS}
 )
 
