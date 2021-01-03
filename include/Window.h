@@ -111,6 +111,6 @@ private:
 	static PointerMap window_by_pointer__;
 };
 
-#include "Window.tcc"
+#include "Window.inl"
 
 #endif // WINDOW_H

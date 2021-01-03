@@ -89,6 +89,6 @@ private:
 	std::vector<Eigen::Vector2f> domain_coordinates_;
 };
 
-#include "Layer.tcc"
+#include "Layer.inl"
 
 #endif // LAYER_H

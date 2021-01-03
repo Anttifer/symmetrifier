@@ -131,6 +131,6 @@ private:
 	size_t deletion_image_;
 };
 
-#include "GUI.tcc"
+#include "GUI.inl"
 
 #endif // GUI_H
