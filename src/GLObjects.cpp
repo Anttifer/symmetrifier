@@ -93,7 +93,9 @@ Buffer& Buffer::operator=(Buffer&& other)
 }
 
 // Texture
-Texture::Texture(void)
+Texture::Texture(void) :
+	width_  (0u),
+	height_ (0u)
 {
 	glGenTextures(1, &texture_);
 }
