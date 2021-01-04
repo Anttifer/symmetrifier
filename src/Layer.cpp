@@ -165,10 +165,9 @@ void Layer::symmetrify(void) const
 	}
 
 	// Set up the symmetrified texture.
-	domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
-	auto fbo        = GL::FBO::simple_C0(domain_texture_);
-	glClearColor(0, 0, 0, 0);
-	GL::clear(GL_COLOR_BUFFER_BIT, fbo);
+	if (domain_texture_.width_ != dimension)
+		domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
+	auto fbo = GL::FBO::simple_C0(domain_texture_);
 
 	// Save previous state.
 	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -176,6 +175,9 @@ void Layer::symmetrify(void) const
 	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
+
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	glViewport(0, 0, dimension, dimension);
 
