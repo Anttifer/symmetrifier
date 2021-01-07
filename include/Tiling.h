@@ -8,8 +8,7 @@
 class Tiling
 {
 public:
-	Tiling          (void);
-	explicit Tiling (float symmetry_scale);
+	Tiling (void);
 
 	// Lattice types.
 	enum class Lattice
@@ -38,9 +37,8 @@ public:
 	double                 scale    (void) const { return t1_.norm(); }
 
 	// Meshes.
-	const Mesh& mesh          (void) const { return mesh_; }
-	const Mesh& frame         (void) const { return frame_mesh_; }
-	const Mesh& symmetry_mesh (void) const { return symmetry_mesh_; }
+	const Mesh& mesh  (void) const { return mesh_; }
+	const Mesh& frame (void) const { return frame_mesh_; }
 
 	// Textures & coordinates.
 	const GL::Texture& mesh_texture       (void) const { return mesh_texture_; }
@@ -88,10 +86,7 @@ private:
 	void construct_p6   (void);
 	void construct_p6m  (void);
 
-
-	// Auxiliary mesh construction functions.
-	void construct_symmetry_mesh  (void);
-	void construct_mesh_texture   (void);
+	void construct_mesh_texture (void);
 
 
 	// Properties.
@@ -124,13 +119,6 @@ private:
 	Eigen::Vector3f line_color_;
 	Eigen::Vector3f mirror_color_;
 	Eigen::Vector3f rotation_color_;
-
-	// This mesh is used internally for building the domain texture.
-	// In this mesh, each triangle is rescaled with respect to its centroid.
-	// This is reflected in the domain_coordinates_ for proper sampling.
-	// This is necessary in order to avoid ugly seams when rendering.
-	float symmetry_scale_;
-	Mesh  symmetry_mesh_;
 
 
 	// Textures & coordinates.

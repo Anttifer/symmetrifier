@@ -5,24 +5,24 @@
 #define SCALE 0.98f
 
 Layer::Layer(void) :
-	current_index_ (0),
-	tiling_        (SCALE),
-	position_      (0.0f, 0.0f),
-	t1_            (1.0f, 0.0f),
-	visible_       (true),
-	consistent_    (false),
-	error_image_   ("ERROR", GL::Texture::from_png("NONEXISTENT_FILE_ERROR"))
+	current_index_  (0),
+	position_       (0.0f, 0.0f),
+	t1_             (1.0f, 0.0f),
+	visible_        (true),
+	consistent_     (false),
+	symmetry_scale_ (SCALE),
+	error_image_    ("ERROR", GL::Texture::from_png("NONEXISTENT_FILE_ERROR"))
 {
 	const Eigen::Vector2f bottom_centroid = {2.0f / 3.0f, 1.0f / 3.0f};
 	const Eigen::Vector2f top_centroid    = {1.0f / 3.0f, 2.0f / 3.0f};
 	domain_coordinates_ = {
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
-		bottom_centroid - SCALE * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+		bottom_centroid - symmetry_scale_ * (bottom_centroid - Eigen::Vector2f(0.0f, 0.0f)),
+		bottom_centroid - symmetry_scale_ * (bottom_centroid - Eigen::Vector2f(1.0f, 0.0f)),
+		bottom_centroid - symmetry_scale_ * (bottom_centroid - Eigen::Vector2f(1.0f, 1.0f)),
 
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
-		top_centroid - SCALE * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
+		top_centroid - symmetry_scale_ * (top_centroid - Eigen::Vector2f(1.0f, 1.0f)),
+		top_centroid - symmetry_scale_ * (top_centroid - Eigen::Vector2f(0.0f, 1.0f)),
+		top_centroid - symmetry_scale_ * (top_centroid - Eigen::Vector2f(0.0f, 0.0f))
 	};
 }
 
@@ -181,7 +181,7 @@ void Layer::symmetrify(void) const
 
 	glViewport(0, 0, dimension, dimension);
 
-	const auto& mesh = tiling_.symmetry_mesh();
+	const auto& mesh = symmetry_mesh();
 
 	// Set the shader program, uniforms and texture parameters, and draw.
 	glUseProgram(shader);
@@ -213,4 +213,34 @@ void Layer::symmetrify(void) const
 	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 
 	consistent_ = true;
+}
+
+const Mesh& Layer::symmetry_mesh(void) const
+{
+	static const char* prev_symmetry_group = "";
+	const char*        curr_symmetry_group = tiling_.symmetry_group();
+
+	// If the symmetry group has changed, the dilated symmetrification mesh must be updated.
+	if (strncmp(prev_symmetry_group, curr_symmetry_group, 8))
+	{
+		symmetry_mesh_   = Mesh();
+		const auto& mesh = tiling_.mesh();
+
+		for (size_t i = 0; i < mesh.positions_.size(); i += 3)
+		{
+			const Eigen::Vector3f& a        = mesh.positions_[i];
+			const Eigen::Vector3f& b        = mesh.positions_[i+1];
+			const Eigen::Vector3f& c        = mesh.positions_[i+2];
+			const Eigen::Vector3f  centroid = (a + b + c) / 3.0f;
+
+			symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (a - centroid));
+			symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (b - centroid));
+			symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (c - centroid));
+		}
+
+		symmetry_mesh_.update_buffers();
+		prev_symmetry_group = curr_symmetry_group;
+	}
+
+	return symmetry_mesh_;
 }

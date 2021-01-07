@@ -4,11 +4,7 @@
 #include <cstring>
 #include <cstdio>
 
-#define SCALE 0.98f
-
-Tiling::Tiling(void) : Tiling(SCALE) {}
-
-Tiling::Tiling(float symmetry_scale) :
+Tiling::Tiling(void) :
 	num_lattice_domains_ (1),
 
 	position_            (0.0f, 0.0f),
@@ -16,9 +12,7 @@ Tiling::Tiling(float symmetry_scale) :
 
 	line_color_          (1.0, 0.6, 0.1),
 	mirror_color_        (0.1, 0.6, 1.0),
-	rotation_color_      (0.1, 1.0, 0.6),
-
-	symmetry_scale_      (symmetry_scale)
+	rotation_color_      (0.1, 1.0, 0.6)
 {
 	set_symmetry_group("o");
 }
@@ -154,7 +148,6 @@ void Tiling::set_symmetry_group(const char* group)
 		construct_p1();
 	}
 
-	construct_symmetry_mesh();
 	construct_mesh_texture();
 }
 
@@ -1025,24 +1018,6 @@ void Tiling::construct_p6m(void)
 
 	frame_mesh_.normals_ = std::vector<Eigen::Vector3f>(20, mirror_color_);
 	frame_mesh_.update_buffers();
-}
-
-void Tiling::construct_symmetry_mesh(void)
-{
-	symmetry_mesh_ = Mesh();
-	for (size_t i = 0; i < mesh_.positions_.size(); i += 3)
-	{
-		const Eigen::Vector3f& a        = mesh_.positions_[i];
-		const Eigen::Vector3f& b        = mesh_.positions_[i+1];
-		const Eigen::Vector3f& c        = mesh_.positions_[i+2];
-		const Eigen::Vector3f  centroid = (a + b + c) / 3.0f;
-
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (a - centroid));
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (b - centroid));
-		symmetry_mesh_.positions_.push_back(centroid + 1.0f / symmetry_scale_ * (c - centroid));
-	}
-
-	symmetry_mesh_.update_buffers();
 }
 
 void Tiling::construct_mesh_texture(void)

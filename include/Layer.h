@@ -71,7 +71,8 @@ public:
 	auto end   (void) const { return images_.end(); }
 
 private:
-	void symmetrify (void) const;
+	void        symmetrify    (void) const;
+	const Mesh& symmetry_mesh (void) const;
 
 	std::vector<LayerImage>      images_;
 	size_t                       current_index_;
@@ -83,6 +84,13 @@ private:
 
 	bool                         visible_;
 	mutable bool                 consistent_;
+
+	// This mesh is used internally for building the domain texture.
+	// In this mesh, each triangle is rescaled with respect to its centroid.
+	// This is reflected in the domain_coordinates_ for proper sampling.
+	// This is necessary in order to avoid ugly seams when rendering.
+	float                        symmetry_scale_;
+	mutable Mesh                 symmetry_mesh_;
 
 	LayerImage                   error_image_;
 	mutable GL::Texture          domain_texture_;
