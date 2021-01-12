@@ -148,13 +148,13 @@ void Tiling::set_symmetry_group(const char* group)
 		construct_p1();
 	}
 
-	construct_mesh_texture();
+	update_total_mesh();
 }
 
 void Tiling::set_num_lattice_domains(int n)
 {
 	num_lattice_domains_ = n;
-	construct_mesh_texture();
+	update_total_mesh();
 }
 
 void Tiling::set_center(const Eigen::Vector2f& center)
@@ -1020,9 +1020,10 @@ void Tiling::construct_p6m(void)
 	frame_mesh_.update_buffers();
 }
 
-void Tiling::construct_mesh_texture(void)
+void Tiling::update_total_mesh(void)
 {
-	std::vector<Eigen::Vector3f> vertices;
+	auto& vertices = total_mesh_.positions_;
+	vertices.clear();
 	vertices.reserve(num_lattice_domains_ * mesh_.positions_.size());
 
 	int s = std::sqrt(num_lattice_domains_);
@@ -1037,10 +1038,6 @@ void Tiling::construct_mesh_texture(void)
 		}
 	}
 
-	GLint old_arr; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &old_arr);
-	glBindBuffer(GL_ARRAY_BUFFER, mesh_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices[0].data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, old_arr);
-
-	mesh_texture_ = GL::Texture::buffer_texture(mesh_buffer_, GL_RGB32F);
+	total_mesh_.update_buffers();
+	mesh_texture_ = GL::Texture::buffer_texture(total_mesh_.position_buffer_, GL_RGB32F);
 }
