@@ -135,23 +135,17 @@ void Layer::symmetrify(void) const
 		"shaders/symmetrify_frag.glsl");
 
 	// Find uniform locations once.
-	static GLuint num_instances_uniform;
-	static GLuint position_uniform;
-	static GLuint t1_uniform;
-	static GLuint t2_uniform;
+	static GLuint lattice_position_uniform;
+	static GLuint lattice_basis_uniform;
 	static GLuint image_position_uniform;
-	static GLuint image_t1_uniform;
-	static GLuint image_t2_uniform;
+	static GLuint image_basis_inv_uniform;
 	static GLuint sampler_uniform;
 	static bool init = [&](){
-		num_instances_uniform  = glGetUniformLocation(shader, "uNumInstances");
-		position_uniform       = glGetUniformLocation(shader, "uPos");
-		t1_uniform             = glGetUniformLocation(shader, "uT1");
-		t2_uniform             = glGetUniformLocation(shader, "uT2");
-		image_position_uniform = glGetUniformLocation(shader, "uImagePos");
-		image_t1_uniform       = glGetUniformLocation(shader, "uImageT1");
-		image_t2_uniform       = glGetUniformLocation(shader, "uImageT2");
-		sampler_uniform        = glGetUniformLocation(shader, "uTextureSampler");
+		lattice_position_uniform = glGetUniformLocation(shader, "uLatticePos");
+		lattice_basis_uniform    = glGetUniformLocation(shader, "uLatticeBasis");
+		image_position_uniform   = glGetUniformLocation(shader, "uImagePos");
+		image_basis_inv_uniform  = glGetUniformLocation(shader, "uImageBasisInv");
+		sampler_uniform          = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
 	(void)init; // Suppress unused variable warning.
@@ -182,26 +176,27 @@ void Layer::symmetrify(void) const
 	glViewport(0, 0, dimension, dimension);
 
 	const auto& mesh = symmetry_mesh();
+	Eigen::Matrix2f lattice_basis;
+	lattice_basis << tiling_.t1(), tiling_.t2();
 
 	// Set the shader program, uniforms and texture parameters, and draw.
 	glUseProgram(shader);
 	glBindVertexArray(mesh.vao_);
 
-	glUniform1i  (num_instances_uniform, tiling_.num_lattice_domains());
-	glUniform2fv (position_uniform, 1, tiling_.position().data());
-	glUniform2fv (t1_uniform, 1, tiling_.t1().data());
-	glUniform2fv (t2_uniform, 1, tiling_.t2().data());
-	glUniform1i  (sampler_uniform, 1);
+	glUniform2fv       (lattice_position_uniform, 1, tiling_.position().data());
+	glUniformMatrix2fv (lattice_basis_uniform, 1, GL_FALSE, lattice_basis.data());
+	glUniform1i        (sampler_uniform, 1);
 
 	for (const auto& image : images_)
 	{
-		glBindTexture(GL_TEXTURE_2D, image.texture());
+		Eigen::Matrix2f image_basis_inv = (Eigen::Matrix2f() << image.t1(), image.t2())
+		                                  .finished().inverse();
 
-		glUniform2fv (image_position_uniform, 1, image.position().data());
-		glUniform2fv (image_t1_uniform, 1, image.t1().data());
-		glUniform2fv (image_t2_uniform, 1, image.t2().data());
+		glBindTexture      (GL_TEXTURE_2D, image.texture());
+		glUniform2fv       (image_position_uniform, 1, image.position().data());
+		glUniformMatrix2fv (image_basis_inv_uniform, 1, GL_FALSE, image_basis_inv.data());
 
-		glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, tiling_.num_lattice_domains());
+		glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
 	}
 
 	// Clean up.
@@ -220,11 +215,16 @@ const Mesh& Layer::symmetry_mesh(void) const
 	static const char* prev_symmetry_group = "";
 	const char*        curr_symmetry_group = tiling_.symmetry_group();
 
-	// If the symmetry group has changed, the dilated symmetrification mesh must be updated.
-	if (strncmp(prev_symmetry_group, curr_symmetry_group, 8))
+	static int prev_lattice_domains = -1;
+	int        curr_lattice_domains = tiling_.num_lattice_domains();
+
+	// If the symmetry group or the number of lattice domains has changed,
+	// the dilated symmetrification mesh must be updated.
+	if (strncmp(prev_symmetry_group, curr_symmetry_group, 8) ||
+	    prev_lattice_domains != curr_lattice_domains)
 	{
 		symmetry_mesh_   = Mesh();
-		const auto& mesh = tiling_.mesh();
+		const auto& mesh = tiling_.total_mesh();
 
 		for (size_t i = 0; i < mesh.positions_.size(); i += 3)
 		{
@@ -240,6 +240,7 @@ const Mesh& Layer::symmetry_mesh(void) const
 
 		symmetry_mesh_.update_buffers();
 		prev_symmetry_group = curr_symmetry_group;
+		prev_lattice_domains = curr_lattice_domains;
 	}
 
 	return symmetry_mesh_;

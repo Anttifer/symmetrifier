@@ -4,8 +4,6 @@
 
 // Declare the inputs.
 in Data {
-	vec3 vColor;
-	vec3 vNormal;
 	vec2 vTexCoord;
 };
 
