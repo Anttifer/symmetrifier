@@ -163,15 +163,11 @@ void Layer::symmetrify(void) const
 		domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
 	auto fbo = GL::FBO::simple_C0(domain_texture_);
 
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
-
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	glActiveTexture(GL_TEXTURE1);
 
 	glViewport(0, 0, dimension, dimension);
 
@@ -198,14 +194,6 @@ void Layer::symmetrify(void) const
 
 		glDrawArrays(mesh.primitive_type_, 0, mesh.num_vertices_);
 	}
-
-	// Clean up.
-	glBindVertexArray(0);
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 
 	consistent_ = true;
 }

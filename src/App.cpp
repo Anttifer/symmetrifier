@@ -82,8 +82,9 @@ void App::loop(void)
 		glfwGetFramebufferSize(window_, &width, &height);
 
 		// Clear the screen. Dark grey is the new black.
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glClearColor(clear_color_.x(), clear_color_.y(), clear_color_.z(), 0);
-		GL::clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		render_scene(gui_.graphics_area());
 		gui_.render(width, height);
@@ -159,12 +160,9 @@ void App::render_layer(const Layer& layer, const Rectangle<int>& viewport, GLuin
 
 	const auto& domain_texture = layer.domain_texture();
 
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
+
 	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, domain_texture);
 
 	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
@@ -195,15 +193,6 @@ void App::render_layer(const Layer& layer, const Rectangle<int>& viewport, GLuin
 
 	glBindVertexArray(mesh.vao_);
 	glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport, GLuint framebuffer)
@@ -232,12 +221,8 @@ void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport
 	}();
 	(void)init; // Suppress unused variable warning.
 
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
 	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 
 	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
@@ -264,14 +249,6 @@ void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport
 
 		glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
 	}
-
-	// Clean up.
-	glBindVertexArray(0);
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
@@ -312,13 +289,7 @@ void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
 	}();
 	(void)init; // Suppress unused variable warning.
 
-	// Save previous state.
-	// FIXME: State saving wrt textures is imperfect - we use two of them.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	GLint old_active; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	glActiveTexture(GL_TEXTURE1);
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 
 	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
@@ -370,15 +341,6 @@ void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
 			glDrawArraysInstanced(mesh.primitive_type_, 0, mesh.num_vertices_, num_instances);
 		}
 	}
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& viewport, GLuint framebuffer)
@@ -421,10 +383,7 @@ void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& view
 	}();
 	(void)init_overlay;
 
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
 	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
 	const auto plane_side_length = 10;
@@ -452,13 +411,6 @@ void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& view
 
 	glBindVertexArray(overlay.vao_);
 	glDrawArraysInstanced(overlay.primitive_type_, 0, overlay.num_vertices_, tiling.num_lattice_domains());
-
-	// Clean up.
-	glBindVertexArray(0);
-
-	glUseProgram(0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer)
@@ -491,8 +443,6 @@ void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer
 	else
 		stripe_size = viewport.height * crop_AR;
 
-	// Save previous state.
-	GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
 	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
@@ -505,11 +455,6 @@ void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer
 
 	glBindVertexArray(canvas_.vao_);
 	glDrawArrays(canvas_.primitive_type_, 0, canvas_.num_vertices_);
-
-	// Clean up.
-	glBindVertexArray(0);
-	glUseProgram(0);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void App::mouse_position_callback(double x, double y)
