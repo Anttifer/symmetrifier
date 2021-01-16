@@ -1,22 +1,25 @@
 ### Dependencies:
-- [GLFW](http://www.glfw.org)
+These must be available and locatable by CMake:
 - [GLEW](https://github.com/nigels-com/glew)
-- [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
-- [Dear ImGui](https://github.com/ocornut/imgui), an older version already included (MIT license)
+- [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page)
+
+The application also depends on
+- [GLFW](https://www.glfw.org)
+- [Dear ImGui](https://github.com/ocornut/imgui),
+
+which are included as submodules in this repository.
 
 ### Building and running:
 ```bash
-make -j5
-./bin/symmetrifier
+git clone --recursive https://github.com/Anttifer/symmetrifier.git
+mkdir symmetrifier/build && cd symmetrifier/build
+
+# Using the "Unix Makefiles" generator with a release build here,
+# but you can substitute your own choices.
+cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+make -j8
+../run.sh
 ```
-or with CMake:
-```bash
-mkdir build && cd build
-cmake ..
-cd ..
-./build/symmetrifier
-```
-Since some shader locations are hardcoded for now, it is necessary to run the application from the repository root.
 
 ### Usage preview:
 ![Group 3\*3 and a butterfly](usage_sample.png)
