@@ -36,9 +36,6 @@ void Mesh::update_buffers(void) {
 		}
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
 	num_vertices_ = positions_.size();
 }
 
@@ -279,9 +276,6 @@ Mesh Mesh::cube(void) {
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// Set the rest of the info necessary for drawing the cube.
 	mesh.num_vertices_ = size;

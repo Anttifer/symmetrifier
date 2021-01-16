@@ -50,6 +50,6 @@ private:
 	size_t             current_index_;
 };
 
-#include "Layering.tcc"
+#include "Layering.inl"
 
 #endif // LAYERING_H

@@ -31,7 +31,6 @@ void LayerImage::set_texture(GL::Texture&& texture)
 	texture_ = std::move(texture);
 
 	// We'll use nearest neighbor filtering.
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, texture_);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -40,8 +39,6 @@ void LayerImage::set_texture(GL::Texture&& texture)
 	// Sensible wrapping parameters.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-	glBindTexture(GL_TEXTURE_2D, old_tex);
 }
 
 void LayerImage::set_center(const Eigen::Vector2f& center)

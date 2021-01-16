@@ -49,13 +49,6 @@ private:
 	Eigen::Vector2f view_to_world         (const Eigen::Vector2f&);
 	Eigen::Vector2f screen_to_world       (double x, double y);
 
-	// Framework objects.
-	MainWindow    window_;
-	double        time_;
-	ShaderCanvas  canvas_;
-	Layering      layering_;
-	GUI           gui_;
-
 	// Parameters and options.
 	Eigen::Vector3f clear_color_;
 	Eigen::Vector2f screen_center_;
@@ -68,6 +61,13 @@ private:
 	bool            show_export_settings_;
 	int             export_width_;
 	int             export_height_;
+
+	// Framework objects.
+	MainWindow    window_;
+	double        time_;
+	ShaderCanvas  canvas_;
+	Layering      layering_;
+	GUI           gui_;
 
 	// Mouse input helper variables.
 	Eigen::Vector2f press_position_;

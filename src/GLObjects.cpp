@@ -8,7 +8,7 @@
 #include <string>
 #include <stdexcept>
 #include <cassert>
-#include <lodepng.h>
+#include "stb_image.h"
 #include <climits>
 
 //--------------------
@@ -93,7 +93,9 @@ Buffer& Buffer::operator=(Buffer&& other)
 }
 
 // Texture
-Texture::Texture(void)
+Texture::Texture(void) :
+	width_  (0u),
+	height_ (0u)
 {
 	glGenTextures(1, &texture_);
 }
@@ -134,16 +136,14 @@ Texture Texture::from_png(const char* filename, bool& successful)
 {
 	assert(filename != nullptr);
 
-	std::vector<unsigned char> ud_image;
-	unsigned int width, height;
-
-	auto error = lodepng::decode(ud_image, width, height, filename);
+	int width, height, channels;
+	unsigned char* ud_image = stbi_load(filename, &width, &height, &channels, 4);
 
 	std::vector<unsigned char> image;
-	if (!error)
+	if (ud_image != NULL)
 	{
 		successful = true;
-		image.resize(ud_image.size());
+		image.resize(4 * width * height);
 
 		for (size_t i = 0; i < height; ++i)
 		{
@@ -154,14 +154,15 @@ Texture Texture::from_png(const char* filename, bool& successful)
 	else
 	{
 		successful = false;
-		width = 4; height = 4;
+		width = height = 4;
 		image = { 255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
 		            0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,
 		          255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
 		            0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255 };
 		std::cerr << "PNG loading failed for " << filename << std::endl
-		          << "Error " << error << ": " << lodepng_error_text(error) << std::endl;
+		          << "Error: " << stbi_failure_reason() << std::endl;
 	}
+	stbi_image_free(ud_image);
 
 	Texture texture;
 

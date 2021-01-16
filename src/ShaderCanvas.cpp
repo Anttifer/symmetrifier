@@ -29,9 +29,6 @@ ShaderCanvas::ShaderCanvas(void) {
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(2);
 
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 	num_vertices_ = sizeof(vertices) / sizeof(vertices[0]);
 	primitive_type_ = GL_TRIANGLES;
 }

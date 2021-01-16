@@ -78,9 +78,6 @@ GLFWImGui::GLFWImGui(MainWindow& window) :
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));
 	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
 }
 
 GLFWImGui::~GLFWImGui(void)
@@ -145,9 +142,6 @@ void GLFWImGui::render(int width, int height, GLuint framebuffer)
 	draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
 	// Save previous state.
-	GLint     old_fbo;                   glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
-	GLint     old_active;                glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active);
-	GLint     old_tex;
 	GLboolean old_blend_enabled        = glIsEnabled(GL_BLEND);
 	GLint     old_blend_eq_rgb;          glGetIntegerv(GL_BLEND_EQUATION_RGB, &old_blend_eq_rgb);
 	GLint     old_blend_eq_alpha;        glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &old_blend_eq_alpha);
@@ -160,8 +154,6 @@ void GLFWImGui::render(int width, int height, GLuint framebuffer)
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	glActiveTexture(GL_TEXTURE0);
-
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
@@ -209,9 +201,6 @@ void GLFWImGui::render(int width, int height, GLuint framebuffer)
 	}
 
 	// Clean up.
-	glBindVertexArray(0);
-	glUseProgram(0);
-
 	glScissor(old_scissor_box[0], old_scissor_box[1], old_scissor_box[2], old_scissor_box[3]);
     if (old_scissor_test_enabled) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
     if (old_depth_test_enabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
@@ -219,9 +208,6 @@ void GLFWImGui::render(int width, int height, GLuint framebuffer)
 	glBlendFunc(old_blend_func_src, old_blend_func_dst);
 	glBlendEquationSeparate(old_blend_eq_rgb, old_blend_eq_alpha);
 	if (old_blend_enabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
-	glBindTexture(GL_TEXTURE_2D, old_tex);
-	glActiveTexture(old_active);
-	glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
 }
 
 void GLFWImGui::create_fonts_texture(void)
@@ -232,12 +218,10 @@ void GLFWImGui::create_fonts_texture(void)
 
 	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, fonts_texture_);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, old_tex);
 
 	fonts_texture_.width_  = width;
 	fonts_texture_.height_ = height;
