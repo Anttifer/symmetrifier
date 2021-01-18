@@ -16,7 +16,7 @@ Eigen::Vector2f LayerImage::center(void) const
 Eigen::Vector2f LayerImage::t2(void) const
 {
 	Eigen::Vector2f orthogonal = { -t1_.y(), t1_.x() };
-	orthogonal *= texture_.height_ / (float)texture_.width_;
+	orthogonal *= texture_.height() / (float)texture_.width();
 
 	return orthogonal;
 }

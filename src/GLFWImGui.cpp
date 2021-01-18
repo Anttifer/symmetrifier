@@ -223,8 +223,7 @@ void GLFWImGui::create_fonts_texture(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-	fonts_texture_.width_  = width;
-	fonts_texture_.height_ = height;
+	fonts_texture_.refresh_dimensions_2D();
 
 	io.Fonts->TexID = (void*)(intptr_t)(GLuint)fonts_texture_;
 }

@@ -86,20 +86,9 @@ Buffer& Buffer::operator=(Buffer&& other)
 }
 
 // Texture
-Texture::Texture(void) :
-	width_  (0u),
-	height_ (0u)
+Texture::Texture(void)
 {
 	glGenTextures(1, &texture_);
-}
-
-Texture::Texture(Texture&& other)
-:	texture_ (std::move(other.texture_)),
-	width_   (other.width_),
-	height_  (other.height_)
-{
-	other.width_ = 0;
-	other.height_ = 0;
 }
 
 Texture::~Texture(void)
@@ -114,13 +103,23 @@ Texture& Texture::operator=(Texture&& other)
 		glDeleteTextures(1, &texture_);
 		texture_ = std::move(other.texture_);
 
-		width_ = other.width_;
-		height_ = other.height_;
-		other.width_ = 0;
-		other.height_ = 0;
+		width_ = std::move(other.width_);
+		height_ = std::move(other.height_);
 	}
 
 	return *this;
+}
+
+void Texture::refresh_dimensions_2D(void)
+{
+	GLint width, height;
+
+	glBindTexture(GL_TEXTURE_2D, texture_);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+	width_ = width;
+	height_ = height;
 }
 
 Texture Texture::from_png(const char* filename, bool& successful)
@@ -278,7 +277,8 @@ Texture Texture::empty_cube(int resolution)
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, old_tex);
 
-	texture.width_ = texture.height_ = resolution;
+	texture.width_ = resolution;
+	texture.height_ = resolution;
 
 	return texture;
 }
@@ -304,7 +304,8 @@ Texture Texture::empty_cube_depth(int resolution)
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, old_tex);
 
-	depth.width_ = depth.height_ = resolution;
+	depth.width_ = resolution;
+	depth.height_ = resolution;
 
 	return depth;
 }

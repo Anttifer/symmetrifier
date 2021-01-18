@@ -155,11 +155,11 @@ void Layer::symmetrify(void) const
 	for (const auto& image : images_)
 	{
 		const auto& t = image.texture();
-		dimension = std::max({dimension, t.width_, t.height_});
+		dimension = std::max({dimension, t.width(), t.height()});
 	}
 
 	// Set up the symmetrified texture.
-	if (domain_texture_.width_ != dimension)
+	if (domain_texture_.width() != dimension)
 		domain_texture_ = GL::Texture::empty_2D(dimension, dimension);
 	auto fbo = GL::FBO::simple_C0(domain_texture_);
 

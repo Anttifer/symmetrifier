@@ -29,12 +29,19 @@ class Texture {
 public:
 	Texture  (void);
 	Texture  (const Texture&) = delete; // TODO: Implement texture copying.
-	Texture  (Texture&&);
+	Texture  (Texture&&)      = default;
 	~Texture (void);
 
 	Texture& operator= (const Texture&) = delete;
 	Texture& operator= (Texture&&);
 	operator GLuint    (void) const {return texture_;}
+
+	unsigned width  (void) const { return width_; }
+	unsigned height (void) const { return height_; }
+
+	// This should be called if any operations changing the dimensions
+	// of a 2D texture have been made.
+	void refresh_dimensions_2D (void);
 
 	static Texture from_png                   (const char* filename, bool& successful);
 	static Texture from_png                   (const char* filename);
@@ -47,8 +54,9 @@ public:
 	static Texture buffer_texture             (const Buffer& buffer, GLenum format);
 private:
 	Handle<GLuint> texture_;
-public:
-	unsigned int width_, height_; // TODO: Getters and setters.
+
+	// Not really handles, but convenient to use.
+	Handle<unsigned> width_, height_;
 };
 
 class VAO {
