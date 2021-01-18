@@ -39,12 +39,6 @@ Buffer::Buffer(const Buffer& other)
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 }
 
-Buffer::Buffer(Buffer&& other)
-:	buffer_(other.buffer_)
-{
-	other.buffer_ = 0;
-}
-
 Buffer::~Buffer(void)
 {
 	glDeleteBuffers(1, &buffer_);
@@ -85,8 +79,7 @@ Buffer& Buffer::operator=(Buffer&& other)
 	if (this != &other)
 	{
 		glDeleteBuffers(1, &buffer_);
-		buffer_ = other.buffer_;
-		other.buffer_ = 0;
+		buffer_ = std::move(other.buffer_);
 	}
 
 	return *this;
@@ -101,11 +94,10 @@ Texture::Texture(void) :
 }
 
 Texture::Texture(Texture&& other)
-:	texture_ (other.texture_),
+:	texture_ (std::move(other.texture_)),
 	width_   (other.width_),
 	height_  (other.height_)
 {
-	other.texture_ = 0;
 	other.width_ = 0;
 	other.height_ = 0;
 }
@@ -120,8 +112,7 @@ Texture& Texture::operator=(Texture&& other)
 	if (this != &other)
 	{
 		glDeleteTextures(1, &texture_);
-		texture_ = other.texture_;
-		other.texture_ = 0;
+		texture_ = std::move(other.texture_);
 
 		width_ = other.width_;
 		height_ = other.height_;
@@ -346,12 +337,6 @@ VAO::VAO(void)
 	glGenVertexArrays(1, &vao_);
 }
 
-VAO::VAO(VAO&& other)
-:	vao_(other.vao_)
-{
-	other.vao_ = 0;
-}
-
 VAO::~VAO(void)
 {
 	glDeleteVertexArrays(1, &vao_);
@@ -362,8 +347,7 @@ VAO& VAO::operator=(VAO&& other)
 	if (this != &other)
 	{
 		glDeleteVertexArrays(1, &vao_);
-		vao_ = other.vao_;
-		other.vao_ = 0;
+		vao_ = std::move(other.vao_);
 	}
 
 	return *this;
@@ -373,12 +357,6 @@ VAO& VAO::operator=(VAO&& other)
 FBO::FBO(void)
 {
 	glGenFramebuffers(1, &fbo_);
-}
-
-FBO::FBO(FBO&& other)
-:	fbo_(other.fbo_)
-{
-	other.fbo_ = 0;
 }
 
 FBO::~FBO(void)
@@ -391,8 +369,7 @@ FBO& FBO::operator=(FBO&& other)
 	if (this != &other)
 	{
 		glDeleteFramebuffers(1, &fbo_);
-		fbo_ = other.fbo_;
-		other.fbo_ = 0;
+		fbo_ = std::move(other.fbo_);
 	}
 
 	return *this;
@@ -559,12 +536,6 @@ ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source)
 	}
 }
 
-ShaderObject::ShaderObject(ShaderObject&& other)
-:	shader_object_(other.shader_object_)
-{
-	other.shader_object_ = 0;
-}
-
 ShaderObject::~ShaderObject(void)
 {
 	glDeleteShader(shader_object_);
@@ -575,8 +546,7 @@ ShaderObject& ShaderObject::operator=(ShaderObject&& other)
 	if (this != &other)
 	{
 		glDeleteShader(shader_object_);
-		shader_object_ = other.shader_object_;
-		other.shader_object_ = 0;
+		shader_object_ = std::move(other.shader_object_);
 	}
 
 	return *this;
@@ -656,12 +626,6 @@ ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObje
 	}
 }
 
-ShaderProgram::ShaderProgram(ShaderProgram&& other)
-:	shader_program_(other.shader_program_)
-{
-	other.shader_program_ = 0;
-}
-
 ShaderProgram::~ShaderProgram(void)
 {
 	glDeleteProgram(shader_program_);
@@ -672,8 +636,7 @@ ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other)
 	if (this != &other)
 	{
 		glDeleteProgram(shader_program_);
-		shader_program_ = other.shader_program_;
-		other.shader_program_ = 0;
+		shader_program_ = std::move(other.shader_program_);
 	}
 
 	return *this;

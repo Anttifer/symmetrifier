@@ -3,6 +3,7 @@
 
 #include <GL/glew.h>
 #include <string>
+#include "GLHandle.h"
 #define GL_SHADER_SOURCE(CODE) #CODE
 
 //--------------------
@@ -13,7 +14,7 @@ class Buffer {
 public:
 	Buffer  (void);
 	Buffer  (const Buffer&);
-	Buffer  (Buffer&&);
+	Buffer  (Buffer&&)       = default;
 	~Buffer (void);
 
 	Buffer& operator= (const Buffer&);
@@ -21,7 +22,7 @@ public:
 	operator GLuint   (void) const {return buffer_;}
 
 private:
-	GLuint buffer_;
+	Handle<GLuint> buffer_;
 };
 
 class Texture {
@@ -45,7 +46,7 @@ public:
 	static Texture empty_cube_depth           (int resolution);
 	static Texture buffer_texture             (const Buffer& buffer, GLenum format);
 private:
-	GLuint texture_;
+	Handle<GLuint> texture_;
 public:
 	unsigned int width_, height_; // TODO: Getters and setters.
 };
@@ -54,21 +55,21 @@ class VAO {
 public:
 	VAO  (void);
 	VAO  (const VAO&) = delete;
-	VAO  (VAO&&);
+	VAO  (VAO&&)      = default;
 	~VAO (void);
 
 	VAO& operator=  (const VAO&) = delete;
 	VAO& operator=  (VAO&&);
 	operator GLuint (void) const {return vao_;}
 private:
-	GLuint vao_;
+	Handle<GLuint> vao_;
 };
 
 class FBO {
 public:
 	FBO  (void);
 	FBO  (const FBO&) = delete;
-	FBO  (FBO&&);
+	FBO  (FBO&&)      = default;
 	~FBO (void);
 
 	FBO& operator=  (const FBO&) = delete;
@@ -80,7 +81,7 @@ public:
 	static FBO multisample_C0  (const Texture& color);
 	static FBO multisample_C0D (const Texture& color, const Texture& depth);
 private:
-	GLuint fbo_;
+	Handle<GLuint> fbo_;
 };
 
 class ShaderObject {
@@ -88,7 +89,7 @@ public:
 	ShaderObject  (GLenum shader_type);
 	ShaderObject  (GLenum shader_type, const char* shader_source);
 	ShaderObject  (const ShaderObject&) = delete;
-	ShaderObject  (ShaderObject&&);
+	ShaderObject  (ShaderObject&&)      = default;
 	~ShaderObject (void);
 
 	ShaderObject& operator= (const ShaderObject&) = delete;
@@ -98,7 +99,7 @@ public:
 	static ShaderObject from_file          (GLenum shader_type, const char* filename);
 	static ShaderObject vertex_passthrough (void);
 private:
-	GLuint shader_object_;
+	Handle<GLuint> shader_object_;
 };
 
 class ShaderProgram {
@@ -109,7 +110,7 @@ public:
 	                const ShaderObject& fragment_shader);
 	ShaderProgram  (const char* vertex_source, const char* fragment_source);
 	ShaderProgram  (const ShaderProgram&) = delete;
-	ShaderProgram  (ShaderProgram&&);
+	ShaderProgram  (ShaderProgram&&)      = default;
 	~ShaderProgram (void);
 
 	ShaderProgram& operator= (const ShaderProgram&) = delete;
@@ -124,7 +125,7 @@ public:
 	                                 const char* fragment_file);
 	static ShaderProgram simple     (void);
 private:
-	GLuint shader_program_;
+	Handle<GLuint> shader_program_;
 };
 } // namespace GL
 
