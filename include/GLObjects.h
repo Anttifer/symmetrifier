@@ -12,30 +12,20 @@ namespace GL
 {
 class Buffer {
 public:
-	Buffer  (void);
-	Buffer  (const Buffer&);
-	Buffer  (Buffer&&)       = default;
-	~Buffer (void);
+	Buffer (void)          = default;
+	Buffer (Buffer&&)      = default;
+	Buffer (const Buffer&);
 
-	Buffer& operator= (const Buffer&);
-	Buffer& operator= (Buffer&&);
-	operator GLuint   (void) const {return buffer_;}
-
+	Buffer&  operator= (Buffer&&)      = default;
+	Buffer&  operator= (const Buffer&);
+	operator GLuint    (void) const    { return buffer_; }
 private:
-	Handle<GLuint> buffer_;
+	Handle<&glGenBuffers, &glDeleteBuffers> buffer_;
 };
 
 class Texture {
 public:
-	Texture  (void);
-	Texture  (const Texture&) = delete; // TODO: Implement texture copying.
-	Texture  (Texture&&)      = default;
-	~Texture (void);
-
-	Texture& operator= (const Texture&) = delete;
-	Texture& operator= (Texture&&);
-	operator GLuint    (void) const {return texture_;}
-
+	operator GLuint (void) const { return texture_; }
 	unsigned width  (void) const { return width_; }
 	unsigned height (void) const { return height_; }
 
@@ -53,79 +43,55 @@ public:
 	static Texture empty_cube_depth           (int resolution);
 	static Texture buffer_texture             (const Buffer& buffer, GLenum format);
 private:
-	Handle<GLuint> texture_;
+	inline static const GenFuncP glGenTexturesP    = &glGenTextures;
+	inline static const DelFuncP glDeleteTexturesP = &glDeleteTextures;
+
+	Handle<&glGenTexturesP, &glDeleteTexturesP> texture_;
 
 	// Not really handles, but convenient to use.
-	Handle<unsigned> width_, height_;
+	Handle<> width_, height_;
 };
 
-class VAO {
-public:
-	VAO  (void);
-	VAO  (const VAO&) = delete;
-	VAO  (VAO&&)      = default;
-	~VAO (void);
-
-	VAO& operator=  (const VAO&) = delete;
-	VAO& operator=  (VAO&&);
-	operator GLuint (void) const {return vao_;}
-private:
-	Handle<GLuint> vao_;
-};
+using VAO = Handle<&glGenVertexArrays, &glDeleteVertexArrays>;
 
 class FBO {
 public:
-	FBO  (void);
-	FBO  (const FBO&) = delete;
-	FBO  (FBO&&)      = default;
-	~FBO (void);
-
-	FBO& operator=  (const FBO&) = delete;
-	FBO& operator=  (FBO&&);
-	operator GLuint (void) const {return fbo_;}
+	operator GLuint (void) const { return fbo_; }
 
 	static FBO simple_C0       (const Texture& color);
 	static FBO simple_C0D      (const Texture& color, const Texture& depth);
 	static FBO multisample_C0  (const Texture& color);
 	static FBO multisample_C0D (const Texture& color, const Texture& depth);
 private:
-	Handle<GLuint> fbo_;
+	Handle<&glGenFramebuffers, &glDeleteFramebuffers> fbo_;
 };
 
 class ShaderObject {
 public:
-	ShaderObject  (GLenum shader_type);
-	ShaderObject  (GLenum shader_type, const char* shader_source);
-	ShaderObject  (const ShaderObject&) = delete;
-	ShaderObject  (ShaderObject&&)      = default;
-	~ShaderObject (void);
+	ShaderObject (GLenum shader_type);
+	ShaderObject (GLenum shader_type, const char* shader_source);
 
-	ShaderObject& operator= (const ShaderObject&) = delete;
-	ShaderObject& operator= (ShaderObject&&);
-	operator GLuint         (void) const {return shader_object_;}
+	operator GLuint (void) const { return shader_object_; }
 
 	static ShaderObject from_file          (GLenum shader_type, const char* filename);
 	static ShaderObject vertex_passthrough (void);
 private:
-	Handle<GLuint> shader_object_;
+	static void glDeleteShaderAdapted (GLsizei, const GLuint* s) { glDeleteShader(*s); }
+	inline static const DelFuncP glDeleteShaderP = &glDeleteShaderAdapted;
+
+	Handle<nullptr, &glDeleteShaderP> shader_object_;
 };
 
 class ShaderProgram {
 public:
-	ShaderProgram  (void);
-	ShaderProgram  (const ShaderObject& vertex_shader, const ShaderObject& fragment_shader);
-	ShaderProgram  (const ShaderObject& vertex_shader, const ShaderObject& geometry_shader,
-	                const ShaderObject& fragment_shader);
-	ShaderProgram  (const char* vertex_source, const char* fragment_source);
-	ShaderProgram  (const ShaderProgram&) = delete;
-	ShaderProgram  (ShaderProgram&&)      = default;
-	~ShaderProgram (void);
+	ShaderProgram (void) = default;
+	ShaderProgram (const ShaderObject& vertex_shader, const ShaderObject& fragment_shader);
+	ShaderProgram (const ShaderObject& vertex_shader, const ShaderObject& geometry_shader,
+	               const ShaderObject& fragment_shader);
+	ShaderProgram (const char* vertex_source, const char* fragment_source);
 
-	ShaderProgram& operator= (const ShaderProgram&) = delete;
-	ShaderProgram& operator= (ShaderProgram&&);
-	operator GLuint          (void) const {return shader_program_;}
-
-	GLint link               (void);
+	operator    GLuint       (void) const { return shader_program_; }
+	GLint       link         (void);
 	std::string get_info_log (void);
 
 	static ShaderProgram from_files (const char* vertex_file, const char* fragment_file);
@@ -133,7 +99,12 @@ public:
 	                                 const char* fragment_file);
 	static ShaderProgram simple     (void);
 private:
-	Handle<GLuint> shader_program_;
+	static void glCreateProgramAdapted (GLsizei, GLuint* p)       { *p = glCreateProgram(); }
+	static void glDeleteProgramAdapted (GLsizei, const GLuint* p) { glDeleteProgram(*p); }
+	inline static const GenFuncP glCreateProgramP = &glCreateProgramAdapted;
+	inline static const DelFuncP glDeleteProgramP = &glDeleteProgramAdapted;
+
+	Handle<&glCreateProgramP, &glDeleteProgramP> shader_program_;
 };
 } // namespace GL
 

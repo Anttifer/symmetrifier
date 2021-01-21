@@ -16,15 +16,8 @@
 namespace GL
 {
 // Buffer
-Buffer::Buffer(void)
-{
-	glGenBuffers(1, &buffer_);
-}
-
 Buffer::Buffer(const Buffer& other)
 {
-	glGenBuffers(1, &buffer_);
-
 	glBindBuffer(GL_COPY_READ_BUFFER, other.buffer_);
 	glBindBuffer(GL_COPY_WRITE_BUFFER, buffer_);
 
@@ -37,11 +30,6 @@ Buffer::Buffer(const Buffer& other)
 
 	glBindBuffer(GL_COPY_READ_BUFFER, 0);
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-}
-
-Buffer::~Buffer(void)
-{
-	glDeleteBuffers(1, &buffer_);
 }
 
 Buffer& Buffer::operator=(const Buffer& other)
@@ -74,42 +62,7 @@ Buffer& Buffer::operator=(const Buffer& other)
 	return *this;
 }
 
-Buffer& Buffer::operator=(Buffer&& other)
-{
-	if (this != &other)
-	{
-		glDeleteBuffers(1, &buffer_);
-		buffer_ = std::move(other.buffer_);
-	}
-
-	return *this;
-}
-
 // Texture
-Texture::Texture(void)
-{
-	glGenTextures(1, &texture_);
-}
-
-Texture::~Texture(void)
-{
-	glDeleteTextures(1, &texture_);
-}
-
-Texture& Texture::operator=(Texture&& other)
-{
-	if (this != &other)
-	{
-		glDeleteTextures(1, &texture_);
-		texture_ = std::move(other.texture_);
-
-		width_ = std::move(other.width_);
-		height_ = std::move(other.height_);
-	}
-
-	return *this;
-}
-
 void Texture::refresh_dimensions_2D(void)
 {
 	GLint width, height;
@@ -332,50 +285,6 @@ Texture Texture::buffer_texture(const Buffer& buffer, GLenum format)
 	return texture;
 }
 
-// VAO
-VAO::VAO(void)
-{
-	glGenVertexArrays(1, &vao_);
-}
-
-VAO::~VAO(void)
-{
-	glDeleteVertexArrays(1, &vao_);
-}
-
-VAO& VAO::operator=(VAO&& other)
-{
-	if (this != &other)
-	{
-		glDeleteVertexArrays(1, &vao_);
-		vao_ = std::move(other.vao_);
-	}
-
-	return *this;
-}
-
-// FBO
-FBO::FBO(void)
-{
-	glGenFramebuffers(1, &fbo_);
-}
-
-FBO::~FBO(void)
-{
-	glDeleteFramebuffers(1, &fbo_);
-}
-
-FBO& FBO::operator=(FBO&& other)
-{
-	if (this != &other)
-	{
-		glDeleteFramebuffers(1, &fbo_);
-		fbo_ = std::move(other.fbo_);
-	}
-
-	return *this;
-}
-
 FBO FBO::simple_C0(const Texture& color)
 {
 	FBO framebuffer;
@@ -489,14 +398,13 @@ FBO FBO::multisample_C0D(const Texture& color, const Texture& depth)
 }
 
 // ShaderObject
-ShaderObject::ShaderObject(GLenum shader_type)
-{
-	shader_object_ = glCreateShader(shader_type);
-}
+ShaderObject::ShaderObject(GLenum shader_type) :
+	shader_object_ (glCreateShader(shader_type))
+{}
 
-ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source)
+ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source) :
+	shader_object_ (glCreateShader(shader_type))
 {
-	shader_object_ = glCreateShader(shader_type);
 	glShaderSource(shader_object_, 1, &shader_source, NULL);
 
 	glCompileShader(shader_object_);
@@ -531,26 +439,8 @@ ShaderObject::ShaderObject(GLenum shader_type, const char* shader_source)
 		}
 
 		std::cerr << type_string << "compilation failed. Info log:" << std::endl << &info_log_vector[0];
-
-		glDeleteShader(shader_object_);
 		throw std::runtime_error(type_string + "compilation failed.");
 	}
-}
-
-ShaderObject::~ShaderObject(void)
-{
-	glDeleteShader(shader_object_);
-}
-
-ShaderObject& ShaderObject::operator=(ShaderObject&& other)
-{
-	if (this != &other)
-	{
-		glDeleteShader(shader_object_);
-		shader_object_ = std::move(other.shader_object_);
-	}
-
-	return *this;
 }
 
 ShaderObject ShaderObject::from_file(GLenum shader_type, const char* source_file)
@@ -588,15 +478,8 @@ ShaderObject ShaderObject::vertex_passthrough(void)
 }
 
 // ShaderProgram
-ShaderProgram::ShaderProgram(void)
-{
-	shader_program_ = glCreateProgram();
-}
-
 ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObject& fragment_shader)
 {
-	shader_program_ = glCreateProgram();
-
 	glAttachShader(shader_program_, vertex_shader);
 	glAttachShader(shader_program_, fragment_shader);
 
@@ -607,15 +490,13 @@ ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObje
 	}
 }
 
-ShaderProgram::ShaderProgram(const char* vertex_source, const char* fragment_source)
-:	ShaderProgram(ShaderObject(GL_VERTEX_SHADER, vertex_source),
+ShaderProgram::ShaderProgram(const char* vertex_source, const char* fragment_source) :
+	ShaderProgram(ShaderObject(GL_VERTEX_SHADER, vertex_source),
 	              ShaderObject(GL_FRAGMENT_SHADER, fragment_source))
 {}
 
 ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObject& geometry_shader, const ShaderObject& fragment_shader)
 {
-	shader_program_ = glCreateProgram();
-
 	glAttachShader(shader_program_, vertex_shader);
 	glAttachShader(shader_program_, geometry_shader);
 	glAttachShader(shader_program_, fragment_shader);
@@ -625,22 +506,6 @@ ShaderProgram::ShaderProgram(const ShaderObject& vertex_shader, const ShaderObje
 		std::cerr << "Shader program linking failed. Info log:" << std::endl << get_info_log();
 		throw std::runtime_error("Shader program linking failed.");
 	}
-}
-
-ShaderProgram::~ShaderProgram(void)
-{
-	glDeleteProgram(shader_program_);
-}
-
-ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other)
-{
-	if (this != &other)
-	{
-		glDeleteProgram(shader_program_);
-		shader_program_ = std::move(other.shader_program_);
-	}
-
-	return *this;
 }
 
 GLint ShaderProgram::link(void)
