@@ -134,7 +134,10 @@ void GLFWImGui::render(int width, int height, GLuint framebuffer)
 	int fb_width  = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
 	int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
 	if (fb_width == 0 || fb_height == 0)
+	{
+		ImGui::EndFrame();
 		return;
+	}
 
 	ImGui::Render();
 	auto draw_data = ImGui::GetDrawData();
