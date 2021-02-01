@@ -26,6 +26,7 @@ public:
 	~Handle (void);
 
 	Handle& operator= (Handle&& other) noexcept;
+	Handle& operator= (GLuint h)       noexcept;
 
 	// This class is standard-layout; these exist just as a convenience
 	// for getting the right pointer type without casting.
@@ -65,6 +66,16 @@ auto Handle<gen, del>::operator=(Handle&& other) noexcept -> Handle&
 		other.h_ = 0;
 	}
 
+	return *this;
+}
+
+template <const GenFuncP* gen, const DelFuncP* del>
+auto Handle<gen, del>::operator=(GLuint h) noexcept -> Handle&
+{
+	if constexpr (del != nullptr)
+		(*del)(1, &h_);
+
+	h_ = h;
 	return *this;
 }
 }
