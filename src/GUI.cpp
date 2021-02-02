@@ -44,7 +44,9 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 
 	// Set style.
 	auto& style = ImGui::GetStyle();
-	style.WindowRounding = 0.0f;
+	style.WindowRounding    = 0.0f;
+	style.WindowBorderSize  = 0.0f;
+	style.ScrollbarRounding = 0.0f;
 
 	style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.10f, 0.12f, 0.14f, 1.00f);
 	style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.12f, 0.14f, 0.16f, 0.90f);
@@ -69,10 +71,8 @@ GUI::GUI(MainWindow& window, Layering& layering) :
 	style.Colors[ImGuiCol_ResizeGrip]            = ImVec4(0.69f, 0.91f, 1.00f, 0.45f);
 	style.Colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.69f, 0.91f, 1.00f, 0.59f);
 	style.Colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.69f, 0.91f, 1.00f, 0.78f);
-	style.Colors[ImGuiCol_CloseButton]           = ImVec4(0.50f, 0.78f, 0.90f, 0.50f);
-	style.Colors[ImGuiCol_CloseButtonHovered]    = ImVec4(0.70f, 0.84f, 0.90f, 0.60f);
 	style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.32f, 0.65f, 0.78f, 0.35f);
-	style.Colors[ImGuiCol_ModalWindowDarkening]  = ImVec4(0.08f, 0.08f, 0.08f, 0.67f);
+	style.Colors[ImGuiCol_ModalWindowDimBg]      = ImVec4(0.08f, 0.08f, 0.08f, 0.67f);
 
 	// Set default GUI font.
 	auto& io = ImGui::GetIO();
@@ -106,7 +106,7 @@ void GUI::render(int width, int height, GLuint framebuffer)
 	                   (int)(width - horizontal_margin), (int)(height - vertical_margin) };
 
 	bool kek = true;
-	ImGui::ShowTestWindow(&kek);
+	ImGui::ShowDemoWindow(&kek);
 
 	implementation_.render(width, height, framebuffer);
 }
@@ -166,9 +166,9 @@ void GUI::draw_settings_window(void)
 	flags |= ImGuiWindowFlags_NoTitleBar;
 	flags |= ImGuiWindowFlags_NoMove;
 
-	ImGui::SetNextWindowSize({settings_width_, height - vertical_margin}, ImGuiSetCond_Always);
+	ImGui::SetNextWindowSize({settings_width_, height - vertical_margin}, ImGuiCond_Always);
 	ImGui::SetNextWindowSizeConstraints({0, -1}, {FLT_MAX, FLT_MAX});
-	ImGui::SetNextWindowPos({0, top_margin_}, ImGuiSetCond_Always);
+	ImGui::SetNextWindowPos({0, top_margin_}, ImGuiCond_Always);
 	if (ImGui::Begin("Settings", settings_window_visible_, flags))
 	{
 		settings_width_ =  ImGui::GetWindowWidth();
@@ -207,9 +207,10 @@ void GUI::draw_usage_window(void)
 {
 	auto& io = ImGui::GetIO();
 
-	auto flags = ImGuiWindowFlags_ShowBorders | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
-	ImGui::SetNextWindowSize({350, 0}, ImGuiSetCond_Appearing);
-	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, top_margin_}, ImGuiSetCond_Appearing);
+	auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
+	ImGui::SetNextWindowSize({350, 0}, ImGuiCond_Appearing);
+	ImGui::SetNextWindowPos({io.DisplaySize.x - 350, top_margin_}, ImGuiCond_Appearing);
 	if (ImGui::Begin("Usage", usage_window_visible_, flags))
 	{
 		ImGui::Bullet();
@@ -230,6 +231,7 @@ void GUI::draw_usage_window(void)
 		ImGui::TextWrapped("Control + Spacebar to toggle the frame in the symmetrified view.");
 	}
 	ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 [[deprecated]]
@@ -400,7 +402,7 @@ void GUI::draw_layer_settings(void)
 			bool image_selected     = (image_idx == current_image_idx);
 			const auto& image_label = layer.image(image_idx).name();
 
-			ImGui::AlignFirstTextHeightToWidgets();
+			ImGui::AlignTextToFramePadding();
 
 			// Image selection.
 			if (ImGui::Selectable(image_label.c_str(), image_selected && layer_selected))
@@ -662,7 +664,7 @@ void GUI::draw_symmetry_modal(void)
 
 void GUI::draw_general_toggles(void)
 {
-	ImGui::AlignFirstTextHeightToWidgets();
+	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Show frame:"); ImGui::SameLine(110);
 	ImGui::Checkbox("##Show frame", frame_visible_);
 

@@ -19,6 +19,7 @@ GLFWImGui::GLFWImGui(MainWindow& window) :
 	middle_clicked_          (false),
 	mouse_wheel_             (0.0)
 {
+	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();
 
 	io.KeyMap[ImGuiKey_Tab]        = GLFW_KEY_TAB;
@@ -63,7 +64,6 @@ GLFWImGui::GLFWImGui(MainWindow& window) :
 
 	create_fonts_texture();
 
-	io.RenderDrawListsFn = NULL;
 	io.SetClipboardTextFn = &GLFWImGui::set_clipboard_text;
 	io.GetClipboardTextFn = &GLFWImGui::get_clipboard_text;
 	io.ClipboardUserData = (GLFWwindow*)window_;
@@ -83,7 +83,7 @@ GLFWImGui::GLFWImGui(MainWindow& window) :
 GLFWImGui::~GLFWImGui(void)
 {
 	ImGui::GetIO().Fonts->TexID = 0;
-	ImGui::Shutdown();
+	ImGui::DestroyContext();
 }
 
 void GLFWImGui::new_frame(void)
