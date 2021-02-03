@@ -7,6 +7,7 @@ file(GLOB_RECURSE INCLUDE_FILES include/*)
 set(IMGUI_SRC_FILES
 	external/imgui/imgui.cpp
 	external/imgui/imgui_draw.cpp
+	external/imgui/imgui_widgets.cpp
 	external/imgui/imgui_demo.cpp
 )
 

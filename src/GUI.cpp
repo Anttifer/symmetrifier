@@ -683,9 +683,9 @@ void GUI::draw_view_settings(void)
 	static bool was_open_last_frame = false;
 
 	if (*view_settings_visible_ && !was_open_last_frame)
-		ImGui::SetNextTreeNodeOpen(true);
+		ImGui::SetNextItemOpen(true);
 	else if (!*view_settings_visible_ && was_open_last_frame)
-		ImGui::SetNextTreeNodeOpen(false);
+		ImGui::SetNextItemOpen(false);
 
 	if (ImGui::TreeNodeEx("View settings", flags))
 	{
@@ -708,7 +708,7 @@ void GUI::draw_view_settings(void)
 		if (ImGui::DragFloat("##Zoom level", &pixels_per_unit))
 			*pixels_per_unit_ = pixels_per_unit;
 		ImGui::PopItemWidth();
-		ImGui::SameLine(0, 12);
+		ImGui::SameLine();
 		if (ImGui::Button("Reset##Reset zoom level"))
 			pixels_per_unit_.reset();
 
@@ -746,9 +746,9 @@ void GUI::draw_current_object_settings(void)
 	static bool was_open_last_frame = false;
 
 	if (*object_settings_visible_ && !was_open_last_frame)
-		ImGui::SetNextTreeNodeOpen(true);
+		ImGui::SetNextItemOpen(true);
 	else if (!*object_settings_visible_ && was_open_last_frame)
-		ImGui::SetNextTreeNodeOpen(false);
+		ImGui::SetNextItemOpen(false);
 
 	if (layer.has_current_image())
 	{
@@ -809,7 +809,7 @@ void GUI::draw_current_frame_settings(void)
 	if (ImGui::DragFloat("##Frame rotation", &frame_rotation, 0.5f))
 		layer.tiling().set_rotation(frame_rotation / 180.0 * M_PI);
 	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
+	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset frame rotation"))
 		layer.tiling().set_rotation(tiling_rotation_default_);
 
@@ -819,7 +819,7 @@ void GUI::draw_current_frame_settings(void)
 	if (ImGui::DragFloat("##Frame scale", &frame_scale, 0.01f, 0.001f, FLT_MAX))
 		layer.tiling().set_scale(frame_scale);
 	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
+	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset frame scale"))
 		layer.tiling().set_scale(tiling_scale_default_);
 
@@ -857,7 +857,7 @@ void GUI::draw_current_image_settings(void)
 	if (ImGui::DragFloat("##Image rotation", &image_rotation, 0.5f))
 		layer.image(idx).set_rotation(image_rotation / 180.0f * M_PI);
 	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
+	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset image rotation"))
 		layer.image(idx).set_rotation(image_rotation_default_);
 
@@ -867,7 +867,7 @@ void GUI::draw_current_image_settings(void)
 	if (ImGui::DragFloat("##Image scale", &image_scale, 0.01f, 0.001f, FLT_MAX))
 		layer.image(idx).set_scale(image_scale);
 	ImGui::PopItemWidth();
-	ImGui::SameLine(0, 12);
+	ImGui::SameLine();
 	if (ImGui::Button("Reset##Reset image scale"))
 		layer.image(idx).set_scale(image_scale_default_);
 }
@@ -881,9 +881,9 @@ void GUI::draw_export_settings(void)
 	static bool was_open_last_frame = false;
 
 	if (*export_settings_visible_ && !was_open_last_frame)
-		ImGui::SetNextTreeNodeOpen(true);
+		ImGui::SetNextItemOpen(true);
 	else if (!*export_settings_visible_ && was_open_last_frame)
-		ImGui::SetNextTreeNodeOpen(false);
+		ImGui::SetNextItemOpen(false);
 
 	if (ImGui::TreeNodeEx("Export settings", flags))
 	{
@@ -923,7 +923,7 @@ void GUI::draw_export_settings(void)
 		if (ImGui::InputText("##Filename", buffer, 256, ImGuiInputTextFlags_CharsNoBlank))
 			export_filename_ = buffer;
 		ImGui::PopItemWidth();
-		ImGui::SameLine(0, 12);
+		ImGui::SameLine();
 		if (ImGui::Button("Reset##Reset filename"))
 			export_filename_ = export_base_name_ + '_' + ctiling.symmetry_group() + ".png";
 
