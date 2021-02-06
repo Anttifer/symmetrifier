@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.13)
 project(symmetry)
 
 file(GLOB_RECURSE SRC_FILES src/*)
@@ -17,12 +17,6 @@ set(GLEW_USE_STATIC_LIBS ON)
 find_package(Eigen3 REQUIRED)
 find_package(GLEW REQUIRED)
 
-if(NOT MSVC)
-	string(APPEND CMAKE_CXX_FLAGS_DEBUG
-		" -O0 -Wall -Wextra -Wshadow -pedantic"
-)
-endif()
-
 option(GLFW_BUILD_DOCS "Build GLFW docs" OFF)
 option(GLFW_BUILD_TESTS "Build GLFW tests" OFF)
 option(GLFW_BUILD_EXAMPLES "Build GLFW examples" OFF)
@@ -34,7 +28,12 @@ add_library(imgui STATIC
 )
 
 target_include_directories(imgui
-	PUBLIC
+	PRIVATE
+	external/imgui
+)
+
+target_include_directories(imgui
+	SYSTEM INTERFACE
 	external/imgui
 )
 
@@ -46,6 +45,10 @@ add_executable(symmetrifier
 target_include_directories(symmetrifier
 	PRIVATE
 	include
+)
+
+target_include_directories(symmetrifier
+	SYSTEM PRIVATE
 	external/stb
 	${EIGEN3_INCLUDE_DIRS}
 )
@@ -62,7 +65,23 @@ set_property(TARGET symmetrifier PROPERTY CXX_STANDARD 17)
 if(MSVC)
 	set_property(TARGET symmetrifier PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT symmetrifier)
-	target_compile_definitions(symmetrifier PRIVATE _USE_MATH_DEFINES)
+	target_compile_definitions(symmetrifier PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
+	target_compile_options(symmetrifier
+		PRIVATE
+		$<$<CONFIG:DEBUG>:
+			/Od /W4>
+	)
+	target_link_options(symmetrifier
+		PRIVATE
+		$<$<CONFIG:RELEASE>:
+			/SUBSYSTEM:windows /ENTRY:mainCRTStartup>
+	)
+else()
+	target_compile_options(symmetrifier
+		PRIVATE
+		$<$<CONFIG:DEBUG>:
+			-O0 -Wall -Wextra -Wshadow -pedantic -Wno-address>
+	)
 endif()
 
 add_custom_command(TARGET symmetrifier POST_BUILD COMMAND
