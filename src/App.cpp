@@ -144,7 +144,7 @@ void App::render_layer(const Layer& layer, const Rectangle<int>& viewport, GLuin
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_coordinate_uniform;
 	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
+	[[maybe_unused]] static const bool init = [&]{
 		instance_num_uniform       = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform           = glGetUniformLocation(shader, "uPos");
 		t1_uniform                 = glGetUniformLocation(shader, "uT1");
@@ -156,7 +156,6 @@ void App::render_layer(const Layer& layer, const Rectangle<int>& viewport, GLuin
 		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
-	(void)init; // Suppress unused variable warning.
 
 	const auto& domain_texture = layer.domain_texture();
 
@@ -209,7 +208,7 @@ void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport
 	static GLuint image_t2_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
+	[[maybe_unused]] static const bool init = [&]{
 		viewport_size_uniform   = glGetUniformLocation(shader, "uScreenSize");
 		view_center_uniform     = glGetUniformLocation(shader, "uScreenCenter");
 		image_position_uniform  = glGetUniformLocation(shader, "uImagePos");
@@ -219,7 +218,6 @@ void App::render_layer_images(const Layer& layer, const Rectangle<int>& viewport
 		texture_sampler_uniform = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
-	(void)init; // Suppress unused variable warning.
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	glActiveTexture(GL_TEXTURE1);
@@ -271,7 +269,7 @@ void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
 	static GLuint num_domains_uniform;
 	static GLuint mesh_sampler_uniform;
 	static GLuint texture_sampler_uniform;
-	static bool init = [&](){
+	[[maybe_unused]] static const bool init = [&]{
 		instance_num_uniform       = glGetUniformLocation(shader, "uNumInstances");
 		frame_position_uniform     = glGetUniformLocation(shader, "uFramePos");
 		t1_uniform                 = glGetUniformLocation(shader, "uT1");
@@ -287,7 +285,6 @@ void App::render_scene_hq(const Rectangle<int>& viewport, GLuint framebuffer)
 		texture_sampler_uniform    = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
-	(void)init; // Suppress unused variable warning.
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
@@ -358,7 +355,7 @@ void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& view
 	static GLuint view_center_uniform;
 	static GLuint pixels_per_unit_uniform;
 	static GLuint render_overlay_uniform;
-	static bool init = [&](){
+	[[maybe_unused]] static const bool init = [&]{
 		instance_num_uniform    = glGetUniformLocation(shader, "uNumInstances");
 		position_uniform        = glGetUniformLocation(shader, "uPos");
 		t1_uniform              = glGetUniformLocation(shader, "uT1");
@@ -369,11 +366,10 @@ void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& view
 		render_overlay_uniform  = glGetUniformLocation(shader, "uRenderOverlay");
 		return true;
 	}();
-	(void)init; // Suppress unused variable warning.
 
 	// Create overlay mesh once.
 	static Mesh overlay;
-	static bool init_overlay = [&](){
+	[[maybe_unused]] static const bool init_overlay = [&]{
 		overlay.positions_ = {
 			{0, 0, 0}, {1, 0, 0}, {1, 1, 0},
 			{1, 1, 0}, {0, 1, 0}, {0, 0, 0}
@@ -381,7 +377,6 @@ void App::render_symmetry_frame(const Tiling& tiling, const Rectangle<int>& view
 		overlay.update_buffers();
 		return true;
 	}();
-	(void)init_overlay;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
@@ -424,13 +419,12 @@ void App::render_export_frame(const Rectangle<int>& viewport, GLuint framebuffer
 	static GLuint viewport_uniform;
 	static GLuint stripe_size_uniform;
 	static GLuint vertical_crop_uniform;
-	static bool init = [&](){
+	[[maybe_unused]] static const bool init = [&]{
 		viewport_uniform        = glGetUniformLocation(shader, "uViewport");
 		stripe_size_uniform     = glGetUniformLocation(shader, "uStripeSize");
 		vertical_crop_uniform   = glGetUniformLocation(shader, "uVerticalCrop");
 		return true;
 	}();
-	(void)init; // Suppress unused variable warning.
 
 	float AR      = viewport.width / (float)viewport.height;
 	float crop_AR = export_width_ / (float)export_height_;

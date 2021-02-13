@@ -140,7 +140,7 @@ void Layer::symmetrify(void) const
 	static GLuint image_position_uniform;
 	static GLuint image_basis_inv_uniform;
 	static GLuint sampler_uniform;
-	static bool init = [&](){
+	[[maybe_unused]] static const bool init = [&]{
 		lattice_position_uniform = glGetUniformLocation(shader, "uLatticePos");
 		lattice_basis_uniform    = glGetUniformLocation(shader, "uLatticeBasis");
 		image_position_uniform   = glGetUniformLocation(shader, "uImagePos");
@@ -148,7 +148,6 @@ void Layer::symmetrify(void) const
 		sampler_uniform          = glGetUniformLocation(shader, "uTextureSampler");
 		return true;
 	}();
-	(void)init; // Suppress unused variable warning.
 
 	// Find the maximum image dimension.
 	auto dimension = 512u;
