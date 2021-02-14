@@ -79,39 +79,43 @@ Texture Texture::from_png(const char* filename, bool& successful)
 {
 	assert(filename != nullptr);
 
-	int width, height, channels;
-	unsigned char* ud_image = stbi_load(filename, &width, &height, &channels, 4);
+	[[maybe_unused]] static const bool init = []{
+		stbi_set_flip_vertically_on_load(1);
+		return true;
+	}();
+	static const unsigned char error_image[] = {
+		255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
+		  0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,
+		255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
+		  0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255
+	};
 
-	std::vector<unsigned char> image;
-	if (ud_image != NULL)
+	const unsigned char* image;
+
+	int width, height, channels;
+	unsigned char* loaded_image = stbi_load(filename, &width, &height, &channels, 4);
+
+	if (loaded_image != NULL)
 	{
 		successful = true;
-		image.resize(4 * width * height);
-
-		for (size_t i = 0; i < height; ++i)
-		{
-			for (size_t j = 0; j < 4 * width; ++j)
-				image[4 * width * i + j] = ud_image[4 * width * (height - (1 + i)) + j];
-		}
+		image = loaded_image;
 	}
 	else
 	{
 		successful = false;
 		width = height = 4;
-		image = { 255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
-		            0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,
-		          255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,
-		            0, 255,   0, 255,  255,   0, 255, 255,    0, 255,   0, 255,  255,   0, 255, 255 };
+		image = error_image;
 		std::cerr << "PNG loading failed for " << filename << std::endl
 		          << "Error: " << stbi_failure_reason() << std::endl;
 	}
-	stbi_image_free(ud_image);
 
 	Texture texture;
 
 	GLint old_tex; glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_tex);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+	stbi_image_free(loaded_image);
 
 	if (successful)
 	{
