@@ -466,7 +466,8 @@ void App::mouse_position_callback(double x, double y)
 	const auto& layer_drag = layer.from_world_direction(drag_position);
 
 	// Move object.
-	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+	    glfwGetKey(window_, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)
 	{
 		if (layer.has_current_image())
 			layer.current_image().set_position(object_static_position_ + layer_drag);
@@ -555,7 +556,8 @@ void App::mouse_scroll_callback(double /* x_offset */, double y_offset)
 	auto& layer         = layering_.current_layer();
 	const auto& ctiling = layer.as_const().tiling();
 
-	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+	if (glfwGetKey(window_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+	    glfwGetKey(window_, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)
 	{
 		if (layer.has_current_image())
 		{
@@ -590,7 +592,7 @@ void App::keyboard_callback(int key, int /* scancode */, int action, int mods)
 
 	if (key == GLFW_KEY_SPACE)
 	{
-		if (mods & GLFW_MOD_CONTROL)
+		if (mods & GLFW_MOD_SHIFT)
 			show_symmetry_frame_ ^= true;
 		else
 			show_result_ ^= true;
